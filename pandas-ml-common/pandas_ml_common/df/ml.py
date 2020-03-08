@@ -13,10 +13,10 @@ class ML(object):
     @property
     def values(self):
         # get raw values
-        values = unpack_nested_arrays(self.df.values)
+        values = unpack_nested_arrays(self.df)
 
         # return in multi level shape if multi index is used
-        if isinstance(self.df.columns, pd.MultiIndex):
+        if hasattr(self.df, 'columns') and isinstance(self.df.columns, pd.MultiIndex):
             index_shape = multi_index_shape(self.df.columns)
             values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
 

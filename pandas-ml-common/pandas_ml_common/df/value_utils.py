@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Callable
 
 import numpy as np
 import pandas as pd
@@ -23,10 +23,12 @@ def unpack_nested_arrays(df: pd.DataFrame):
         return values
 
 
-def get_pandas_object(po: PandasObject, item):
+def get_pandas_object(po: PandasObject, item, **kwargs):
     if isinstance(item, PandasObject):
         return item
     else:
+        if isinstance(item, Callable):
+            pass
         if isinstance(item, List):
             res = None
             for sub_item in item:
