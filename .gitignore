@@ -1,0 +1,11 @@
+.idea/
+.ipynb_checkpoints/
+__pycache__/
+.pytest_cache/
+*foo*
+*foo*/
+*log*
+*log*/
+dist/
+_build/
+.scratch.py
