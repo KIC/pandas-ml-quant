@@ -37,20 +37,20 @@ class FeaturesAndLabels(object):
                        :class:`.MultiModel` or if you want to provide extra information about the label. i.e. you
                        want to classify whether a stock price is below or above average and you want to provide what
                        the average was. It is also possible to provide a Callable[[df, ...magic], labels] which returns
-                       the expected data structure.
+                       the expected .data structure.
         :param label_type: whether to treat a label as int, float, bool
         :param sample_weights: sample weights get passed to the model.fit function. In keras for example this can be
                                used for imbalanced classes
-        :param gross_loss: expects a callable[[df, target, ...magic], df] which receives the source data frame and a
-                           target (or None) and should return a series or data frame. Let's say you want to classify
+        :param gross_loss: expects a callable[[df, target, ...magic], df] which receives the source .data frame and a
+                           target (or None) and should return a series or .data frame. Let's say you want to classify
                            whether a printer is jamming the next page or not. Halting and servicing the printer costs
                            5'000 while a jam costs 15'000. Your target will be 0 or empty but your gross loss will be
                            -5000 for all your type II errors and -15'000 for all your type I errors in case of miss-
                            classification. Another example would be if you want to classify whether a stock price is
                            above (buy) the current price or not (do nothing). Your target is the today's price and your
                            loss is tomorrows price minus today's price.
-        :param targets: expects a callable[[df, targets, ...magic], df] which receives the source data frame and a
-                        target (or None) and should return a series or data frame. In case of multiple targets the
+        :param targets: expects a callable[[df, targets, ...magic], df] which receives the source .data frame and a
+                        target (or None) and should return a series or .data frame. In case of multiple targets the
                         series names need to be unique!
         :param feature_lags: an iterable of integers specifying the lags of an AR model i.e. [1] for AR(1)
                              if the un-lagged feature is needed as well provide also lag of 0 like range(1)
@@ -59,9 +59,9 @@ class FeaturesAndLabels(object):
         :param lag_smoothing: very long lags in an AR model can be a bit fuzzy, it is possible to smooth lags i.e. by
                               using moving averages. the key is the lag length at which a smoothing function starts to
                               be applied
-        :param pre_processor: provide a callable[[df, ...magic], df] returning an eventually augmented data frame from
-                              a given source data frame and self.kwargs. This is useful if you have i.e. data cleaning
-                              tasks. This way you can apply the model directly on the raw data.
+        :param pre_processor: provide a callable[[df, ...magic], df] returning an eventually augmented .data frame from
+                              a given source .data frame and self.kwargs. This is useful if you have i.e. .data cleaning
+                              tasks. This way you can apply the model directly on the raw .data.
         :param kwargs: maybe you want to pass some extra parameters to a callable you have provided
         """
         self._features = features
@@ -143,6 +143,11 @@ class FeaturesAndLabels(object):
         copy = deepcopy(self)
         copy.kwargs = join_kwargs(self.kwargs, kwargs)
         return copy
+
+    def __call__(self, extractor: callable, *args, **kwargs):
+        # FIXME the goal is to perform something like df.ml.extract(self: FeaturesAndLabels) where we define a default
+        # extractor
+        pass
 
     def __repr__(self):
         return f'FeaturesAndLabels({self.features},{self.labels},{self.targets},' \
