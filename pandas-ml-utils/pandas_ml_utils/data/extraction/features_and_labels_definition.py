@@ -1,3 +1,4 @@
+import pandas as pd
 import inspect
 import logging
 from copy import deepcopy
@@ -141,10 +142,22 @@ class FeaturesAndLabels(object):
 
     def with_kwargs(self, **kwargs):
         copy = deepcopy(self)
-        copy.kwargs = join_kwargs(self.kwargs, kwargs)
+        copy.kwargs = {**self.kwargs, **kwargs}
         return copy
 
-    def __call__(self, extractor: callable, *args, **kwargs):
+    def __call__(self, df: pd.DataFrame, extractor: callable, *args, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """
+        An extractor needs to be provided which turns a data frame into 3 data frames:
+        * features
+        * labels
+        * sampe_weights
+
+        :param extractor:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
         # FIXME the goal is to perform something like df.ml.extract(self: FeaturesAndLabels) where we define a default
         # extractor
         pass

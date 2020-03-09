@@ -7,3 +7,5 @@ _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")
 _log.debug(f"pandas version {pd.__version__}")
 
+
+setattr(PandasObject, "quant", property(lambda self: Quant(self)))

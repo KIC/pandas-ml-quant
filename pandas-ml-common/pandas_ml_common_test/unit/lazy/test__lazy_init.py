@@ -17,8 +17,8 @@ class TestLazyInit(TestCase):
         val = lazy_val()
 
         """when"""
-        serialize(lazy_val, '/tmp/test.dill')
-        lazy_val_2 = deserialize('/tmp/test.dill', LazyInit)
+        serialize(lazy_val, '/tmp/pandas_ml_common_test.dill')
+        lazy_val_2 = deserialize('/tmp/pandas_ml_common_test.dill', LazyInit)
 
         """then"""
         self.assertEqual(12, K.eval(val))

@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 
 from pandas_ml_common import ML, pd
-from test.config import TEST_DF, TEST_MULTI_INDEX_DF
+from pandas_ml_common_test.config import TEST_DF, TEST_MULTI_INDEX_DF
 
 
 class TestMLValues(TestCase):

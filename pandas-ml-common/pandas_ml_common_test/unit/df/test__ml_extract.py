@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from test.config import TEST_DF
+from pandas_ml_common_test.config import TEST_DF
 
 
 class TestMLExtraction(TestCase):
