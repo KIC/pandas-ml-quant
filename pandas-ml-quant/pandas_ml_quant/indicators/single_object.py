@@ -3,6 +3,7 @@ from typing import Union as _Union
 # create convenient type hint
 import numpy as _np
 import pandas as _pd
+from scipy.stats import zscore
 
 from pandas_ml_quant.indicators.utils import wilders_smoothing
 

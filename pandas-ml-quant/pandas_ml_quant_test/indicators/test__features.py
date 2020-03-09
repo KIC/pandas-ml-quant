@@ -131,7 +131,7 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me, ta)
 
     def test__cci(self):
-        me = ta_cci(DF_TEST, ddof=0)[-100:]
+        me = ta_cci(DF_TEST)[-100:]
         ta = talib.CCI(DF_TEST["High"], DF_TEST["Low"], DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta / 100)
@@ -173,6 +173,6 @@ class TestIndicator(TestCase):
 
         np.testing.assert_array_almost_equal(
             me,
-            np.array([[308.406, 309.257, 310.108, 311.81, 313.512, 314.363, 315.214]]),
+            np.array([[308.406, 309.257, 310.108, 310.959, 311.81, 312.661, 313.512, 314.363, 315.214]]),
             0.001)
 

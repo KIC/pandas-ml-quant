@@ -16,3 +16,4 @@ _log.debug(f"pandas version {pd.__version__}")
 
 
 setattr(PandasObject, "ml", property(lambda self: ML(self)))
+setattr(pd.DataFrame, "to_frame", lambda self: self)

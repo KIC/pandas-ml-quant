@@ -1,9 +1,12 @@
+import logging
 import re
 from typing import List, Callable
 
 import numpy as np
 import pandas as pd
 from pandas.core.base import PandasObject
+
+_log = logging.getLogger(__name__)
 
 
 def unpack_nested_arrays(df: pd.DataFrame):
@@ -24,7 +27,10 @@ def unpack_nested_arrays(df: pd.DataFrame):
 
 
 def get_pandas_object(po: PandasObject, item, **kwargs):
-    if isinstance(item, PandasObject):
+    if item is None:
+        _log.warning("passed item was None")
+        return None
+    elif isinstance(item, PandasObject):
         return item
     else:
         if isinstance(item, Callable):
