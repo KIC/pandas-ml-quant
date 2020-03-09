@@ -4,10 +4,11 @@ import pandas as pd
 from sortedcontainers import SortedDict
 
 
-def auto_regression(df: Union[pd.Series, pd.DataFrame],
-                    feature_lags: Iterable[int],
-                    lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None
-                    ) -> Tuple[pd.DataFrame, int]:
+def shape_for_auto_regression(df: Union[pd.Series, pd.DataFrame],
+                              feature_lags: Iterable[int],
+                              lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None
+                              ) -> Tuple[pd.DataFrame, int]:
+    df = df.to_frame()
     dff = pd.DataFrame({}, index=df.index)
 
     # return RNN shaped 3D arrays
