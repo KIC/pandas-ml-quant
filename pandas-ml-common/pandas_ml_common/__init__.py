@@ -2,12 +2,13 @@
 __version__ = '0.1.0'
 
 import logging
+
 import numpy as np
 import pandas as pd
 from pandas.core.base import PandasObject
 
 from pandas_ml_common.df.ml import ML
-
+from pandas_ml_common.lazy import *
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")

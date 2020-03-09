@@ -26,10 +26,10 @@ class TestMLValues(TestCase):
         self.assertListEqual([a_y, b_y, c_y], df.ml[a_x].columns.tolist())
 
         # test 2nd level
-        self.assertListEqual([(a_x, b_y), (b_x, b_y), (c_x, b_y)], df.ml[b_y].columns.tolist())
+        self.assertListEqual([(b_y, a_x), (b_y, b_x), (b_y, c_x)], df.ml[b_y].columns.tolist())
 
         # test regex
-        self.assertListEqual([(a_x, a_y), (a_x, a_y), (a_x, b_y), (a_x, c_y), (b_x, a_y), (c_x, a_y)],
+        self.assertListEqual([(a_x, a_y), (a_x, b_y), (a_x, c_y), (b_x, a_y), (c_x, a_y)],
                              df.ml["a_."].columns.tolist())
 
     def test__item_normal_index(self):

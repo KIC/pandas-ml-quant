@@ -28,6 +28,7 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
         return item
     else:
         if isinstance(item, Callable):
+            # FIXME also allow callables where we pass kwargs and such ...
             pass
         if isinstance(item, List):
             res = None
@@ -49,13 +50,17 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
                     else:
                         if isinstance(po.columns, pd.MultiIndex):
                             # try partial match
-                            cols = [col for col in po.columns.tolist() if item in col]
+                            cols = {col: col.index(item) for col in po.columns.tolist() if item in col}
 
                             if len(cols) <= 0:
                                 # try regex
-                                cols = [col for col in po.columns.tolist() for part in col if re.compile(item).match(part)]
+                                cols = {col: i for col in po.columns.tolist() for i, part in enumerate(col) if re.compile(item).match(part)}
 
-                            return po[cols]
+                            levels = set(cols.values())
+                            if len(levels) == 1:
+                                return po[cols.keys()].swaplevel(0, levels.pop(), axis=1)
+                            else:
+                                return po[cols.keys()]
                         else:
                             # try regex
                             return po[list(filter(re.compile(item).match, po.columns))]

@@ -1,5 +1,7 @@
-import pandas as pd
+from typing import Union
+
 import numpy as np
+import pandas as pd
 
 from pandas_ml_common.df.index_utils import multi_index_shape
 from pandas_ml_common.df.value_utils import unpack_nested_arrays, get_pandas_object
@@ -11,7 +13,14 @@ class ML(object):
         self.df = df
 
     @property
-    def values(self):
+    def values(self) -> np.ndarray:
+        """
+        In contrast to pandas.values the ml.values returns a n-dimensional array with respect to MultiIndex and/or
+        nested numpy arrays inside of cells
+
+        :return: numpy array with shape of MultiIndex and/or nested arrays from cells
+        """
+
         # get raw values
         values = unpack_nested_arrays(self.df)
 
@@ -22,5 +31,11 @@ class ML(object):
 
         return values
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
+        """
+        # FIXME add text, can be regex ... dynamic call etc .. .
+
+        :param item:
+        :return:
+        """
         return get_pandas_object(self.df, item)
