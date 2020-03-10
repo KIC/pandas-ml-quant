@@ -34,6 +34,8 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         )
 
         print(features, labels, weights)
+        # TODO add a shape test here
+
 
 """
     FeaturesAndLabels(
