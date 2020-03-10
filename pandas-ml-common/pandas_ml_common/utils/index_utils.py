@@ -6,7 +6,7 @@ from typing import List
 import pandas as pd
 from pandas.core.base import PandasObject
 
-from pandas_ml_common.callable_utils import call_callable_dynamic_args
+from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 
 _log = logging.getLogger(__name__)
 
@@ -36,9 +36,17 @@ def intersection_of_index(*dfs: pd.DataFrame):
     intersect_index = dfs[0].index
 
     for i in range(1, len(dfs)):
-        intersect_index = intersect_index.intersection(dfs[i].index)
+        if dfs[i] is not None:
+            intersect_index = intersect_index.intersection(dfs[i].index)
 
     return intersect_index
+
+
+def loc_if_not_none(df, value):
+    if df is None:
+        return None
+    else:
+        return df.loc[value]
 
 
 def get_pandas_object(po: PandasObject, item, **kwargs):

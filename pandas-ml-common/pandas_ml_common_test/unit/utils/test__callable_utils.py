@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from pandas_ml_common.callable_utils import call_callable_dynamic_args
+from pandas_ml_common import pd, np
+from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args, call_if_not_none
 
 
 class TestCallableUtils(TestCase):
@@ -35,3 +36,13 @@ class TestCallableUtils(TestCase):
         self.assertTrue(call_callable_dynamic_args(lambda a, b: True, 1, 2))
         self.assertRaises(Exception, lambda: call_callable_dynamic_args(lambda a, b: True, 1))
         self.assertRaises(Exception, lambda: call_callable_dynamic_args(lambda a, b: True, 1, c=1))
+
+    def test_call_if_not_none(self):
+        df1 = pd.DataFrame({"a": [np.nan]})
+        df2 = None
+
+        self.assertIsNone(call_if_not_none(df2, 'dropna'))
+        self.assertEqual(0, len(call_if_not_none(df1, 'dropna')))
+        self.assertEqual(1, len(df1))
+
+

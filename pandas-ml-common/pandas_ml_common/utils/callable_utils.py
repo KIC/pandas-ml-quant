@@ -27,3 +27,10 @@ def suitable_kwargs(func, **kwargs):
     suitable_args = inspect.getfullargspec(func).args
     return {arg: kwargs[arg] for arg in kwargs.keys() if arg in suitable_args}
 
+
+def call_if_not_none(obj, method, *args, **kwargs):
+    if obj is None:
+        return None
+    else:
+        attr = getattr(obj, method)
+        return attr(*args, ** kwargs) if callable(attr) else attr

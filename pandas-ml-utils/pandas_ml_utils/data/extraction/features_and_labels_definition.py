@@ -3,7 +3,7 @@ from typing import List, Callable, Tuple, Union, Any, TypeVar
 
 import pandas as pd
 
-from pandas_ml_common.callable_utils import call_callable_dynamic_args
+from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 from pandas_ml_utils.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
 
 T = TypeVar('T', str, List, Callable[[Any], Union[pd.DataFrame, pd.Series]])

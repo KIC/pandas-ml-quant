@@ -35,10 +35,11 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         print(features, labels, weights)
         print(features.ml.values.shape, labels.ml.values.shape)
-
+        print(len(df))
         # we need RNN shape to be [row, time_step, feature]
         self.assertEqual((6470, 280, 2), features.ml.values.shape)
-
+        self.assertEqual(len(features), len(labels))
+        self.assertLess(len(features), len(df))
         # TODO add a  label shape test here (need to be one hot encoded
 
 

@@ -3,7 +3,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.callable_utils import call_callable_dynamic_args
+from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 from pandas_ml_common.utils import multi_index_shape, get_pandas_object, unpack_nested_arrays
 
 
