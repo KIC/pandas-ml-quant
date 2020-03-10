@@ -3,6 +3,7 @@ from typing import List, Callable, Tuple, Union, Any, TypeVar
 
 import pandas as pd
 
+from pandas_ml_common.callable_utils import call_callable_dynamic_args
 from pandas_ml_utils.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
 
 T = TypeVar('T', str, List, Callable[[Any], Union[pd.DataFrame, pd.Series]])
@@ -19,11 +20,11 @@ class FeaturesAndLabels(object):
     """
 
     def __init__(self,
-                 features: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]],
-                 labels: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]],
-                 sample_weights: Union[str, Callable[[Any, ...], pd.Series]] = None,
-                 gross_loss: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]] = None,
-                 targets: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]] = None,
+                 features: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]],
+                 labels: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]],
+                 sample_weights: Union[str, Callable[[Any], pd.Series]] = None,
+                 gross_loss: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
+                 targets: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
                  **kwargs):
         """
         :param features: a list of column names which are used as features for your model
@@ -50,7 +51,7 @@ class FeaturesAndLabels(object):
         """
         self._features = features
         self._labels = labels
-        self._weights = sample_weights
+        self._sample_weights = sample_weights
         self._targets = targets
         self._gross_loss = gross_loss
         self.kwargs = kwargs
@@ -64,8 +65,8 @@ class FeaturesAndLabels(object):
         return self._labels
 
     @property
-    def weights(self):
-        return self._weights
+    def sample_weights(self):
+        return self._sample_weights
 
     @property
     def targets(self):
@@ -77,9 +78,9 @@ class FeaturesAndLabels(object):
 
     @property
     def min_required_samples(self):
-        return self._min_required_samples # FIXME min samples ... hmm ....
+        return None # FIXME self._min_required_samples # FIXME min samples ... hmm ....
 
-    def with_labels(self, labels: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]]):
+    def with_labels(self, labels: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]]):
         copy = deepcopy(self)
         copy._labels = labels
         return copy
@@ -94,28 +95,11 @@ class FeaturesAndLabels(object):
                  extractor: callable = extract_feature_labels_weights,
                  *args,
                  **kwargs) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame, pd.Series]]:
-        """
-        An extractor needs to be provided which turns a data frame into 3 data frames:
-        * features
-        * labels
-        * sampe_weights
-
-        :param extractor:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-
-        # FIXME the goal is to perform something like df.ml.extract(self: FeaturesAndLabels) where we define a default
-        # plan:
+        # Basic concept:
         #  we call an extractor(df, **{**self.kwargs, **kwargs})
         #  this extractor uses 'get_pandas_object' which itself can handle lambdas with dependecies
         #  injected from available kwargs
-
-        pass
-
-    def __eq__(self, other):
-        return self.__id__() == other.__id__()
+        return call_callable_dynamic_args(extractor, df, self, **{**self.kwargs, **kwargs})
 
     def __hash__(self):
         return hash(self.__id__())
@@ -125,6 +109,9 @@ class FeaturesAndLabels(object):
 
     def __str__(self):
         return self.__repr__()
+
+    def __eq__(self, other):
+        return self.__id__() == other.__id__() if isinstance(other, FeaturesAndLabels) else False
 
     def __repr__(self):
         return f'FeaturesAndLabels({self.features}, {self.labels}, {self.weights}, {self.targets})'

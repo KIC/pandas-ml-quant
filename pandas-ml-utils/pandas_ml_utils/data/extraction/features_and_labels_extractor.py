@@ -1,11 +1,20 @@
+from typing import Tuple
+
 import pandas as pd
 from pandas_ml_common.df.utils.index_utils import get_pandas_object
 
 
-def extract_feature_labels_weights(df: pd.DataFrame, **kwargs):
-    get_pandas_object(None, None, **kwargs)
+def extract_feature_labels_weights(
+        df: pd.DataFrame,
+        features_and_labels,
+        **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+    features = get_pandas_object(df, features_and_labels.features, **kwargs)
+    labels = get_pandas_object(df, features_and_labels.labels, **kwargs)
+    sample_weights = get_pandas_object(df, features_and_labels.sample_weights, **kwargs)
+
+    return (features, labels, sample_weights)
 
 
-def extract_features(df: pd.DataFrame, **kwargs):
+def extract_features(df: pd.DataFrame, features_and_labels, **kwargs):
     get_pandas_object(None, None, **kwargs)
 
