@@ -1,13 +1,12 @@
-import pandas as pd
-import inspect
-import logging
 from copy import deepcopy
-from typing import List, Callable, Iterable, Dict, Type, Tuple, Union, Any
+from typing import List, Callable, Tuple, Union, Any, TypeVar
 
+import pandas as pd
 
-_log = logging.getLogger(__name__)
-_LABELS = Union[List[str], TargetLabelEncoder, Dict[str, Union[List[str], TargetLabelEncoder]]]
-_LABELS = Union[_LABELS, Callable[[Any], _LABELS]]
+from pandas_ml_utils.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
+
+T = TypeVar('T', str, List, Callable[[Any], Union[pd.DataFrame, pd.Series]])
+
 
 # This class should be able to be pickled and unpickled without risk of change between versions
 # This means business logic need to be kept outside of this class!
@@ -20,16 +19,11 @@ class FeaturesAndLabels(object):
     """
 
     def __init__(self,
-                 features: List[str],
-                 labels: _LABELS,
-                 label_type: Type = None,
-                 sample_weights: Union[Dict[str, str], str] = None,
-                 gross_loss: Callable[[str, pd.DataFrame], Union[pd.Series, pd.DataFrame]] = None,
-                 targets: Callable[[str, pd.DataFrame], Union[pd.Series, pd.DataFrame]] = None,
-                 feature_lags: Iterable[int] = None,
-                 feature_rescaling: Dict[Tuple[str, ...], Tuple[int, ...]] = None,  # TODO lets provide a rescaler ..
-                 lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None,
-                 pre_processor: Callable[[pd.DataFrame, Dict], pd.DataFrame] = lambda x: x,
+                 features: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]],
+                 labels: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]],
+                 sample_weights: Union[str, Callable[[Any, ...], pd.Series]] = None,
+                 gross_loss: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]] = None,
+                 targets: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]] = None,
                  **kwargs):
         """
         :param features: a list of column names which are used as features for your model
@@ -39,7 +33,6 @@ class FeaturesAndLabels(object):
                        want to classify whether a stock price is below or above average and you want to provide what
                        the average was. It is also possible to provide a Callable[[df, ...magic], labels] which returns
                        the expected .data structure.
-        :param label_type: whether to treat a label as int, float, bool
         :param sample_weights: sample weights get passed to the model.fit function. In keras for example this can be
                                used for imbalanced classes
         :param gross_loss: expects a callable[[df, target, ...magic], df] which receives the source .data frame and a
@@ -53,16 +46,6 @@ class FeaturesAndLabels(object):
         :param targets: expects a callable[[df, targets, ...magic], df] which receives the source .data frame and a
                         target (or None) and should return a series or .data frame. In case of multiple targets the
                         series names need to be unique!
-        :param feature_lags: an iterable of integers specifying the lags of an AR model i.e. [1] for AR(1)
-                             if the un-lagged feature is needed as well provide also lag of 0 like range(1)
-        :param feature_rescaling: this allows to rescale features.
-                                  in a dict we can define a tuple of column names and a target range
-        :param lag_smoothing: very long lags in an AR model can be a bit fuzzy, it is possible to smooth lags i.e. by
-                              using moving averages. the key is the lag length at which a smoothing function starts to
-                              be applied
-        :param pre_processor: provide a callable[[df, ...magic], df] returning an eventually augmented .data frame from
-                              a given source .data frame and self.kwargs. This is useful if you have i.e. .data cleaning
-                              tasks. This way you can apply the model directly on the raw .data.
         :param kwargs: maybe you want to pass some extra parameters to a callable you have provided
         """
         self._features = features
@@ -70,16 +53,7 @@ class FeaturesAndLabels(object):
         self._weights = sample_weights
         self._targets = targets
         self._gross_loss = gross_loss
-        self.label_type = label_type
-        self.feature_lags = [lag for lag in feature_lags] if feature_lags is not None else None
-        self.feature_rescaling = feature_rescaling
-        self.lag_smoothing = lag_smoothing
-        self.len_feature_lags = sum(1 for _ in self.feature_lags) if self.feature_lags is not None else 1
-        self.expanded_feature_length = len(features) * self.len_feature_lags if feature_lags is not None else len(features)
-        self._min_required_samples = None
-        self.pre_processor = pre_processor
         self.kwargs = kwargs
-        _log.info(f'number of features, lags and total: {self.len_features()}')
 
     @property
     def features(self):
@@ -103,39 +77,9 @@ class FeaturesAndLabels(object):
 
     @property
     def min_required_samples(self):
-        return self._min_required_samples
+        return self._min_required_samples # FIXME min samples ... hmm ....
 
-    @property
-    def shape(self) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
-        """
-        Returns the shape of features and labels how they get passed to the :class:`.Model`. If laging is used, then
-        the features shape is in Keras RNN form.
-
-        :return: a tuple of (features.shape, labels.shape)
-        """
-        if self.feature_lags is not None:
-            return (len(self.feature_lags), len(self.features)), (self.len_labels(), )
-        else:
-            return (len(self.features), ), (self.len_labels(), )
-
-    def len_features(self) -> Tuple[int, ...]:
-        """
-        Returns the length of the defined features, the number of lags used and the total number of all features * lags
-
-        :return: tuple of (#features, #lags, #features * #lags)
-        """
-
-        return len(self.features), self.len_feature_lags, self.expanded_feature_length
-
-    def len_labels(self) -> int:
-        """
-        Returns the number of labels
-
-        :return:  number of labels
-        """
-        return len(self.labels)
-
-    def with_labels(self, labels: _LABELS):
+    def with_labels(self, labels: Union[str, List[T], Callable[[Any, ...], Union[pd.DataFrame, pd.Series]]]):
         copy = deepcopy(self)
         copy._labels = labels
         return copy
@@ -145,7 +89,11 @@ class FeaturesAndLabels(object):
         copy.kwargs = {**self.kwargs, **kwargs}
         return copy
 
-    def __call__(self, df: pd.DataFrame, extractor: callable, *args, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def __call__(self,
+                 df: pd.DataFrame,
+                 extractor: callable = extract_feature_labels_weights,
+                 *args,
+                 **kwargs) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame, pd.Series]]:
         """
         An extractor needs to be provided which turns a data frame into 3 data frames:
         * features
@@ -159,31 +107,25 @@ class FeaturesAndLabels(object):
         """
 
         # FIXME the goal is to perform something like df.ml.extract(self: FeaturesAndLabels) where we define a default
-        # extractor
+        # plan:
+        #  we call an extractor(df, **{**self.kwargs, **kwargs})
+        #  this extractor uses 'get_pandas_object' which itself can handle lambdas with dependecies
+        #  injected from available kwargs
+
         pass
-
-    def __repr__(self):
-        return f'FeaturesAndLabels({self.features},{self.labels},{self.targets},' \
-               f'{self.feature_lags},{self.feature_rescaling}{self.lag_smoothing}) ' \
-               f'#{len(self.features)} ' \
-               f'features expand to {self.expanded_feature_length}'
-
-    def __hash__(self):
-        return hash(self.__id__())
 
     def __eq__(self, other):
         return self.__id__() == other.__id__()
 
+    def __hash__(self):
+        return hash(self.__id__())
+
     def __id__(self):
-        import dill  # only import if really needed
-        smoothers = ""
-
-        if self.lag_smoothing is not None:
-            smoothers = {feature: inspect.getsource(smoother) for feature, smoother in self.lag_smoothing.items()}
-
-        return f'{self.features},{self.labels},{self.label_type},{self.targets},{dill.dumps(self.feature_lags)},{self.feature_rescaling},{smoothers}'
+        return self.__repr__()
 
     def __str__(self):
         return self.__repr__()
 
+    def __repr__(self):
+        return f'FeaturesAndLabels({self.features}, {self.labels}, {self.weights}, {self.targets})'
 

@@ -32,6 +32,15 @@ def multi_index_shape(index: pd.MultiIndex):
     return tuple(len(x) for x in sets)
 
 
+def intersection_of_index(*dfs: pd.DataFrame):
+    intersect_index = dfs[0].index
+
+    for i in range(1, len(dfs)):
+        intersect_index = intersect_index.intersection(dfs[i].index)
+
+    return intersect_index
+
+
 def get_pandas_object(po: PandasObject, item, **kwargs):
     if item is None:
         _log.warning("passed item was None")

@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 
 from pandas_ml_quant import pd
-from pandas_ml_quant.indicators.auto_regression import shape_for_auto_regression
+from pandas_ml_quant.indicators.auto_regression import ta_shape_for_auto_regression
 from pandas_ml_quant_test.config import DF_TEST
 
 
@@ -11,7 +11,7 @@ class TestRegressionLagging(TestCase):
 
     def test_auto_regression_simple(self):
         df = DF_TEST.copy()
-        rnn, min_needed_data = shape_for_auto_regression(df[["Close", "Volume"]], [1, 2])
+        rnn, min_needed_data = ta_shape_for_auto_regression(df[["Close", "Volume"]], [1, 2])
 
         self.assertEqual(2, min_needed_data)
         np.testing.assert_array_almost_equal(
@@ -28,9 +28,9 @@ class TestRegressionLagging(TestCase):
         #                                        ^                      # this is where the df starts
 
         """when lag smoothing is enabled using shift (which is introducing nan into the data frame)"""
-        rnn, min_needed_data = shape_for_auto_regression(df[["featureA"]],
-                                                         feature_lags=[0, 1],
-                                                         lag_smoothing={1: lambda df: df["featureA"].shift(2)})
+        rnn, min_needed_data = ta_shape_for_auto_regression(df[["featureA"]],
+                                                            feature_lags=[0, 1],
+                                                            lag_smoothing={1: lambda df: df["featureA"].shift(2)})
 
 
         len_features = 10 - 1 - 2
