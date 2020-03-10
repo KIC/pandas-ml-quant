@@ -56,7 +56,7 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
         if isinstance(item, List):
             res = None
             for sub_item in item:
-                sub_po = get_pandas_object(po, sub_item)
+                sub_po = get_pandas_object(po, sub_item, **kwargs)
                 if isinstance(sub_po, pd.Series):
                     res = sub_po.to_frame()  if res is None else res.join(sub_po)
                 elif isinstance(sub_po, pd.DataFrame):

@@ -17,11 +17,12 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         features, labels, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280), # FIXME vorsicht das ta_shape gibt auch noch ein min required samples zurück
-                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)
+                    lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280)[0], # FIXME vorsicht das ta_shape gibt auch noch ein min required samples zurück
+                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)[0]
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs),
+                    #lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs),
+                    lambda df, forecasting_time_steps, stddevs: df["Close"],
                 ],
                 targets=[
                     lambda df, stddevs: df["Close"].ta_multi_bbands(period=14, stddevs=stddevs),

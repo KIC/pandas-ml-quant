@@ -10,15 +10,23 @@ class Quant(object):
     def __init__(self, df: pd.DataFrame):
         self.df = df
 
-        # add all indicators
-        for indicator_functions in [single_object_indicators, multi_object_indicators, auto_regressive_indicators]:
-            for indicator_function in dir(indicator_functions):
-                if indicator_function.startswith("ta_"):
-                    setattr(self, indicator_function, getattr(indicator_functions, indicator_function))
-
-
     @property
     def plot(self):
         pass
+
+
+# add all indicators
+def wrapper(func):
+    def wrapped(quant, *args, **kwargs):
+        return func(quant.df, *args, **kwargs)
+
+    return wrapped
+
+
+for indicator_functions in [single_object_indicators, multi_object_indicators, auto_regressive_indicators]:
+    for indicator_function in dir(indicator_functions):
+        if indicator_function.startswith("ta_"):
+            setattr(Quant, indicator_function, wrapper(getattr(indicator_functions, indicator_function)))
+
 
 

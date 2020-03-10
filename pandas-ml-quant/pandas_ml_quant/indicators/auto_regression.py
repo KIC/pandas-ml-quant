@@ -21,7 +21,7 @@ def ta_shape_for_auto_regression(df: Union[pd.Series, pd.DataFrame],
             smoothers = SortedDict({lag: smoother(feature_series.to_frame())
                                     for lag, smoother in lag_smoothing.items()})
 
-        for lag in feature_lags:
+        for lag in (feature_lags if isinstance(feature_lags, Iterable) else range(feature_lags)):
             # if smoothed values are applicable use smoothed values
             if smoothers is not None and len(smoothers) > 0 and smoothers.peekitem(0)[0] <= lag:
                 feature_series = smoothers.popitem(0)[1]
