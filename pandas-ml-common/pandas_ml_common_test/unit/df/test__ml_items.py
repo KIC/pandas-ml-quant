@@ -53,3 +53,13 @@ class TestMLValues(TestCase):
         df = pd.DataFrame({}, columns=[a_x, b_y, c_y])
 
         self.assertListEqual([a_x, b_y], df.ml[[a_x, df[b_y]]].columns.tolist())
+
+    def test_callable(self):
+        df = pd.DataFrame({}, columns=[a_x, b_y])
+
+        self.assertListEqual([a_x, b_y], df.ml[lambda df: df[[a_x, b_y]]].columns.tolist())
+
+    def test_callable_misins(self):
+        df = pd.DataFrame({}, columns=[a_x, a_y, b_y, c_y])
+
+        self.assertListEqual([a_x, b_y, a_y], df.ml[[a_x, df[b_y], lambda df: df[a_y]]].columns.tolist())

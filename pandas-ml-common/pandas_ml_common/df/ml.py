@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common.callable_utils import call_callable_dynamic_args
-from pandas_ml_common.df.utils.index_utils import multi_index_shape
-from pandas_ml_common.df.utils.value_utils import unpack_nested_arrays, get_pandas_object
+from pandas_ml_common.df.utils.index_utils import multi_index_shape, get_pandas_object
+from pandas_ml_common.df.utils.value_utils import unpack_nested_arrays
 
 
 class ML(object):
