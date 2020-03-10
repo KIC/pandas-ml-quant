@@ -1,3 +1,22 @@
-pandas-ml-common>=0.1.1
-numpy
+pandas-ml-common
+# use python 3.7.3 eventaully by using pyenv: curl https://pyenv.run | bash
+sortedcontainers
+scikit-learn
+statsmodels
+tensorflow==1.14.0
+matplotlib
+cachetools
+requests
+yfinance
+hyperopt
+pymongo
+keras-rl
+requests
+seaborn
 pandas
+numpy
+keras
+Mako
+h5py
+dill
+gym
