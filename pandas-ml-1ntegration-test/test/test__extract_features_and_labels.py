@@ -34,7 +34,12 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         )
 
         print(features, labels, weights)
-        # TODO add a shape test here
+        print(features.ml.values.shape, labels.ml.values.shape)
+
+        # we need RNN shape to be [row, time_step, feature]
+        self.assertEqual((6470, 280, 2), features.ml.values.shape)
+
+        # TODO add a  label shape test here (need to be one hot encoded
 
 
 """

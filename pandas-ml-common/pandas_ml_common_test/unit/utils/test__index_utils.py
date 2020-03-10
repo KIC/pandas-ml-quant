@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from pandas_ml_common import pd
-from pandas_ml_common.df.utils.index_utils import intersection_of_index
+from pandas_ml_common.utils import intersection_of_index
 
 
 class TestDfIndexUtils(TestCase):

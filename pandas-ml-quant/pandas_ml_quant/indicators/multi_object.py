@@ -6,7 +6,7 @@ import pandas as _pd
 from pandas.core.base import PandasObject
 
 from pandas_ml_quant.indicators.single_object import ta_ema, ta_wilders, ta_sma
-from pandas_ml_common.df.utils.index_utils import get_pandas_object
+from pandas_ml_common.utils import get_pandas_object
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
