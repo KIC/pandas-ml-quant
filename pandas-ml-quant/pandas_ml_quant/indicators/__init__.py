@@ -1,3 +1,7 @@
+from .auto_regression import *
+from .single_object import *
+from .multi_object import *
+
 """
 this module basically re-implements all oscillators from TA-Lib:
   https://mrjbq7.github.io/ta-lib/func_groups/momentum_indicators.html

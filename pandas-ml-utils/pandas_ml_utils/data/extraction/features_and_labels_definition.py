@@ -25,35 +25,40 @@ class FeaturesAndLabels(object):
                  sample_weights: Union[str, Callable[[Any], pd.Series]] = None,
                  gross_loss: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
                  targets: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
+                 min_required_samples: Union[int, Callable[[Any], int]] = None,
                  **kwargs):
         """
         :param features: a list of column names which are used as features for your model
         :param labels: as list of column names which are uses as labels for your model. you can specify one ore more
-                       named targets for a set of labels by providing a dict. This is useful if you want to train a
-                       :class:`.MultiModel` or if you want to provide extra information about the label. i.e. you
-                       want to classify whether a stock price is below or above average and you want to provide what
-                       the average was. It is also possible to provide a Callable[[df, ...magic], labels] which returns
-                       the expected .data structure.
+            named targets for a set of labels by providing a dict. This is useful if you want to train a
+            :class:`.MultiModel` or if you want to provide extra information about the label. i.e. you
+            want to classify whether a stock price is below or above average and you want to provide what
+            the average was. It is also possible to provide a Callable[[df, ...magic], labels] which returns
+            the expected .data structure.
         :param sample_weights: sample weights get passed to the model.fit function. In keras for example this can be
-                               used for imbalanced classes
+             used for imbalanced classes
         :param gross_loss: expects a callable[[df, target, ...magic], df] which receives the source .data frame and a
-                           target (or None) and should return a series or .data frame. Let's say you want to classify
-                           whether a printer is jamming the next page or not. Halting and servicing the printer costs
-                           5'000 while a jam costs 15'000. Your target will be 0 or empty but your gross loss will be
-                           -5000 for all your type II errors and -15'000 for all your type I errors in case of miss-
-                           classification. Another example would be if you want to classify whether a stock price is
-                           above (buy) the current price or not (do nothing). Your target is the today's price and your
-                           loss is tomorrows price minus today's price.
+            target (or None) and should return a series or .data frame. Let's say you want to classify whether a
+            printer is jamming the next page or not. Halting and servicing the printer costs 5'000 while a jam costs
+            15'000. Your target will be 0 or empty but your gross loss will be -5000 for all your type II errors and
+            -15'000 for all your type I errors in case of miss-classification. Another example would be if you want to
+            classify whether a stock price is above (buy) the current price or not (do nothing). Your target is the
+            today's price and your loss is tomorrows price minus today's price.
         :param targets: expects a callable[[df, targets, ...magic], df] which receives the source .data frame and a
-                        target (or None) and should return a series or .data frame. In case of multiple targets the
-                        series names need to be unique!
+            target (or None) and should return a series or .data frame. In case of multiple targets the series names
+            need to be unique!
+        :param min_required_samples: in case you only want to do one prediction and have some feature engineering
+            you might need some minimum amount of samples to engineer your features. This can be None but it increases
+            performance if you provide it.
         :param kwargs: maybe you want to pass some extra parameters to a callable you have provided
         """
+
         self._features = features
         self._labels = labels
         self._sample_weights = sample_weights
         self._targets = targets
         self._gross_loss = gross_loss
+        self._min_required_samples = min_required_samples
         self.kwargs = kwargs
 
     @property
@@ -77,8 +82,8 @@ class FeaturesAndLabels(object):
         return self._gross_loss
 
     @property
-    def min_required_samples(self):
-        return None # FIXME self._min_required_samples # FIXME min samples ... hmm ....
+    def min_required_samples(self) -> Union[int, Callable[[Any], int]]:
+        return self._min_required_samples
 
     def with_labels(self, labels: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]]):
         copy = deepcopy(self)
