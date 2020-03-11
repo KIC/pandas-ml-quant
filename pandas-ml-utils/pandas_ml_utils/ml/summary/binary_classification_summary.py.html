@@ -1,0 +1,91 @@
+<%
+    from pandas_ml_utils.utils.functions import fig_to_png_base64
+
+    interpretation = {
+        "FP Ratio": "FN/TP Ratio (should be < 0.5, ideally 0)",
+        "FN Ratio": "FP/TP Ratio (should be < 0.5, ideally 0)",
+        "F1 Score": "F1 Score (should be > 0.5, ideally 1)"
+    }
+    color = {
+        "FP Ratio": ["green", "orange", "red"],
+        "FN Ratio": ["green", "orange", "red"],
+        "F1 Score": ["red","orange", "green"]
+    }
+%>
+
+<%include file="../style.html"/>
+
+<div class="full-width">
+    <%def name="pretty_confusion_matrix(mx, fmt)">
+        <table class="right">
+            <thead>
+                <tr>
+                    <th>Prediction/Truth</th>
+                    <th>True</th>
+                    <th>False</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>True</td>
+                    <td style="color: green;">${fmt.format(mx[0,0])}</td>
+                    <td style="color: orange;">${fmt.format(mx[0,1])}</td>
+                </tr>
+                <tr>
+                    <td>False</td>
+                    <td style="color: red;">${fmt.format(mx[1,0])}</td>
+                    <td style="color: grey;">${fmt.format(mx[1,1])}</td>
+                </tr>
+            </tbody>
+        </table>
+    </%def>
+
+    <h3><p>Confusion Matrix</p></h3>
+    <table class="full-width">
+        <thead>
+            <tr>
+                <th><p class="left">Confusion Matrix</p></th>
+                <th><p class="right">Confusion Loss</p></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><div class="left">${pretty_confusion_matrix(summary.get_confusion_matrix(), "{:.0f}")}</div></td>
+                <td><div class="right">${pretty_confusion_matrix(summary.get_confusion_loss(), "{:.2f}")}</div></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="right">
+                    <table>
+                        % for name, value in summary.get_metrics().items():
+                            <tr>
+                                <td>${interpretation[name]}</td>
+                                <td style="color: ${color[name][0 if value < 0.33 else 1 if value < 0.66 else 2]};">${f"{value:.2f}"}</td>
+                            </tr>
+                        % endfor
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+
+        <h3><p>Loss</p></h3>
+        <table>
+            <thead>
+                <tr>
+                    <th><p class="left">Chart</p></th>
+                </tr>
+            </thead>
+            <tbody>
+                % for target, plot in summary.plot_classification().items():
+                <tr>
+                    <td>
+                        <p>${target or ""}</p>
+                        <img src='data:image/png;base64,${fig_to_png_base64(plot)}' class="full-width"/>
+                    </td>
+                </tr>
+                % endfor
+            </tbody>
+        </table>
+</div>
