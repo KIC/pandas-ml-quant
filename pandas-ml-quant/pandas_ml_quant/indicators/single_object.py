@@ -173,3 +173,21 @@ def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=
     return df
 
 
+def ta_week_day(po: _PANDAS):
+    if not isinstance(po.index, _pd.DatetimeIndex):
+        df = po.copy()
+        df.index = _pd.to_datetime(df.index)
+    else:
+        df = po
+
+    return (df.index.dayofweek / 6.0).to_series(index=po.index)
+
+
+def ta_week(po: _PANDAS):
+    if not isinstance(po.index, _pd.DatetimeIndex):
+        df = po.copy()
+        df.index = _pd.to_datetime(df.index)
+    else:
+        df = po
+
+    return (df.index.week / 52.0).to_series(index=po.index)

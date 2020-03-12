@@ -176,3 +176,15 @@ class TestIndicator(TestCase):
             np.array([[308.406, 309.257, 310.108, 310.959, 311.81, 312.661, 313.512, 314.363, 315.214]]),
             0.001)
 
+    def test_ta_weekday(self):
+        me = ta_week_day(DF_TEST["Close"])[-1:]
+
+        np.testing.assert_almost_equal(0.5, me.values[0])
+
+    def test_ta_week(self):
+        me = ta_week(DF_TEST["Close"])
+
+        np.testing.assert_almost_equal(0.9423, me.values[-1], 4)
+        np.testing.assert_almost_equal(0.0192, me.loc["2017-01-03"], 4)
+        np.testing.assert_almost_equal(1.0, me.loc["2017-12-29"], 4)
+
