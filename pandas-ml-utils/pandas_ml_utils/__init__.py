@@ -4,7 +4,7 @@ __version__ = '0.1.0'
 import sys as _sys
 
 from pandas_ml_common import *
-from pandas_ml_utils.data.extraction import *
+from pandas_ml_utils.ml.data import *
 from pandas_ml_utils.df.model import Model as DfModelExtension
 from pandas_ml_utils.ml.model import *
 

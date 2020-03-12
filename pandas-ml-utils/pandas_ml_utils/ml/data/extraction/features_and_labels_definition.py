@@ -4,7 +4,7 @@ from typing import List, Callable, Tuple, Union, Any, TypeVar
 import pandas as pd
 
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
-from pandas_ml_utils.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
+from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
 
 T = TypeVar('T', str, List, Callable[[Any], Union[pd.DataFrame, pd.Series]])
 
@@ -59,7 +59,7 @@ class FeaturesAndLabels(object):
         self._targets = targets
         self._gross_loss = gross_loss
         self._min_required_samples = min_required_samples
-        self.kwargs = kwargs
+        self._kwargs = kwargs
 
     @property
     def features(self):
@@ -84,6 +84,10 @@ class FeaturesAndLabels(object):
     @property
     def min_required_samples(self) -> Union[int, Callable[[Any], int]]:
         return self._min_required_samples
+
+    @property
+    def kwargs(self):
+        return self._kwargs
 
     def with_labels(self, labels: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]]):
         copy = deepcopy(self)

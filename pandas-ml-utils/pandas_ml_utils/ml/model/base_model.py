@@ -6,7 +6,7 @@ import dill as pickle
 import numpy as np
 import pandas as pd
 
-from pandas_ml_utils.data.extraction.features_and_labels_definition import FeaturesAndLabels
+from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 
 

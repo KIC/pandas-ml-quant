@@ -25,3 +25,7 @@ def extract_feature_labels_weights(
 def extract_features(df: pd.DataFrame, features_and_labels, **kwargs):
     return get_pandas_object(df, features_and_labels.features, **kwargs)
 
+
+def extract(features_and_labels, df, extractor, *args, **kwargs):
+    return features_and_labels(df, extractor, *args, **kwargs)
+

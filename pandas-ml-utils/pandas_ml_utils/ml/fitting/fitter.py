@@ -9,6 +9,9 @@ import pandas as pd
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 
+from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwargs
+from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract
+from pandas_ml_utils.ml.data.splitting import train_test_split
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
@@ -25,7 +28,8 @@ def fit(df: pd.DataFrame,
         youngest_size: float = None,
         cross_validation: Tuple[int, Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]] = None,
         test_validate_split_seed = 42,
-        hyper_parameter_space: Dict = None
+        hyper_parameter_space: Dict = None,
+        **kwargs
         ) -> Fit:
     """
 
@@ -36,7 +40,7 @@ def fit(df: pd.DataFrame,
     :param test_size: the fraction [0, 1] of random samples which are used for a test set
     :param youngest_size: the fraction [0, 1] of the test samples which are not random but are the youngest
     :param cross_validation: tuple of number of epochs for each fold provider and a cross validation provider
-    :param test_validate_split_seed: seed if train, test split needs to be reproduceable. A magic seed 'youngest' is
+    :param test_validate_split_seed: seed if train, test splitting needs to be reproduceable. A magic seed 'youngest' is
                                      available, which just uses the youngest data as test data
     :param hyper_parameter_space: space of hyper parameters passed as kwargs to your model provider
     :return: returns a :class:`pandas_ml_utils.model.fitting.fit.Fit` object
@@ -44,14 +48,18 @@ def fit(df: pd.DataFrame,
 
     trails = None
     model = model_provider()
-    features_and_labels = FeatureTargetLabelExtractor(df, model.features_and_labels, **model.kwargs)
-    _log.info(f"create model ({features_and_labels})")
+    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
+    features, labels, weights = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    # make training and test data sets
-    train, test = features_and_labels.training_and_test_data(test_size, youngest_size, seed=test_validate_split_seed)
+    start_performance_count = perf_counter()
+    _log.info("create model")
+
+    # get indices and make training and test data sets
+    train_idx, test_idx = train_test_split(features.index, test_size, youngest_size, test_validate_split_seed)
+    train = (features.loc[train_idx], labels.loc[train_idx], loc_if_not_none(weights, train_idx))
+    test = (features.loc[test_idx], labels.loc[test_idx], loc_if_not_none(weights, test_idx))
 
     # eventually perform a hyper parameter optimization first
-    start_performance_count = log_with_time(lambda: _log.info("fit model"))
     if hyper_parameter_space is not None:
         # next isolate hyperopt parameters and constants only used for hyper parameter tuning like early stopping
         constants = {}
@@ -76,20 +84,18 @@ def fit(df: pd.DataFrame,
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
-    df_train = features_and_labels.prediction_to_frame(model.predict(train[0].feature_values), index=train[0].index, inclusive_labels=True)
-    df_test = features_and_labels.prediction_to_frame(model.predict(test[0].feature_values), index=test[0].index, inclusive_labels=True) \
+    # FIXME add the logic back to the prediction data frame
+    df_train = features_and_labels.prediction_to_frame(model.predict(train[0].ml.values), index=train[0].index, inclusive_labels=True)
+    df_test = features_and_labels.prediction_to_frame(model.predict(test[0].ml.values), index=test[0].index, inclusive_labels=True) \
         if len(test[0]) > 0 else None
-
-    # update minimum required samples
-    model.features_and_labels._min_required_samples = features_and_labels.min_required_samples
 
     # return the fit
     return Fit(model, model.summary_provider(df_train), model.summary_provider(df_test), trails)
 
 
 def __train_loop(model, cross_validation, train, test):
-    x_train, y_train, w_train = train[0].feature_values, train[1].label_values, train[2].values if train[2] is not None else None
-    x_test, y_test, w_test = test[0].feature_values, test[1].label_values, test[2].values if test[2] is not None else None
+    x_train, y_train, w_train = train[0].ml.values, train[1].ml.values, call_if_not_none(train[2], "values")
+    x_test, y_test, w_test = test[0].ml.values, test[1].ml.values, call_if_not_none(test[2], "values")
 
     # apply cross validation
     if cross_validation is not None and isinstance(cross_validation, Tuple) and callable(cross_validation[1]):

@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from pandas_ml_utils import pd, np
-from pandas_ml_utils.data.split.training_test_data import train_test_split
+from pandas_ml_utils.ml.data.splitting import train_test_split
 
 
 class TestTrainTestData(TestCase):

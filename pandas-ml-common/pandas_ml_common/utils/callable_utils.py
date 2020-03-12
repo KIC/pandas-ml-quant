@@ -1,4 +1,5 @@
 import inspect
+from typing import Dict
 
 
 def call_callable_dynamic_args(func, *args, **kwargs):
@@ -34,3 +35,11 @@ def call_if_not_none(obj, method, *args, **kwargs):
     else:
         attr = getattr(obj, method)
         return attr(*args, ** kwargs) if callable(attr) else attr
+
+
+def merge_kwargs(*kwargs: Dict) -> Dict:
+    dict = {}
+    for d in kwargs:
+        dict = {**dict, **d}
+
+    return dict
