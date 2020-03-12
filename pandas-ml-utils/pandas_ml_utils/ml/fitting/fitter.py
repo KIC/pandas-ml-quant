@@ -9,12 +9,14 @@ import pandas as pd
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 
-from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwargs
+from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwargs, to_pandas
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract
 from pandas_ml_utils.ml.data.splitting import train_test_split
+from pandas_ml_utils.ml.data.reconstruction import assemble_prediction_frame
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
+from pandas_ml_utils.constants import *
 
 _log = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ def fit(df: pd.DataFrame,
     trails = None
     model = model_provider()
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    features, labels, weights = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+    features, labels, targets, weights = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     start_performance_count = perf_counter()
     _log.info("create model")
@@ -84,10 +86,12 @@ def fit(df: pd.DataFrame,
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
-    # FIXME add the logic back to the prediction data frame
-    df_train = features_and_labels.prediction_to_frame(model.predict(train[0].ml.values), index=train[0].index, inclusive_labels=True)
-    df_test = features_and_labels.prediction_to_frame(model.predict(test[0].ml.values), index=test[0].index, inclusive_labels=True) \
-        if len(test[0]) > 0 else None
+    prediction_train = to_pandas(model.predict(train[0].ml.values), train_idx, labels.columns)
+    prediction_test = to_pandas(model.predict(test[0].ml.values), test_idx, labels.columns)
+
+    targets = (loc_if_not_none(targets, train_idx), loc_if_not_none(targets, test_idx))
+    df_train = assemble_prediction_frame({TARGET_COLUMN_NAME: targets[0], PREDICTION_COLUMN_NAME: prediction_train, LABEL_COLUMN_NAME: train[1], FEATURE_COLUMN_NAME: train[0]})
+    df_test = assemble_prediction_frame({TARGET_COLUMN_NAME: targets[1], PREDICTION_COLUMN_NAME: prediction_test, LABEL_COLUMN_NAME: test[1], FEATURE_COLUMN_NAME: test[0]})
 
     # return the fit
     return Fit(model, model.summary_provider(df_train), model.summary_provider(df_test), trails)

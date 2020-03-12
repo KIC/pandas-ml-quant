@@ -14,7 +14,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape(self):
         df = DF_TEST.copy()
 
-        features, labels, weights = df.ml.extract(
+        features, labels, targets, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280),

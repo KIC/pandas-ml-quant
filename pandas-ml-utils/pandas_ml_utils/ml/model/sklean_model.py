@@ -23,6 +23,7 @@ class SkModel(Model):
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.skit_model = skit_model
+        self.label_shape = None
 
     def fit(self,
             x: np.ndarray, y: np.ndarray,
@@ -30,6 +31,7 @@ class SkModel(Model):
             sample_weight_train: np.ndarray, sample_weight_test: np.ndarray) -> float:
         # shape correction if needed
         y = y.ravel() if len(y.shape) > 1 and y.shape[1] == 1 else y
+        self.label_shape = y.shape
 
         # remember fitted model
         self.skit_model = self.skit_model.fit(SkModel.reshape_rnn_as_ar(x), y)
@@ -56,7 +58,7 @@ class SkModel(Model):
     def predict(self, x) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):
             y_hat = self.skit_model.predict_proba(SkModel.reshape_rnn_as_ar(x))
-            return y_hat[:, 1] if len(self.features_and_labels.labels) == 1 and y_hat.shape[1] == 2 else y_hat
+            return y_hat[:, 1] if len(self.label_shape) == 1 else y_hat.respahe(-1, *self.label_shape[1:])
         else:
             return self.skit_model.predict(SkModel.reshape_rnn_as_ar(x))
 

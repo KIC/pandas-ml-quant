@@ -6,7 +6,7 @@ import pandas as pd
 _log = logging.getLogger(__name__)
 
 
-def unpack_nested_arrays(df: pd.DataFrame):
+def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
     # get raw values
     values = df.values
 
@@ -25,3 +25,17 @@ def unpack_nested_arrays(df: pd.DataFrame):
         return values
 
 
+def to_pandas(arr, index, columns) -> pd.DataFrame:
+    if len(columns) == 1 and len(arr.shape) == 1:
+        return pd.DataFrame({columns[0]: arr}, index=index)
+
+    df = pd.DataFrame({}, index=index)
+
+    # TODO add logic for multi index
+    for i, col in enumerate(columns):
+        col_vals = arr[:, i]
+
+        # eventually we need to nest back multi dimensional arrays
+        df[col] = [row.tolist() for row in col_vals] if len(col_vals.shape > 1) else arr[:, i]
+
+    return df
