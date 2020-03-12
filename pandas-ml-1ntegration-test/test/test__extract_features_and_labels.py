@@ -51,7 +51,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape_two_labels(self):
         df = DF_TEST.copy()
 
-        features, labels, weights = df.ml.extract(
+        features, labels, targets, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280),
@@ -106,7 +106,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             file
         )
 
-        features, labels, weights = df.ml.extract(
+        features, labels, targets, weights = df.ml.extract(
             deserialize(file, FeaturesAndLabels),
             # kwargs of call
             forecasting_time_steps=7,
