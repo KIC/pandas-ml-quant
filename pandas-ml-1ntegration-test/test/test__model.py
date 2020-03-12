@@ -35,6 +35,10 @@ class TestModel(TestCase):
 
         print(fit)
 
+        prediction = df.model.predict(fit.model)
+        backtest = df.model.backtest(fit.model)
+
+
     def test_hyper_parameter_for_simple_model(self):
 
         pass

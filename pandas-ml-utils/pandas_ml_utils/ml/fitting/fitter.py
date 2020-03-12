@@ -10,7 +10,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 
 from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwargs, to_pandas
-from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract
+from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
 from pandas_ml_utils.ml.data.splitting import train_test_split
 from pandas_ml_utils.ml.data.reconstruction import assemble_prediction_frame
 from pandas_ml_utils.ml.fitting.fit import Fit
@@ -152,7 +152,7 @@ def __hyper_opt(hyper_parameter_space,
     return best_model, trails
 
 
-def predict(df: pd.DataFrame, model: Model, tail: int = None) -> pd.DataFrame:
+def predict(df: pd.DataFrame, model: Model, tail: int = None, **kwargs) -> pd.DataFrame:
     min_required_samples = model.features_and_labels.min_required_samples
 
     if tail is not None:
@@ -162,21 +162,20 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None) -> pd.DataFrame:
         else:
             _log.warning("could not determine the minimum required data from the model")
 
-    features_and_labels = FeatureTargetLabelExtractor(df, model.features_and_labels, **model.kwargs)
-    x = features_and_labels.features_df
-    y_hat = model.predict(x.feature_values)
+    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
+    columns, features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
+    y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=columns)
 
-    return features_and_labels.prediction_to_frame(y_hat, index=x.index, inclusive_labels=False)
+    return assemble_prediction_frame({TARGET_COLUMN_NAME: targets, PREDICTION_COLUMN_NAME: y_hat, FEATURE_COLUMN_NAME: features})
 
 
-def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary) -> Summary:
-    features_and_labels = FeatureTargetLabelExtractor(df, model.features_and_labels, **model.kwargs)
+def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
+    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
+    features, labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    # make training and test data sets
-    x = features_and_labels.features_df
-    y_hat = model.predict(x.feature_values)
+    y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=labels.columns)
 
-    df_backtest = features_and_labels.prediction_to_frame(y_hat, index=x.index, inclusive_labels=True, inclusive_source=True)
+    df_backtest = assemble_prediction_frame({TARGET_COLUMN_NAME: targets, PREDICTION_COLUMN_NAME: y_hat, LABEL_COLUMN_NAME: labels, FEATURE_COLUMN_NAME: features})
     return (summary_provider or model.summary_provider)(df_backtest)
 
 

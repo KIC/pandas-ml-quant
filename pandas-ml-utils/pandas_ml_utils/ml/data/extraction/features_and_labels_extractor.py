@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 
 import pandas as pd
 
@@ -24,8 +24,19 @@ def extract_feature_labels_weights(
     )
 
 
-def extract_features(df: pd.DataFrame, features_and_labels, **kwargs):
-    return get_pandas_object(df, features_and_labels.features, **kwargs)
+def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[List, pd.DataFrame, pd.DataFrame]:
+    features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
+    targets = call_if_not_none(get_pandas_object(df, features_and_labels.targets, **kwargs), 'dropna')
+    common_index = intersection_of_index(features, targets)
+
+    # do a label calculation on a small set of data just to get the prediction columns
+    label_columns = get_pandas_object(df[-2:], features_and_labels.labels, **kwargs).columns.to_list()
+
+    return (
+        label_columns,
+        features.loc[common_index],
+        loc_if_not_none(targets, common_index)
+    )
 
 
 def extract(features_and_labels, df, extractor, *args, **kwargs):
