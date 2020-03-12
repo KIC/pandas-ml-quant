@@ -101,6 +101,10 @@ def __train_loop(model, cross_validation, train, test):
     x_train, y_train, w_train = train[0].ml.values, train[1].ml.values, call_if_not_none(train[2], "values")
     x_test, y_test, w_test = test[0].ml.values, test[1].ml.values, call_if_not_none(test[2], "values")
 
+    if w_train is not None:
+        w_train = w_train.reshape((len(x_train),))
+        w_test = w_test.reshape((len(x_test),))
+
     # apply cross validation
     if cross_validation is not None and isinstance(cross_validation, Tuple) and callable(cross_validation[1]):
         losses = []

@@ -45,4 +45,6 @@ class TestCallableUtils(TestCase):
         self.assertEqual(0, len(call_if_not_none(df1, 'dropna')))
         self.assertEqual(1, len(df1))
 
-
+    def test_final_kwargs(self):
+        kwargs = call_callable_dynamic_args(lambda x, y, **kwargs: list(kwargs.keys()), x=1, y=2, z=3, foo="bar")
+        self.assertListEqual(['z', 'foo'], kwargs)

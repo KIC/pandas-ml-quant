@@ -36,6 +36,6 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
         col_vals = arr[:, i]
 
         # eventually we need to nest back multi dimensional arrays
-        df[col] = [row.tolist() for row in col_vals] if len(col_vals.shape > 1) else arr[:, i]
+        df[col] = [row.tolist() for row in col_vals] if len(col_vals.shape) > 1 else arr[:, i]
 
     return df

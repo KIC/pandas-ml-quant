@@ -2,8 +2,10 @@ import os
 from typing import Any
 
 from pandas_ml_common import pd
+from pandas_ml_common.serialization_utils import plot_to_html_img
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
+import pandas_ml_utils.html as html
 
 
 class Fit(object):
@@ -55,5 +57,5 @@ class Fit(object):
         from mako.template import Template
         from mako.lookup import TemplateLookup
 
-        template = Template(filename=f"{os.path.abspath(__file__)}.html", lookup=TemplateLookup(directories=['/']))
-        return template.render(fit=self)
+        template = Template(filename=html.FIT_TEMPLATE, lookup=TemplateLookup(directories=['/']))
+        return template.render(fit=self, loss_plot=plot_to_html_img(self.model.plot_loss))

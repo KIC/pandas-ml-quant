@@ -11,7 +11,7 @@ def assemble_prediction_frame(frames: Dict[str, pd.DataFrame]):
         frame.columns = pd.MultiIndex.from_product([[head], frame.columns.to_list()])
 
     # join all frames and keep the order of the passed dictionary
-    return pd.concat(valid_frames.values(), axis=0, copy=False)[valid_frames.keys()]
+    return pd.concat(valid_frames.values(), axis=1, join='inner', copy=False)
 
 
 """
