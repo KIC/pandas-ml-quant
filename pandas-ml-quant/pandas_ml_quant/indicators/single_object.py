@@ -54,15 +54,15 @@ def ta_macd(df: _PANDAS, fast_period=12, slow_period=26, signal_period=9, relati
 
 
 def ta_mom(df: _PANDAS, period=10) -> _PANDAS:
-    return df.diff(period)
+    return df.diff(period)  # FIXME .add_suffix("_mom")
 
 
 def ta_roc(df: _PANDAS, period=10) -> _PANDAS:
-    return df.pct_change(period)
+    return df.pct_change(period)  # FIXME .add_suffix("_roc")
 
 
 def ta_stddev(df: _PANDAS, period=5, nbdev=1, ddof=1) -> _PANDAS:
-    return df.rolling(period).std(ddof=ddof) * nbdev
+    return (df.rolling(period).std(ddof=ddof) * nbdev)  # FIXME .add_suffix("_stddev")
 
 
 def ta_rsi(df: _PANDAS, period=14):
@@ -180,7 +180,7 @@ def ta_week_day(po: _PANDAS):
     else:
         df = po
 
-    return (df.index.dayofweek / 6.0).to_series(index=po.index)
+    return (df.index.dayofweek / 6.0).to_series(index=po.index, name="dow")
 
 
 def ta_week(po: _PANDAS):
@@ -190,4 +190,4 @@ def ta_week(po: _PANDAS):
     else:
         df = po
 
-    return (df.index.week / 52.0).to_series(index=po.index)
+    return (df.index.week / 52.0).to_series(index=po.index, name="week")
