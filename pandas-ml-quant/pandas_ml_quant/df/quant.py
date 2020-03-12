@@ -15,7 +15,7 @@ class Quant(object):
         pass
 
 
-# add all indicators
+# add wrapper to call all indicators on data frames
 def wrapper(func):
     def wrapped(quant, *args, **kwargs):
         return func(quant.df, *args, **kwargs)
@@ -23,6 +23,7 @@ def wrapper(func):
     return wrapped
 
 
+# add indicators
 for indicator_functions in [indicators, encoders, labels]:
     for indicator_function in dir(indicator_functions):
         if indicator_function.startswith("ta_"):

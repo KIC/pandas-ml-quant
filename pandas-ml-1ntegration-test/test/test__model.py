@@ -24,7 +24,7 @@ class TestModel(TestCase):
                         lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)
                     ],
                     labels=[
-                        lambda df: df["Close"] > df["Open"],
+                        lambda df: (df["Close"] > df["Open"]).shift(-1),
                     ],
                     min_required_samples=280
                 ),

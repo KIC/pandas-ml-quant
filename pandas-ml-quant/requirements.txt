@@ -5,7 +5,9 @@ mpl_finance
 matplotlib
 tensorflow==1.14.0
 colorama>= 0.3.9
+cachetools
 qpsolvers
+yfinance
 mlxtend
 seaborn
 minisom

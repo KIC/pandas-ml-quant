@@ -11,6 +11,15 @@ from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 _log = logging.getLogger(__name__)
 
 
+def inner_join(df, join: pd.DataFrame, prefix: str = ''):
+    if isinstance(df.columns, pd.MultiIndex) and not isinstance(join.columns, pd.MultiIndex):
+        b = join.copy()
+        b.columns = pd.MultiIndex.from_product([[prefix], b.columns])
+        return pd.merge(df, b, left_index=True, right_index=True, how='inner', sort=True)
+    else:
+        return pd.merge(df, join.add_prefix(prefix), left_index=True, right_index=True, how='inner', sort=True)
+
+
 def unique_level_columns(df: pd.DataFrame, level=0):
     return unique(df.columns.get_level_values(level)) if isinstance(df.columns, pd.MultiIndex) else df.columns
 
