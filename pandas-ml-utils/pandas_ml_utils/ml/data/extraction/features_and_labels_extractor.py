@@ -2,7 +2,8 @@ from typing import Tuple, List, Callable
 
 import pandas as pd
 
-from pandas_ml_common.utils import get_pandas_object, intersection_of_index, loc_if_not_none
+from pandas_ml_common import get_pandas_object
+from pandas_ml_common.utils import intersection_of_index, loc_if_not_none
 from pandas_ml_common.utils.callable_utils import call_if_not_none
 
 

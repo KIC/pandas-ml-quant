@@ -9,6 +9,7 @@ from pandas.core.base import PandasObject
 
 from pandas_ml_common.df.ml import ML
 from pandas_ml_common.lazy import *
+from pandas_ml_common.utils import get_pandas_object
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")

@@ -3,6 +3,7 @@ import pandas as pd
 import pandas_ml_quant.indicators as indicators
 import pandas_ml_quant.encoders as encoders
 import pandas_ml_quant.labels as labels
+from pandas_ml_quant.df.plot import TaPlot
 
 
 class Quant(object):
@@ -10,9 +11,8 @@ class Quant(object):
     def __init__(self, df: pd.DataFrame):
         self.df = df
 
-    @property
-    def plot(self):
-        pass
+    def plot(self, rows=2, cols=1, figsize=(18, 10)):
+        return TaPlot(self.df, figsize, rows, cols)
 
 
 # add wrapper to call all indicators on data frames

@@ -1,6 +1,6 @@
 import pandas as _pd
 
-from pandas_ml_common.utils import get_pandas_object as _get_pandas_object
+from pandas_ml_common import get_pandas_object as _get_pandas_object
 
 
 def ta_candles_as_culb(df: _pd.DataFrame,  open="Open", high="High", low="Low", close="Close"):
