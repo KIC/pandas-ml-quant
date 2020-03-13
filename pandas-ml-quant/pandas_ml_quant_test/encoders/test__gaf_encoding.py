@@ -13,7 +13,7 @@ class TestGAF(TestCase):
 
         gaf = ta_gaf(timesteps)
         shape = gaf.ml.values.shape
-        np.testing.assert_almost_equal(0.370, gaf.iloc[-1][0][0], 0.001)
+        np.testing.assert_almost_equal(0.37, gaf.iloc[-1][0][0][0], 2)
         self.assertEqual((6760, 1, 3, 3), shape)
 
     def test_multi_channel(self):
