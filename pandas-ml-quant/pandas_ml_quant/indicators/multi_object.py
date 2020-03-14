@@ -3,10 +3,11 @@ from typing import Union as _Union
 # create convenient type hint
 import numpy as _np
 import pandas as _pd
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject as _PO
 
-from pandas_ml_quant.indicators.single_object import ta_ema, ta_wilders, ta_sma
 from pandas_ml_common import get_pandas_object
+from pandas_ml_common import get_pandas_object as _get_pandas_object
+from pandas_ml_quant.indicators.single_object import ta_ema, ta_wilders, ta_sma
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
@@ -106,37 +107,41 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
     md = tp.rolling(period).apply(lambda x: _np.abs(x - x.mean()).sum() / period)
     return (1 / alpha) * (tp - tp_sma) / md / 100
 
-# TODO use get_pandas_object in all the cases from here!
-def ta_cross_over(df: _pd.DataFrame, a, b=None, period=1) -> _PANDAS:
-    if isinstance(a, int):
-        if isinstance(df, _pd.Series):
-            a = _pd.Series(_np.ones(len(df)) * a, name=df.name, index=df.index)
-        else:
-            a = _pd.DataFrame({c: _np.ones(len(df)) * a for c in df.columns}, index=df.index)
 
-    if b is None:
-        b = a
+def ta_cross_over(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
+    # return only > 0
+    return ta_cross(df, a, b, period).clip(lower=0)
+
+
+def ta_cross_under(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
+    # return only < 0
+    return ta_cross(df, a, b, period).clip(upper=0)
+
+
+def ta_cross(df: _pd.DataFrame, a=None, b=None, period=1):
+    # get pandas objects for crossing
+    if a is None and b is None:
+        assert len(df.columns) == 2, f"ambigous crissong of {df.columns}"
+        a = df[df.columns[0]]
+        b = df[df.columns[1]]
+    elif b is None:
+        b = _get_pandas_object(df, a)
         a = df
-
-    old_a = (a if isinstance(a, PandasObject) else df[a]).shift(period)
-    young_a = (a if isinstance(a, PandasObject) else df[a])
-
-    if isinstance(b, int):
-        if isinstance(old_a, _pd.Series):
-            b = _pd.Series(_np.ones(len(df)) * b, name=old_a.name, index=old_a.index)
-        else:
-            b = _pd.DataFrame({c : _np.ones(len(df)) * b for c in old_a.columns}, index=old_a.index)
-
-    old_b = (b if isinstance(b, PandasObject) else df[b]).shift(period)
-    young_b = (b if isinstance(b, PandasObject) else df[b])
-
-    return (old_a <= old_b) & (young_a > young_b)
-
-
-def ta_cross_under(df: _pd.DataFrame, a, b=None, period=1) -> _PANDAS:
-    if b is None:
-        b = a
+    elif a is None:
+        b = _get_pandas_object(df, b)
         a = df
+    else:
+        a = _get_pandas_object(df, a)
+        b = _get_pandas_object(df, b)
 
-    return ta_cross_over(df, b, a, period)
+    # get periods
+    a1 = a.shift(period)
+    b1 = b.shift(period)
 
+    # if a1 < b1 and a > b then a crosses over b
+    a_over_b = ((a1 < b1) & (a > b)).astype(int)
+
+    # if a1 > b1 and a < b then a cross under b
+    a_under_b = ((a1 > b1) & (a < b)).astype(int) * -1
+
+    return a_over_b + a_under_b

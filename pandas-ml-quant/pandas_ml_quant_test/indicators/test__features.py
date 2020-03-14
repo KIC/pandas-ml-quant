@@ -7,6 +7,7 @@ import talib
 from pandas_ml_quant.indicators.multi_object import *
 from pandas_ml_quant.indicators.single_object import *
 from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_common import Constant
 
 
 class TestIndicator(TestCase):
@@ -94,12 +95,6 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me["upper"], u)
         np.testing.assert_array_almost_equal(me["lower"], l)
 
-    def test__crossover(self):
-        mean = DF_TEST["Close"].rolling(20).mean()
-        co = ta_cross_over(DF_TEST, "Close", mean)
-
-        self.assertTrue(co[-2:].values[0])
-
     def test__rsi(self):
         me = ta_rsi(DF_TEST["Close"])[-100:]
         ta = talib.RSI(DF_TEST["Close"])[-100:]
@@ -137,10 +132,16 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me, ta / 100)
 
     def test_cross_over(self):
-        me = ta_cross_over(DF_TEST, "Open", "Close")
+        me0 = ta_cross_over(DF_TEST, "Open", "Close")
+        me1 = ta_cross_over(DF_TEST[["Open", "Close"]])
+        me2 = ta_cross_over(DF_TEST, "Open", DF_TEST["Close"])
+        me3 = ta_cross_over(DF_TEST["Open"], DF_TEST["Close"])
 
-        self.assertTrue(me.iloc[-1])
-        self.assertFalse(me.iloc[-2])
+        self.assertTrue(me0.iloc[-1])
+        self.assertFalse(me0.iloc[-2])
+
+        for me in [me1, me2, me3]:
+            np.testing.assert_array_equal(me0.values, me.values)
 
     def test_cross_under(self):
         me = ta_cross_under(DF_TEST, "Open", "Close")
@@ -151,8 +152,8 @@ class TestIndicator(TestCase):
         self.assertFalse(me.iloc[-1])
 
     def test_cross_constant(self):
-        o = ta_cross_over(DF_TEST["Close"].pct_change(), 0)
-        u = ta_cross_under(DF_TEST["Close"].pct_change(), 0)
+        o = ta_cross(DF_TEST["Close"].pct_change(), Constant(0))
+        u = ta_cross(DF_TEST["Close"].pct_change(), Constant(0))
 
         self.assertTrue(o.iloc[-2])
         self.assertTrue(u.iloc[-5])

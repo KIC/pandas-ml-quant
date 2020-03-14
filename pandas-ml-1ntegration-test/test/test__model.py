@@ -20,8 +20,8 @@ class TestModel(TestCase):
                 MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42),
                 FeaturesAndLabels(
                     features=[
-                        lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280),
-                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)
+                        lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
+                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                     ],
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),

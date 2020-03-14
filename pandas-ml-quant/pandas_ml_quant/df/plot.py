@@ -4,6 +4,7 @@ import pandas as pd
 from matplotlib import gridspec
 from moviepy.video.VideoClip import DataVideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
+from moviepy.video.io.html_tools import ipython_display
 
 from pandas_ml_quant.plots import ta_bar, ta_stacked_bar, ta_candlestick, ta_line, ta_matrix
 
@@ -64,6 +65,10 @@ class TaPlot(object):
             return frame
 
         animation = DataVideoClip(self.df.index, make_frame, fps=fps)
+
+        # bind the jupyther extension to the animation and return
+        setattr(animation, 'display', ipython_display)
+        setattr(animation, '_repr_html_', lambda clip: ipython_display(clip))
         return animation
 
     def __call__(self, *args, **kwargs):

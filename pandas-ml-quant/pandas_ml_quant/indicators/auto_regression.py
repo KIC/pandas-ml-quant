@@ -4,11 +4,11 @@ import pandas as pd
 from sortedcontainers import SortedDict
 
 
-def ta_shape_for_auto_regression(df: Union[pd.Series, pd.DataFrame],
-                                 feature_lags: Iterable[int],
-                                 lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None,
-                                 return_min_required_samples=False
-                                 ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, int]]:
+def ta_rnn(df: Union[pd.Series, pd.DataFrame],
+           feature_lags: Iterable[int],
+           lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None,
+           return_min_required_samples=False
+           ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, int]]:
     df = df.to_frame()
     dff = pd.DataFrame({}, index=df.index)
 

@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_common import pd
+from pandas_ml_common import pd, Constant
 
 a_x, b_x, c_x = "a_x", "b_x", "c_x"
 a_y, b_y, c_y = "a_y", "b_y", "c_y"
@@ -59,7 +59,11 @@ class TestMLValues(TestCase):
 
         self.assertListEqual([a_x, b_y], df.ml[lambda df: df[[a_x, b_y]]].columns.tolist())
 
-    def test_callable_misins(self):
+    def test_callable_mixins(self):
         df = pd.DataFrame({}, columns=[a_x, a_y, b_y, c_y])
 
         self.assertListEqual([a_x, b_y, a_y], df.ml[[a_x, df[b_y], lambda df: df[a_y]]].columns.tolist())
+
+    def test_constant(self):
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        self.assertListEqual([12, 12, 12], df.ml[Constant(12)].values.tolist())

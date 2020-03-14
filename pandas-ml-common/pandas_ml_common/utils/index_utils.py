@@ -4,9 +4,11 @@ from collections import OrderedDict, Callable
 from typing import List
 
 import pandas as pd
+import numpy as np
 from pandas.core.base import PandasObject
 
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
+from pandas_ml_common.utils.types import Constant
 
 _log = logging.getLogger(__name__)
 
@@ -62,6 +64,8 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
     if item is None:
         _log.warning("passed item was None")
         return None
+    elif isinstance(item, Constant):
+        return pd.Series(np.full(len(po), item.value), name=item, index=po.index)
     elif isinstance(item, PandasObject):
         return item
     else:

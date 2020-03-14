@@ -17,8 +17,8 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         features, labels, targets, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280),
-                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)
+                    lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
+                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                 ],
                 labels=[
                     lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
@@ -54,8 +54,8 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         features, labels, targets, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280),
-                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)
+                    lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
+                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                 ],
                 labels=[
                     lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
@@ -89,8 +89,8 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         serialize(FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].q.ta_rsi().q.ta_shape_for_auto_regression(280),
-                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_shape_for_auto_regression(280)
+                    lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
+                    lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                 ],
                 labels=[
                     lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
