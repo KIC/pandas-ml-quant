@@ -11,7 +11,7 @@ class Quant(object):
     def __init__(self, df: pd.DataFrame):
         self.df = df
 
-    def plot(self, rows=2, cols=1, figsize=(18, 10)):
+    def ta_plot(self, rows=2, cols=1, figsize=(18, 10)):
         return TaPlot(self.df, figsize, rows, cols)
 
 

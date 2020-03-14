@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # add modules to path
-for d in */ ; do
-    PYTHONPATH="$PYTHONPATH:`pwd`/$d"
-done
+SCRIPT="$(readlink --canonicalize-existing "$0")"
+SCRIPTPATH="$(dirname "$SCRIPT")"
+source "$SCRIPTPATH/.env.sh"
+
 
 # run all tests
 for d in */ ; do

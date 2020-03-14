@@ -72,6 +72,14 @@ class TaPlot(object):
         return animation
 
     def __call__(self, *args, **kwargs):
+        """
+        TODO i am thinking of something like df.q.ta_plot()(candlesticks=True, sma=200)
+             ... more thinking needed
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
         if "lines" in kwargs:
             self.line(kwargs.pop('lines', None), **kwargs)
         else:
