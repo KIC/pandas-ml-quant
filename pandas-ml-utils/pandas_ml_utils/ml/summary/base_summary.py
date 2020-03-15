@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import pandas_ml_utils.html as html
 
 
 class Summary(object):
@@ -25,6 +26,6 @@ class Summary(object):
         from mako.template import Template
         from mako.lookup import TemplateLookup
 
-        template = Template(filename=self._html_template_file(), lookup=TemplateLookup(directories=['/']))
+        template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
         return template.render(summary=self)
 

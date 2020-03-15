@@ -9,9 +9,10 @@ cachetools
 requests
 yfinance
 hyperopt
-pymongo
 keras-rl
 requests
+pymongo
+mlxtend
 seaborn
 pandas
 numpy
