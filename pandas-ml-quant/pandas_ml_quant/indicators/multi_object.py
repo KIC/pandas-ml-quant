@@ -5,17 +5,17 @@ import numpy as _np
 import pandas as _pd
 from pandas.core.base import PandasObject as _PO
 
-from pandas_ml_common import get_pandas_object
 from pandas_ml_common import get_pandas_object as _get_pandas_object
-from pandas_ml_quant.indicators.single_object import ta_ema, ta_wilders, ta_sma
+import pandas_ml_quant.indicators.single_object as _i
+from pandas_ml_quant.indicators.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
 def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=False) -> _PANDAS:
-    h = get_pandas_object(df, high)
-    l = get_pandas_object(df, low)
-    c = get_pandas_object(df, close).shift(1)
+    h = _get_pandas_object(df, high)
+    l = _get_pandas_object(df, low)
+    c = _get_pandas_object(df, close).shift(1)
 
     if relative:
         ranges = (h / l - 1).rename("a").to_frame() \
@@ -31,16 +31,18 @@ def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=False) ->
 
 def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=False, exponential='wilder') -> _PANDAS:
     if exponential is True:
-        return ta_ema(ta_tr(df, high, low, close, relative), period)
+        atr = _i.ta_ema(ta_tr(df, high, low, close, relative), period)
     if exponential == 'wilder':
-        return ta_wilders(ta_tr(df, high, low, close, relative), period)
+        atr = _i.ta_wilders(ta_tr(df, high, low, close, relative), period)
     else:
-        return ta_sma(ta_tr(df, high, low, close, relative), period)
+        atr = _i.ta_sma(ta_tr(df, high, low, close, relative), period)
+
+    return atr.rename(f"atr_{period}")
 
 
 def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=True) -> _PANDAS:
-    h = get_pandas_object(df, high)
-    l = get_pandas_object(df, low)
+    h = _get_pandas_object(df, high)
+    l = _get_pandas_object(df, low)
 
     temp = _pd.DataFrame({
         "up": (h / h.shift(1) - 1) if relative else (h - h.shift(1)),
@@ -48,31 +50,31 @@ def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
     }, index=df.index)
 
     atr = ta_atr(df, period, high, low, close, relative=False)
-    pdm = ta_wilders(temp.apply(lambda r: r[0] if r["up"] > r["down"] and r["up"] > 0 else 0, raw=False, axis=1), period)
-    ndm = ta_wilders(temp.apply(lambda r: r[1] if r["down"] > r["up"] and r["down"] > 0 else 0, raw=False, axis=1), period)
+    pdm = _i.ta_wilders(temp.apply(lambda r: r[0] if r["up"] > r["down"] and r["up"] > 0 else 0, raw=False, axis=1), period)
+    ndm = _i.ta_wilders(temp.apply(lambda r: r[1] if r["down"] > r["up"] and r["down"] > 0 else 0, raw=False, axis=1), period)
 
     pdi = pdm / atr
     ndi = ndm / atr
-    adx = ta_wilders((pdi - ndi).abs() / (pdi + ndi).abs(), period)
+    adx = _i.ta_wilders((pdi - ndi).abs() / (pdi + ndi).abs(), period)
 
     return _pd.DataFrame({"+DM": pdm, "-DM": ndm, "+DI": pdi, "-DI": ndi, "ADX": adx}, index=df.index)
 
 
 def ta_williams_R(df: _pd.DataFrame, period=14, close="Close", high="High", low="Low") -> _pd.Series:
-    temp = get_pandas_object(df, close).to_frame()
-    temp = temp.join(get_pandas_object(df, high if high is not None else close).rolling(period).max().rename("highest_high"))
-    temp = temp.join(get_pandas_object(df, low if low is not None else close).rolling(period).min().rename("lowest_low"))
-    return (temp["highest_high"] - temp[close]) / (temp["highest_high"] - temp["lowest_low"])
+    temp = _get_pandas_object(df, close).to_frame()
+    temp = temp.join(_get_pandas_object(df, high if high is not None else close).rolling(period).max().rename("highest_high"))
+    temp = temp.join(_get_pandas_object(df, low if low is not None else close).rolling(period).min().rename("lowest_low"))
+    return ((temp["highest_high"] - temp[close]) / (temp["highest_high"] - temp["lowest_low"])).rename(f"williams_R_{period}")
 
 
 def ta_ultimate_osc(df: _pd.DataFrame, period1=7, period2=14, period3=28, close="Close", high="High", low="Low") -> _pd.Series:
     # BP = Close - Minimum(Low or Prior Close).
     # TR = Maximum(High or Prior Close)  -  Minimum(Low or Prior Close)
-    prev_close = get_pandas_object(df, close).shift(1)
-    downs = (get_pandas_object(df, low if low is not None else close).to_frame().join(prev_close)).min(axis=1)
-    ups = (get_pandas_object(df, high if high is not None else close).to_frame().join(prev_close)).max(axis=1)
+    prev_close = _get_pandas_object(df, close).shift(1)
+    downs = (_get_pandas_object(df, low if low is not None else close).to_frame().join(prev_close)).min(axis=1)
+    ups = (_get_pandas_object(df, high if high is not None else close).to_frame().join(prev_close)).max(axis=1)
     temp = _pd.DataFrame({
-        "bp": get_pandas_object(df, close) - downs,
+        "bp": _get_pandas_object(df, close) - downs,
         "tr": ups - downs
     }, index=df.index)
 
@@ -84,28 +86,28 @@ def ta_ultimate_osc(df: _pd.DataFrame, period1=7, period2=14, period3=28, close=
         avs.append(av["bp"] / av["tr"])
 
     # UO = [(4 x Average7) + (2 x Average14) + Average28] / (4 + 2 + 1)
-    return (4 * avs[0] + 2 * avs[1] + avs[2]) / 7
+    return ((4 * avs[0] + 2 * avs[1] + avs[2]) / 7).rename(f"ultimate_osc_{period1},{period2},{period3}")
 
 
 def ta_bop(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
     # (CLOSE – OPEN) / (HIGH – LOW)
-    o = get_pandas_object(df, open)
-    c = get_pandas_object(df, close)
-    h = get_pandas_object(df, high)
-    l = get_pandas_object(df, low)
+    o = _get_pandas_object(df, open)
+    c = _get_pandas_object(df, close)
+    h = _get_pandas_object(df, high)
+    l = _get_pandas_object(df, low)
 
-    return (c - o) / (h - l)
+    return ((c - o) / (h - l)).rename("bop")
 
 
 def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", alpha=0.015) -> _PANDAS:
-    h = get_pandas_object(df, high)
-    l = get_pandas_object(df, low)
-    c = get_pandas_object(df, close)
+    h = _get_pandas_object(df, high)
+    l = _get_pandas_object(df, low)
+    c = _get_pandas_object(df, close)
 
     tp = (h + l + c) / 3
-    tp_sma = ta_sma(tp, period)
+    tp_sma = _i.ta_sma(tp, period)
     md = tp.rolling(period).apply(lambda x: _np.abs(x - x.mean()).sum() / period)
-    return (1 / alpha) * (tp - tp_sma) / md / 100
+    return ((1 / alpha) * (tp - tp_sma) / md / 100).rename(f"cci_{period}")
 
 
 def ta_cross_over(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
@@ -121,7 +123,7 @@ def ta_cross_under(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
 def ta_cross(df: _pd.DataFrame, a=None, b=None, period=1):
     # get pandas objects for crossing
     if a is None and b is None:
-        assert len(df.columns) == 2, f"ambigous crissong of {df.columns}"
+        assert len(df.columns) == 2, f"ambiguous crossing of {df.columns}"
         a = df[df.columns[0]]
         b = df[df.columns[1]]
     elif b is None:

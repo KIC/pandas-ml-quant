@@ -17,11 +17,14 @@ def call_callable_dynamic_args(func, *args, **kwargs):
     if spec.varargs and len(args) > len(spec.args) and len(args) > len(call_args):
         call_args += args[len(call_args):]
 
-    if spec.varkw:
-        # inject the rest of kwargs if we have some left overs
-        return func(*call_args, **kwargs)
-    else:
-        return func(*call_args)
+    try:
+        if spec.varkw:
+            # inject the rest of kwargs if we have some left overs
+            return func(*call_args, **kwargs)
+        else:
+            return func(*call_args)
+    except Exception as e:
+        raise RuntimeError(e, f"error while calling {func} whith arguments {call_args}")
 
 
 def suitable_kwargs(func, **kwargs):

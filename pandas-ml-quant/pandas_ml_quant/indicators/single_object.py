@@ -77,10 +77,11 @@ def ta_rsi(df: _PANDAS, period=14):
     return _wcs(f"rsi_{period}", pos / (pos + neg), returns)
 
 
-def ta_apo(df: _PANDAS, fast_period=12, slow_period=26, exponential=False) -> _PANDAS:
+def ta_apo(df: _PANDAS, fast_period=12, slow_period=26, exponential=False, relative=True) -> _PANDAS:
     fast = ta_ema(df, fast_period) if exponential else ta_sma(df, fast_period)
     slow = ta_ema(df, slow_period) if exponential else ta_sma(df, slow_period)
-    return _wcs(f"apo_{fast_period},{slow_period},{int(exponential)}", fast - slow, df)
+    apo = (fast / slow) if relative else (fast - slow)
+    return _wcs(f"apo_{fast_period},{slow_period},{int(exponential)}", apo, df)
 
 
 def ta_trix(df: _PANDAS, period=30) -> _PANDAS:
@@ -94,7 +95,9 @@ def ta_ppo(df: _pd.DataFrame, fast_period=12, slow_period=26, exponential=True) 
 
 
 def ta_zscore(df: _PANDAS, period=20, ddof=1):
-    return _wcs(f"z_{period}", df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1]))
+    res = df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1])
+
+    return _wcs(f"z_{period}", res)
 
 
 def ta_week_day(po: _PANDAS):

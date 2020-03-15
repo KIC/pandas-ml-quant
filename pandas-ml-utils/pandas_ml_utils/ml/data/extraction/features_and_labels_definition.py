@@ -123,5 +123,5 @@ class FeaturesAndLabels(object):
         return self.__id__() == other.__id__() if isinstance(other, FeaturesAndLabels) else False
 
     def __repr__(self):
-        return f'FeaturesAndLabels({self.features}, {self.labels}, {self.weights}, {self.targets})'
+        return f'FeaturesAndLabels({self.features}, {self.labels}, {self.sample_weights}, {self.targets})'
 

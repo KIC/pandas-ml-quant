@@ -43,7 +43,7 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me, ta)
 
     def test__apo(self):
-        me = ta_apo(DF_TEST["Close"])[-100:]
+        me = ta_apo(DF_TEST["Close"], relative=False)[-100:]
         ta = talib.APO(DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta)
