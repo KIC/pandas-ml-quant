@@ -1,3 +1,6 @@
+import io
+from contextlib import redirect_stdout
+
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -67,11 +70,16 @@ class TaPlot(object):
             plt.close(fig)
             return frame
 
+        def repr_html(clip):
+            f = io.StringIO()
+            with redirect_stdout(f):
+                return ipython_display(clip)._repr_html_()
+
         animation = DataVideoClip(self.df.index, make_frame, fps=fps)
 
-        # bind the jupyther extension to the animation and return
-        setattr(animation, 'display', ipython_display)
-        setattr(animation, '_repr_html_', lambda clip: ipython_display(clip))
+        # bind the jupyter extension to the animation and return
+        setattr(DataVideoClip, 'display', ipython_display)
+        setattr(DataVideoClip, '_repr_html_', repr_html)
         return animation
 
     def __call__(self, *args, **kwargs):
