@@ -6,7 +6,6 @@ from pandas_ml_common import get_pandas_object
 from pandas_ml_quant.plots.utils import new_fig_ts_axis
 
 
-
 def ta_candlestick(self, open="Open", high="High", low="Low", close="Close", ax=None, figsize=None, **kwargs):
     df = self if isinstance(self, pd.DataFrame) else self._parent
 
@@ -19,6 +18,7 @@ def ta_candlestick(self, open="Open", high="High", low="Low", close="Close", ax=
         "open": get_pandas_object(df, open),
         "high": get_pandas_object(df, high),
         "low": get_pandas_object(df, low),
+        "close": get_pandas_object(df, close),
     })
 
     candlestick_ohlc(ax, data.values, width=0.6, colorup='g', colordown='r')

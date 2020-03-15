@@ -5,8 +5,11 @@ from matplotlib import gridspec
 from moviepy.video.VideoClip import DataVideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
 from moviepy.video.io.html_tools import ipython_display
+from pandas.plotting import register_matplotlib_converters
 
 from pandas_ml_quant.plots import ta_bar, ta_stacked_bar, ta_candlestick, ta_line, ta_matrix
+
+register_matplotlib_converters()
 
 
 class TaPlot(object):
