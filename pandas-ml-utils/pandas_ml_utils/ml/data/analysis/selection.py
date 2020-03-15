@@ -9,9 +9,8 @@ _log = logging.getLogger(__name__)
 
 
 def feature_selection(df: pd.DataFrame,
-                      label_column: str = None,
-                      ignore: Union[List[str], str] = [],
-                      top_features: int = 5,
+                      label: pd.Series,
+                      nr_top_features: int = 5,
                       correlation_threshold: float = 0.5,
                       minimum_features: int = 1,
                       lags: Iterable[int] = range(100),
@@ -22,10 +21,9 @@ def feature_selection(df: pd.DataFrame,
     correlated once and focus on the most important features. This function also applies an
     auto regression and embeds and ACF plot.
 
-    :param df: the DataFrame which you apply the function on
-    :param label_column: column name of your dependent variable
-    :param ignore: columns you want to ignore
-    :param top_features: number of most important features you want to select
+    :param df: the DataFrame of features which are considered for the label prediction
+    :param label: columne of your dependent variable
+    :param nr_top_features: number of most important features you want to select
     :param correlation_threshold: threshold at which correlated features drop out
     :param minimum_features: number of features you want to keep even if they are highly correlated
     :param lags: iterable of lags you want to analyze as an AR process
@@ -33,9 +31,14 @@ def feature_selection(df: pd.DataFrame,
     :param figsize: size of the polots
     :return: None
     """
-    df = df.drop(ignore, axis=1).dropna()
+    df = df.dropna()
+    label = label.dropna()
+    index = df.index.intersection(label.index)
+
+    df = df.loc[index]
+    label = label.loc[index]
     N = len(df)
-    assert N > 1
+    assert N > 1, f"data is empty {len(df)}, {len(label)}"
 
     correlation_mx = _sort_correlation(df.corr())
 
@@ -46,22 +49,18 @@ def feature_selection(df: pd.DataFrame,
     features = correlation_mx
 
     # find the features most correlated to the label (if provided)
-    if label_column is not None:
-        # drop label column
-        features = features.drop(label_column, axis=0)
-        features = features.drop(label_column, axis=1)
-
+    if label is not None:
         estimators, importances, indices, imporant_feature_names = \
-            __feature_importance(df[features.columns].values, df[label_column].values, features.columns)
+            __feature_importance(df.values, label.values, features.columns)
 
         if show_plots:
             __plot_feature_importance(len(features.columns), estimators, importances, indices, imporant_feature_names, figsize)
 
         print(f"Feature ranking:\n{imporant_feature_names.tolist()}")
+        top_features = imporant_feature_names[:min(nr_top_features, len(imporant_feature_names))]
+        features = df[top_features].corr()
 
-        features = df[imporant_feature_names[:min(top_features, len(imporant_feature_names))]].corr()
-
-        print(f"\nTOP {top_features} features")
+        print(f"\nTOP {nr_top_features} features")
         print(features[:1])
 
     # then eliminate features with high correlation to each other
@@ -102,6 +101,8 @@ def feature_selection(df: pd.DataFrame,
     best_lags_i = (-best_lags).argsort()
     best_lags = [(i, f'{-best_lags[i] / cl:.2f}') for i in best_lags_i if abs(best_lags[i]) > (1.96 / np.sqrt(N - i) / cl)]
     print(f"best lags are\n{best_lags[1:]}")
+
+    return top_features.to_list(), [l[0] for l in best_lags]
 
 
 def __feature_importance(x, y, names, n_estimators=250):
