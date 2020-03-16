@@ -4,6 +4,8 @@ from sklearn.neural_network import MLPClassifier
 
 import pandas_ml_quant
 from pandas_ml_utils import FeaturesAndLabels, SkModel
+from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
+from pandas_ml_utils.ml.data.sampeling import KFoldBoostRareEvents
 from test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
@@ -43,3 +45,37 @@ class TestModel(TestCase):
 
         pass
 
+    def test_KFold(self):
+        df = DF_TEST.copy()
+
+        fit = df.model.fit(
+            SkModel(
+                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42),
+                FeaturesAndLabels(
+                    features=extract_with_post_processor(
+                        [
+                            lambda df: df["Close"].q.ta_trix(),
+                            lambda df: df["Close"].q.ta_ppo(),
+                            lambda df: df["Close"].q.ta_apo(),
+                            lambda df: df["Close"].q.ta_macd(),
+                            lambda df: df.q.ta_adx(),
+                        ],
+                        lambda df: df.q.ta_rnn(range(100))
+                    ),
+                    labels=[
+                        lambda df: df["Close"].q.ta_sma(period=60) \
+                            .q.ta_cross(df["Close"].q.ta_sma(period=20)) \
+                            .q.ta_rnn([1, 2, 3, 4, 5]) \
+                            .abs() \
+                            .sum(axis=1) \
+                            .shift(-5) \
+                            .astype(bool)
+
+                    ],
+                    min_required_samples=100
+                )
+            ),
+            test_size=0.4,
+            test_validate_split_seed=42,
+            cross_validation=(1, KFoldBoostRareEvents(n_splits=5).split)
+        )

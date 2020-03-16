@@ -91,7 +91,10 @@ class KerasModel(Model):
             sample_weight_train: np.ndarray, sample_weight_test: np.ndarray) -> float:
         fitter_args = suitable_kwargs(self.keras_model.fit, **self.kwargs)
 
-        if "verbose" in self.kwargs and self.kwargs["verbose"] > 0:
+        if sample_weight_train is not None:
+            print(f"using sample weights {sample_weight_train.shape}")
+
+        if len(fitter_args) > 0:
             print(f'pass args to fit: {fitter_args}')
 
         fit_history = self._exec_within_session(self.keras_model.fit,
@@ -121,8 +124,9 @@ class KerasModel(Model):
     def plot_loss(self):
         import matplotlib.pyplot as plt
 
-        plt.plot(self.history['val_loss'])
-        plt.plot(self.history['loss'])
+        plt.plot(self.history['val_loss'], label='test')
+        plt.plot(self.history['loss'], label='train')
+        plt.legend(loc='best')
 
     def _exec_within_session(self, func, *args, **kwargs):
         if self.is_tensorflow:

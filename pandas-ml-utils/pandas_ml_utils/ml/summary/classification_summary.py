@@ -45,7 +45,7 @@ class ClassificationSummary(Summary):
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic example')
+        plt.title('Receiver Operating Characteristic')
         plt.legend(loc="lower right")
         return fig, axis
 
