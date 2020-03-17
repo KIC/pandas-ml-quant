@@ -114,3 +114,6 @@ class TestModel(TestCase):
 
         print(fit)
         # FIXME test self.asstr(fit)
+
+        prediction = df.model.predict(fit.model, tail=3)
+
