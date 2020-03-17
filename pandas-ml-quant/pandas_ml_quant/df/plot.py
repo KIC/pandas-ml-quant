@@ -54,8 +54,8 @@ class TaPlot(object):
         # FIXME add side by side bars
         pass
 
-    def bar(self, fields="Volume", panel=1, **kwargs):
-        self.axis[panel] = ta_bar(self.df, fields, ax=self.axis[panel], **kwargs)
+    def bar(self, fields="Volume", panel=1, colors=None, color_map: str = 'afmhot', **kwargs):
+        self.axis[panel] = ta_bar(self.df, fields, ax=self.axis[panel], colors=colors, color_map=color_map, **kwargs)
         return self._return()
 
     def line(self, fields="Close", panel=0, **kwargs):
