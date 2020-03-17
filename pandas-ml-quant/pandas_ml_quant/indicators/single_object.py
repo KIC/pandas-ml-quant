@@ -100,6 +100,10 @@ def ta_zscore(df: _PANDAS, period=20, ddof=1):
     return _wcs(f"z_{period}", res)
 
 
+def ta_decimal_year(df: _PANDAS):
+    return df.index.strftime("%j").astype(float) - 1 / 366 + df.index.strftime("%Y").astype(float)
+
+
 def ta_week_day(po: _PANDAS):
     if not isinstance(po.index, _pd.DatetimeIndex):
         df = po.copy()

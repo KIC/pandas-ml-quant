@@ -29,13 +29,22 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
     if len(columns) == 1 and len(arr.shape) == 1:
         return pd.DataFrame({columns[0]: arr}, index=index)
 
-    df = pd.DataFrame({}, index=index)
+    if not isinstance(columns, list):
+        columns = columns.tolist()
 
+    df = pd.DataFrame({}, index=index)
+    last_idx = len(columns) - 1
+
+    # if (array.shape) > 1 and array.shape[1] > len(columns):
+    #   find a common denominator?
     # TODO add logic for multi index
-    for i, col in enumerate(columns):
-        col_vals = arr[:, i]
+    for i in range(len(columns)):
+        if i >= last_idx and arr.shape[1] > len(columns):
+            col_vals = arr[:, i:]
+        else:
+            col_vals = arr[:, i]
 
         # eventually we need to nest back multi dimensional arrays
-        df[col] = [row.tolist() for row in col_vals] if len(col_vals.shape) > 1 else arr[:, i]
+        df[columns[i]] = [row.tolist() for row in col_vals] if len(col_vals.shape) > 1 else arr[:, i]
 
     return df

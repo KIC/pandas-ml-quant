@@ -53,6 +53,12 @@ class Fit(object):
         """
         self.model.save(filename)
 
+    def __str__(self):
+        return f"train:\n" \
+               f"{self.training_summary}" \
+               f"\ntest:\n" \
+               f"{self.test_summary}"
+
     def _repr_html_(self):
         from mako.template import Template
         from mako.lookup import TemplateLookup

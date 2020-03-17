@@ -30,7 +30,7 @@ class SkModel(Model):
             x_val: np.ndarray, y_val: np.ndarray,
             sample_weight_train: np.ndarray, sample_weight_test: np.ndarray) -> float:
         # shape correction if needed
-        y = y.ravel() if len(y.shape) > 1 and y.shape[1] == 1 else y
+        y = y.reshape((len(x), -1)) if len(y.shape) > 1 and y.shape[1] == 1 else y
         self.label_shape = y.shape
 
         # remember fitted model
@@ -58,7 +58,7 @@ class SkModel(Model):
     def predict(self, x) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):
             y_hat = self.skit_model.predict_proba(SkModel.reshape_rnn_as_ar(x))
-            return y_hat[:, 1] if len(self.label_shape) == 1 else y_hat.respahe(-1, *self.label_shape[1:])
+            return y_hat[:, 1] if len(self.label_shape) == 1 else y_hat.reshape(-1, *self.label_shape[1:])
         else:
             return self.skit_model.predict(SkModel.reshape_rnn_as_ar(x))
 

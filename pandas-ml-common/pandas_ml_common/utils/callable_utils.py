@@ -3,6 +3,9 @@ from typing import Dict
 
 
 def call_callable_dynamic_args(func, *args, **kwargs):
+    if not callable(func):
+        raise ValueError(f"function {func} is not callable")
+
     spec = inspect.getfullargspec(func)
     call_args = []
 

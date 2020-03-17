@@ -14,3 +14,14 @@ def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
         crossings = _i.ta_rnn(crossings, range(1, forecast))
 
     return crossings.shift(-forecast)
+
+
+def ta_future_bband_quantile(df: _pd.Series, forecast_period=14, period=5, stddev=2.0, ddof=1):
+    # we want to know if a future price is violating the current upper/lower band
+    bands = _i.ta_bbands(df, period, stddev, ddof)
+    upper = bands["upper"]
+    lower = bands["lower"]
+    future = df.shift(-forecast_period)
+    quantile = (future > upper).astype(int) - (future < lower).astype(int)
+
+    return quantile + 1
