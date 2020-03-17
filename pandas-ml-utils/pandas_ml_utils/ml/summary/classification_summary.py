@@ -32,7 +32,6 @@ class ClassificationSummary(Summary):
         if truth.shape[1] > len(legend):
             legend = list(range(truth.shape[1]))
 
-        print(truth.shape)
         # Compute ROC curve and ROC area for each class
         fpr = dict()
         tpr = dict()
