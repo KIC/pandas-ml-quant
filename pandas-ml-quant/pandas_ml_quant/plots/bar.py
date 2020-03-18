@@ -23,13 +23,17 @@ def ta_bar(df, fields, figsize=None, ax=None, colors=None, color_map: str = 'afm
         color_function = plt.get_cmap(color_map)
         domain = (colors.values.min(), colors.values.max()) if isinstance(colors, PandasObject) else (colors.min(), colors.max())
         r = ReScaler(domain, (0, 1))
+
         for i, c in enumerate(colors):
-            bars[i].set_color(color_function(r(c)))
+            color = color_function(r(c))
+            # TODO if alpha is provided then color = (*color[:-1], alpha)
+            bars[i].set_color(color)
 
     return ax
 
 
 def ta_stacked_bar(df, columns, figsize=None, ax=None, padding=0.02, **kwargs):
+    # TODO add colors ...
     if ax is None:
         fig, ax = new_fig_ts_axis(figsize)
 

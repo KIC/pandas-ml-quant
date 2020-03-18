@@ -51,7 +51,8 @@ def fit(df: pd.DataFrame,
     trails = None
     model = model_provider()
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    features, labels, targets, weights = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+    (features, min_required_samples), labels, targets, weights = \
+        extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     start_performance_count = perf_counter()
     _log.info("create model")
@@ -93,7 +94,10 @@ def fit(df: pd.DataFrame,
     df_train = assemble_prediction_frame({TARGET_COLUMN_NAME: targets[0], PREDICTION_COLUMN_NAME: prediction_train, LABEL_COLUMN_NAME: train[1], FEATURE_COLUMN_NAME: train[0]})
     df_test = assemble_prediction_frame({TARGET_COLUMN_NAME: targets[1], PREDICTION_COLUMN_NAME: prediction_test, LABEL_COLUMN_NAME: test[1], FEATURE_COLUMN_NAME: test[0]})
 
-    # return the fit
+    # update model properties and return the fit
+    model._validation_indices = test_idx
+    model.features_and_labels._min_required_samples = min_required_samples
+    model.features_and_labels._label_columns = labels.columns
     return Fit(model, model.summary_provider(df_train), model.summary_provider(df_test), trails)
 
 
@@ -175,7 +179,7 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, **kwargs) -> pd.Da
 
 def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    features, labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+    (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=labels.columns)
 

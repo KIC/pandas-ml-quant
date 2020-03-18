@@ -1,7 +1,6 @@
-import contextlib
 import unittest
-import io
-from pandas_ml_utils import pd
+
+from pandas_ml_utils import pd, FeaturesAndLabels
 
 
 class TestFeatureSelection(unittest.TestCase):
@@ -13,14 +12,15 @@ class TestFeatureSelection(unittest.TestCase):
                            "labelA": [1, 2, 3, 4, 5],
                            "labelB": [5, 4, 3, 2, 1]})
 
-        f = io.StringIO()
-        with contextlib.redirect_stdout(f):
-            df.model.feature_selection("labelA", lags=[2], show_plots=False)
 
-        output = f.getvalue()
+        analysis = df.model.feature_selection(FeaturesAndLabels(["featureA", "featureB", "featureC"], ["labelA"]),
+                                              lags=[2], show_plots=False)
 
+
+        print(analysis)
         # top features are A, B, C
-        self.assertIn("Feature ranking:\n['labelB', 'featureA', 'featureB', 'featureC']", output)
+        self.assertListEqual(["featureA", "featureB", "featureC"], analysis[0])
+        self.assertListEqual([0, 1], analysis[1])
 
 
 if __name__ == '__main__':

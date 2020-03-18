@@ -5,7 +5,7 @@ import numpy as _np
 import pandas as _pd
 from scipy.stats import zscore
 
-from pandas_ml_quant.indicators.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
+from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 

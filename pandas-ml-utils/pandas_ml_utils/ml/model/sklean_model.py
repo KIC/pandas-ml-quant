@@ -58,7 +58,8 @@ class SkModel(Model):
     def predict(self, x) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):
             y_hat = self.skit_model.predict_proba(SkModel.reshape_rnn_as_ar(x))
-            return y_hat[:, 1] if len(self.label_shape) == 1 else y_hat.reshape(-1, *self.label_shape[1:])
+            binary_classifier = len(self.label_shape) == 1 or self.label_shape[1] == 1
+            return y_hat[:, 1] if binary_classifier else y_hat.reshape(-1, *self.label_shape[1:])
         else:
             return self.skit_model.predict(SkModel.reshape_rnn_as_ar(x))
 

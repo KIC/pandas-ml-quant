@@ -14,24 +14,23 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape(self):
         df = DF_TEST.copy()
 
-        features, labels, targets, weights = df.ml.extract(
+        (features, _), labels, targets, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
                     lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs, include_mean=True)\
                                                                            .q.ta_one_hot_encode_discrete(),
                 ],
                 targets=[
-                    lambda df, stddevs: df["Close"].q.ta_multi_bbands(period=14, stddevs=stddevs),
-                ],
-                min_required_samples=280
+                    lambda df, stddevs: df["Close"].q.ta_bbands(period=14, stddev=stddevs)[["lower", "mean", "upper"]],
+                ]
             ),
             # kwargs of call
             forecasting_time_steps=7,
-            stddevs=[0.5, 1.5, 2.5, 3.5]
+            stddevs=1.5
         )
 
         print(features, labels, weights)
@@ -42,8 +41,8 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         self.assertEqual((6463, 280, 2), features.ml.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 1, 10), labels.ml.values.shape)
-        self.assertEqual((6463, 10), labels.ml.values.squeeze().shape)
+        self.assertEqual((6463, 1, 4), labels.ml.values.shape)
+        self.assertEqual((6463, 4), labels.ml.values.squeeze().shape)
 
         self.assertEqual(len(features), len(labels))
         self.assertLess(len(features), len(df))
@@ -51,34 +50,34 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape_two_labels(self):
         df = DF_TEST.copy()
 
-        features, labels, targets, weights = df.ml.extract(
+        (features, min_samples), labels, targets, weights = df.ml.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
                     lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
                                                                            .q.ta_one_hot_encode_discrete(),
-                    lambda df, forecasting_time_steps, stddevs: df["Open"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Open"].q.ta_future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
                                                                           .q.ta_one_hot_encode_discrete(),
                 ],
                 targets=[
-                    lambda df, stddevs: df["Close"].q.ta_multi_bbands(period=14, stddevs=stddevs),
-                ],
-                min_required_samples=280
+                    lambda df, stddevs: df["Close"].q.ta_bbands(period=14, stddev=stddevs)[["lower", "upper"]],
+                ]
             ),
             # kwargs of call
             forecasting_time_steps=7,
-            stddevs=[0.5, 1.5, 2.5, 3.5]
+            stddevs=1.5
         )
 
         # we need RNN shape to be [row, time_step, feature]
+        self.assertEqual(294, min_samples)
         self.assertEqual((6463, 280, 2), features.ml.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 2, 10), labels.ml.values.shape)
-        self.assertEqual((6463, 2, 10), labels.ml.values.squeeze().shape)
+        self.assertEqual((6463, 2, 3), labels.ml.values.shape)
+        self.assertEqual((6463, 2, 3), labels.ml.values.squeeze().shape)
 
         self.assertEqual(len(features), len(labels))
         self.assertLess(len(features), len(df))
@@ -93,31 +92,30 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
                     lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Close"].q.ta_future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
                                                                            .q.ta_one_hot_encode_discrete(),
-                    lambda df, forecasting_time_steps, stddevs: df["Open"].q.ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Open"].q.ta_future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
                                                                           .q.ta_one_hot_encode_discrete(),
                 ],
                 targets=[
-                    lambda df, stddevs: df["Close"].q.ta_multi_bbands(period=14, stddevs=stddevs),
-                ],
-                min_required_samples=280
+                    lambda df, stddevs: df["Close"].q.ta_bbands(period=14, stddev=stddevs)[["lower", "upper"]],
+                ]
             ),
             file
         )
 
-        features, labels, targets, weights = df.ml.extract(
+        (features, _), labels, targets, weights = df.ml.extract(
             deserialize(file, FeaturesAndLabels),
             # kwargs of call
             forecasting_time_steps=7,
-            stddevs=[0.5, 1.5, 2.5, 3.5]
+            stddevs=1.5
         )
 
         # we need RNN shape to be [row, time_step, feature]
         self.assertEqual((6463, 280, 2), features.ml.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 2, 10), labels.ml.values.shape)
+        self.assertEqual((6463, 2, 3), labels.ml.values.shape)
 
 
 """

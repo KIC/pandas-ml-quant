@@ -25,7 +25,7 @@ class FeaturesAndLabels(object):
                  sample_weights: Union[str, Callable[[Any], pd.Series]] = None,
                  gross_loss: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
                  targets: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
-                 min_required_samples: Union[int, Callable[[Any], int]] = None,
+                 label_type = None,
                  **kwargs):
         """
         :param features: a list of column names which are used as features for your model
@@ -50,16 +50,21 @@ class FeaturesAndLabels(object):
         :param min_required_samples: in case you only want to do one prediction and have some feature engineering
             you might need some minimum amount of samples to engineer your features. This can be None but it increases
             performance if you provide it.
+        :param label_type: cast label to its type after all nans got dropped
         :param kwargs: maybe you want to pass some extra parameters to a callable you have provided
         """
 
         self._features = features
         self._labels = labels
+        self._label_type = label_type
         self._sample_weights = sample_weights
         self._targets = targets
         self._gross_loss = gross_loss
-        self._min_required_samples = min_required_samples
         self._kwargs = kwargs
+
+        # set after fit
+        self._min_required_samples = None
+        self._label_columns = None
 
     @property
     def features(self):
@@ -68,6 +73,10 @@ class FeaturesAndLabels(object):
     @property
     def labels(self):
         return self._labels
+
+    @property
+    def label_type(self):
+        return self._label_type
 
     @property
     def sample_weights(self):
@@ -84,6 +93,10 @@ class FeaturesAndLabels(object):
     @property
     def min_required_samples(self) -> Union[int, Callable[[Any], int]]:
         return self._min_required_samples
+
+    @property
+    def label_columns(self):
+        return self._label_columns
 
     @property
     def kwargs(self):

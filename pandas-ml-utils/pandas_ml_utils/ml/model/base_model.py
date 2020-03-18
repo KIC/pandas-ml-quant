@@ -52,6 +52,7 @@ class Model(object):
         """
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
+        self._validation_indices = []
         self.kwargs = kwargs
 
     @property
@@ -61,6 +62,10 @@ class Model(object):
     @property
     def summary_provider(self):
         return self._summary_provider
+
+    @property
+    def validation_indices(self):
+        return self._validation_indices
 
     def plot_loss(self):
         pass

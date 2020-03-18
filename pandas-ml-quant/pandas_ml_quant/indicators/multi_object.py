@@ -3,11 +3,9 @@ from typing import Union as _Union
 # create convenient type hint
 import numpy as _np
 import pandas as _pd
-from pandas.core.base import PandasObject as _PO
 
 from pandas_ml_common import get_pandas_object as _get_pandas_object
 import pandas_ml_quant.indicators.single_object as _i
-from pandas_ml_quant.indicators.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 

@@ -14,17 +14,7 @@ _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 # --------------------------------------------------------------
 
 
-def ta_future_macd_cross(df: _pd.Series, forecast_period=14, fast_period=12, slow_period=26, signal_period=9):
-    assert isinstance(df, _pd.Series)
-
-    # calculate all macd crossings
-    macd = _i.ta_macd(df, fast_period=fast_period, slow_period=slow_period, signal_period=signal_period)
-    zero = macd["histogram"] * 0
-    cross = _i.ta_cross_over(None, macd["histogram"], zero) | _i.ta_cross_under(None, macd["histogram"], zero)
-    return cross.shift(-forecast_period)
-
-
-def ta_future_multiband_bucket(df: _pd.Series, forecast_period=14, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1):
+def _ta_future_multiband_bucket(df: _pd.Series, forecast_period=14, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1):
     buckets = _i.ta_multi_bbands(df, period, stddevs=stddevs, ddof=ddof)
     future = df.shift(-forecast_period)
 

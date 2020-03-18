@@ -28,8 +28,7 @@ class TestModel(TestCase):
                     ],
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
-                    ],
-                    min_required_samples=280
+                    ]
                 ),
                 # kwargs
                 forecasting_time_steps=7
@@ -72,8 +71,7 @@ class TestModel(TestCase):
                             .shift(-5) \
                             .astype(bool)
 
-                    ],
-                    min_required_samples=100
+                    ]
                 )
             ),
             test_size=0.4,
@@ -101,9 +99,10 @@ class TestModel(TestCase):
                     ),
                     labels=[
                         lambda df: df["Close"].q.ta_future_bband_quantile().q.ta_one_hot_encode_discrete()
-
                     ],
-                    min_required_samples=280
+                    targets=[
+                        lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
+                    ]
                 ),
                 summary_provider=ClassificationSummary,
             ),
@@ -113,7 +112,10 @@ class TestModel(TestCase):
         )
 
         print(fit)
-        # FIXME test self.asstr(fit)
-
         prediction = df.model.predict(fit.model, tail=3)
+        self.assertEqual(3, len(prediction))
+
+        target_predictions = prediction.map_prediction_to_target()
+        print(target_predictions)
+        self.assertEqual(9, len(target_predictions))
 

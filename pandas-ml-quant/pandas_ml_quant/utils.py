@@ -32,3 +32,15 @@ def with_column_suffix(suffix, po, ref_po=None):
         else:
             po.columns = ref_po.columns
             return po.add_suffix(f'_{suffix}')
+
+
+# return index of bucket of which the future price lies in
+def index_of_bucket(value, data):
+    if np.isnan(value) or np.isnan(data).any() or np.isinf(value) or np.isinf(value).any():
+        return np.nan
+
+    for i, v in enumerate(data):
+        if value < v:
+            return i
+
+    return len(data)
