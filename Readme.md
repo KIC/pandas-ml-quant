@@ -1,3 +1,4 @@
+# Open the [Readme.ipynb](Readme.ipynb) with outputs rendered by github
 # pandas-ml-qunat - The Pandas Machine Leraning and Quant Finance Library
 
 This is the root repository of the follwoing 3 core components:
