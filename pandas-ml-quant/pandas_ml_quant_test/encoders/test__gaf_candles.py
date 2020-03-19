@@ -13,5 +13,5 @@ class TestCandleEncoder(TestCase):
 
         self.assertGreaterEqual(club["upper"].values.max(), 0)
         self.assertGreaterEqual(club["lower"].values.max(), 0)
-        np.testing.assert_array_almost_equal(np.array([312.089996, 0.019989, 0.160004, -0.140015]),
-                                             club.iloc[-1].values, 6)
+        np.testing.assert_array_almost_equal(np.array([3.120900e+02, 6.402011e-05, 4.861506e-03, 9.995516e-01]),
+                                             club.iloc[-1].values, 5)

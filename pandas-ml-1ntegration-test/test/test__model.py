@@ -41,7 +41,29 @@ class TestModel(TestCase):
         backtest = df.model.backtest(fit.model)
 
 
-    def test_hyper_parameter_for_simple_model(self):
+    # FIXME implement functionality such that test passes
+    def _test_hyper_parameter_for_simple_model(self):
+        from hyperopt import hp
+
+        """given"""
+        df = DF_TEST.copy()
+        df['label'] = df["spy_Close"] > df["spy_Open"]
+
+        """when fit with find hyper parameter"""
+        fit = df.fit(
+            SkModel(MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42),
+                    FeaturesAndLabels(features=['vix_Close'], labels=['label'],
+                                      target_columns=["vix_Open"],
+                                      loss_column="spy_Volume")),
+            test_size=0.4,
+            test_validate_split_seed=42,
+            hyper_parameter_space={'alpha': hp.choice('alpha', [0.0001, 10]), 'early_stopping': True, 'max_iter': 50,
+                                   '__max_evals': 4, '__rstate': np.random.RandomState(42)}
+        )
+
+        """then test best parameter"""
+        self.assertEqual(fit.model.skit_model.get_params()['alpha'], 0.0001)
+
 
         pass
 

@@ -46,12 +46,14 @@ class TaPlot(object):
         self.axis[panel] = ta_candlestick(self.df, open, high, low, close, ax=self.axis[panel])
         return self._return()
 
-    def stacked_bar(self, columns, padding=0.02, panel=1, **kwargs ):
+    def stacked_bar(self, columns, padding=0.02, panel=1, **kwargs):
+        # todo if x axis is multilevel then stack all bars at level > 2
         self.axis[panel] = ta_stacked_bar(self.df, columns, ax=self.axis[panel], padding=padding, **kwargs)
         return self._return()
 
     def bars(self):
         # FIXME add side by side bars
+        # todo if x axis is multilevel then stack all bars at level > 2
         pass
 
     def bar(self, fields="Volume", panel=1, colors=None, color_map: str = 'afmhot', **kwargs):

@@ -21,6 +21,9 @@ def assemble_prediction_frame(frames: Dict[str, pd.DataFrame]):
 
 
 def map_prediction_to_target(df, prediction, targets):
+    def _round(val, d):
+        return round(val, d) if isinstance(val, float) else val
+
     dfp = get_pandas_object(df, prediction)
     p = dfp.ml.values.reshape((len(df), -1))
 
@@ -29,11 +32,11 @@ def map_prediction_to_target(df, prediction, targets):
 
     if p.shape[1] == t.shape[1]:
         # 1:1 mapping
-        index = [(date, round(target, 2)) for date in df.index for target in dft.loc[date].values]
+        index = [(date, _round(target, 2)) for date in df.index for target in dft.loc[date].values]
     elif p.shape[1] == t.shape[1] - 1:
         # we need to build ranges
         def build_tuples(l):
-            return [(round(l[i - 1], 2), round(l[i], 2)) for i in range(1, len(l))]
+            return [(_round(l[i - 1], 2), _round(l[i], 2)) for i in range(1, len(l))]
 
         index = [(date, f"{target}") for date in df.index for target in
                  build_tuples(dft.loc[date].tolist())]
@@ -41,7 +44,7 @@ def map_prediction_to_target(df, prediction, targets):
         # mapping of the left and right extremes using +/- inf
         def build_tuples(l):
             l = [-np.inf, *l, np.inf]
-            return [(round(l[i - 1], 2), round(l[i], 2)) for i in range(1, len(l))]
+            return [(_round(l[i - 1], 2), _round(l[i], 2)) for i in range(1, len(l))]
 
         index = [(date, target) for date in df.index for target in
                  build_tuples(dft.loc[date].ml.values.tolist())]
