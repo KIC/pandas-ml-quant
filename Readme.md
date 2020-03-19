@@ -1,4 +1,3 @@
-# Open the [Readme.ipynb](Readme.ipynb) with outputs rendered by github
 # pandas-ml-qunat - The Pandas Machine Leraning and Quant Finance Library
 
 This is the root repository of the follwoing 3 core components:
@@ -8,6 +7,8 @@ provider
 * pandas-ml-quant - provides technical analysis inidcators, plots, loss
 functions, etc.
 * pandas-ml-utils - apply statistical or ml models directly to data frames
+
+## -> Open the [notebooks/Readme.ipynb](notebooks/Readme.ipynb) with outputs rendered by github
 
 ## Demonstration of all 3 libraries used together
 ### First import needed objects
