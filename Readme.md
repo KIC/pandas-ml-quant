@@ -2,15 +2,29 @@
 
 This is the root repository of the follwoing 3 core components:
 
-* pandas-ml-common - a more general utilities and monkey patched pandas objects
-provider
-* pandas-ml-quant - provides technical analysis inidcators, plots, loss
-functions, etc.
-* pandas-ml-utils - apply statistical or ml models directly to data frames
+* [pandas-ml-common](pandas-ml-common/Readme.md) - a more general utilities
+and monkey patched pandas objects provider
+* [pandas-ml-quant](pandas-ml-quant/Readme.md) - provides technical analysis
+inidcators, plots, loss functions, etc.
+* [pandas-ml-utils](pandas-ml-utils/Readme.md) - apply statistical or ml
+models directly to data frames
 
-## -> Open the [notebooks/Readme.ipynb](notebooks/Readme.ipynb) with outputs rendered by github
+You will also find an integration test module which is used mainly for testing
+but may also serve as a source of documentation.
 
-## Demonstration of all 3 libraries used together
+Last but not least there are some notebooks which I use for my experiments feel
+free to use them as well.
+
+## Installation
+Currenty all 3 libraries are very much entangled. This dependency will weaken up
+as we reach stablity. Never the less it is possible to only use `pandas-ml-
+utils` together with `pandas-ml-common`.
+
+```bash
+pip install pandas-ml-common pandas-ml-utils pandas-ml-quant
+```
+
+## Demonstration of all 3 libraries used together -> Better browse the [notebooks/Readme.ipynb](notebooks/Readme.ipynb) with rendered outputs
 ### First import needed objects
 
 ```{.python .input  n=1}

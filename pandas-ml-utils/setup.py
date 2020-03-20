@@ -9,7 +9,7 @@ setup(
    author_email='',
    packages=find_packages(),
    scripts=[],
-   url='https://github.com/KIC/pandas-ml-qunat',
+   url='https://github.com/KIC/pandas-ml-quant',
    license='MIT',
    description=pandas_ml_utils.__doc__,
    long_description=open('Readme.md').read(),

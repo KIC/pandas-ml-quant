@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 import sys as _sys
 
