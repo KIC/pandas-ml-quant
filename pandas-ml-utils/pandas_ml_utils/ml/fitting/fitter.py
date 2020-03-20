@@ -160,7 +160,7 @@ def __hyper_opt(hyper_parameter_space,
     return best_model, trails
 
 
-def predict(df: pd.DataFrame, model: Model, tail: int = None, **kwargs) -> pd.DataFrame:
+def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:
     min_required_samples = model.features_and_labels.min_required_samples
 
     if tail is not None:
@@ -172,8 +172,9 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, **kwargs) -> pd.Da
 
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
     columns, features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
-    y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=columns)
+    predictions = np.array([model.predict(features.ml.values) for _ in range(samples)]).swapaxes(0, 1)
 
+    y_hat = to_pandas(predictions, index=features.index, columns=columns)
     return assemble_prediction_frame({TARGET_COLUMN_NAME: targets, PREDICTION_COLUMN_NAME: y_hat, FEATURE_COLUMN_NAME: features})
 
 

@@ -1,0 +1,2 @@
+tensorflow_probability<0.9
+tesorflow==1.*

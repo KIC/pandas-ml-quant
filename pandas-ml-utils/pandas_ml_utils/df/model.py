@@ -53,6 +53,7 @@ class Model(object):
     def predict(self,
                 model: MlModel,
                 tail: int = None,
+                samples: int = 1,
                 **kwargs) -> pd.DataFrame:
-        return predict(self.df, model, tail, **kwargs)
+        return predict(self.df, model, tail=tail, samples=samples, **kwargs)
 

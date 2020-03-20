@@ -400,8 +400,7 @@ fit = df.model.fit(
             ],
             targets=[
                 lambda df: df["Close"].q.ta_bbands(5, stddev=2.0)[["lower", "upper"]]
-            ],
-            min_required_samples=max(lags)+1
+            ]
         ),
         summary_provider=ClassificationSummary,
     ),

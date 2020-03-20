@@ -1,15 +1,22 @@
+import os
 from unittest import TestCase
 
+import numpy as np
+from keras import Sequential
+from keras.layers import Dense, Reshape
+from keras.optimizers import Adam
 from sklearn.neural_network import MLPClassifier
 
 import pandas_ml_quant
-from pandas_ml_utils import FeaturesAndLabels, SkModel
+from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
 from pandas_ml_utils.ml.data.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary
 from test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
 class TestModel(TestCase):
@@ -20,11 +27,11 @@ class TestModel(TestCase):
         # TODO
         fit = df.model.fit(
             SkModel(
-                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42),
+                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
                 FeaturesAndLabels(
                     features=[
-                        lambda df: df["Close"].q.ta_rsi().q.ta_rnn(280),
-                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(280)
+                        lambda df: df["Close"].q.ta_rsi().q.ta_rnn(28),
+                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(28)
                     ],
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
@@ -38,8 +45,57 @@ class TestModel(TestCase):
         print(fit)
 
         prediction = df.model.predict(fit.model)
+        print(prediction)
+        self.assertIsInstance(prediction[PREDICTION_COLUMN_NAME, 0].iloc[-1], (float, np.float, np.float32, np.float64))
+
         backtest = df.model.backtest(fit.model)
 
+        # test multiple samples
+        samples = df.model.predict(fit.model, samples=2)
+        self.assertIsInstance(samples[PREDICTION_COLUMN_NAME, 0].iloc[-1], list)
+        self.assertEqual(2, len(samples[PREDICTION_COLUMN_NAME, 0].iloc[-1]))
+
+    def test_keras_model(self):
+        df = DF_TEST.copy()
+
+        def model_provider():
+            model = Sequential([
+                Reshape((28 * 2,), input_shape=(28, 2)),
+                Dense(60, activation='tanh'),
+                Dense(50, activation='tanh'),
+                Dense(1, activation="sigmoid")
+            ])
+
+            model.compile(Adam(), loss='mse')
+
+            return model
+
+        fit = df.model.fit(
+            KerasModel(
+                model_provider,
+                FeaturesAndLabels(
+                    features=extract_with_post_processor([
+                        lambda df: df["Close"].q.ta_rsi(),
+                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).rename("RelVolume")
+                    ], lambda df: df.q.ta_rnn(28)),
+                    labels=[
+                        lambda df: (df["Close"] > df["Open"]).shift(-1),
+                    ]
+                ),
+                # kwargs
+                forecasting_time_steps=7,
+                epochs=2
+            )
+        )
+
+        print(fit)
+
+        prediction = df.model.predict(fit.model)
+        print(prediction)
+        print(type(prediction[PREDICTION_COLUMN_NAME, 0].iloc[-1]))
+        self.assertIsInstance(prediction[PREDICTION_COLUMN_NAME, 0].iloc[-1], (float, np.float, np.float32, np.float64))
+
+        backtest = df.model.backtest(fit.model)
 
     # FIXME implement functionality such that test passes
     def _test_hyper_parameter_for_simple_model(self):
@@ -72,7 +128,7 @@ class TestModel(TestCase):
 
         fit = df.model.fit(
             SkModel(
-                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42),
+                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
@@ -82,7 +138,7 @@ class TestModel(TestCase):
                             lambda df: df["Close"].q.ta_macd(),
                             lambda df: df.q.ta_adx(),
                         ],
-                        lambda df: df.q.ta_rnn(range(100))
+                        lambda df: df.q.ta_rnn(range(10))
                     ),
                     labels=[
                         lambda df: df["Close"].q.ta_sma(period=60) \
@@ -106,7 +162,7 @@ class TestModel(TestCase):
 
         fit = df.model.fit(
             SkModel(
-                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, warm_start=True),
+                MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, warm_start=True, max_iter=2),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [

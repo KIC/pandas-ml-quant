@@ -26,17 +26,22 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
 
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:
+    # if the last dimension is 1 we can remove it
+    if len(arr.shape) > 1 and arr.shape[-1] == 1:
+        arr = arr.reshape(arr.shape[:-1])
+
+    # if we have one column and a 1D vector just return a new series
     if len(columns) == 1 and len(arr.shape) == 1:
         return pd.DataFrame({columns[0]: arr}, index=index)
 
+    # make sure columns is of type list
     if not isinstance(columns, list):
         columns = columns.tolist()
 
+    # create the data frame
     df = pd.DataFrame({}, index=index)
     last_idx = len(columns) - 1
 
-    # if (array.shape) > 1 and array.shape[1] > len(columns):
-    #   find a common denominator?
     # TODO add logic for multi index
     for i in range(len(columns)):
         if i >= last_idx and arr.shape[1] > len(columns):
