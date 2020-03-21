@@ -5,14 +5,14 @@ import numpy as np
 from keras import Sequential
 from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 import pandas_ml_quant
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
 from pandas_ml_utils.ml.data.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
-from pandas_ml_utils.ml.summary import ClassificationSummary
+from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
@@ -21,10 +21,38 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 class TestModel(TestCase):
 
-    def test_simple_model(self):
+    def test_simple_regression_model(self):
         df = DF_TEST.copy()
 
-        # TODO
+        fit = df.model.fit(
+            SkModel(
+                MLPRegressor(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
+                FeaturesAndLabels(
+                    features=[
+                        lambda df: df["Close"].q.ta_rsi().q.ta_rnn(28),
+                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(28)
+                    ],
+                    labels=[
+                        lambda df: (df["Close"] / df["Open"] - 1).shift(-1),
+                    ]
+                ),
+                summary_provider=RegressionSummary
+            )
+        )
+
+        print(fit)
+        html = fit._repr_html_()
+
+        prediction = df.model.predict(fit.model)
+        print(prediction)
+        self.assertIsInstance(prediction[PREDICTION_COLUMN_NAME, 0].iloc[-1], (float, np.float, np.float32, np.float64))
+
+        backtest = df.model.backtest(fit.model)
+
+
+    def test_simple_classification_model(self):
+        df = DF_TEST.copy()
+
         fit = df.model.fit(
             SkModel(
                 MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
@@ -43,6 +71,7 @@ class TestModel(TestCase):
         )
 
         print(fit)
+        html = fit._repr_html_()
 
         prediction = df.model.predict(fit.model)
         print(prediction)

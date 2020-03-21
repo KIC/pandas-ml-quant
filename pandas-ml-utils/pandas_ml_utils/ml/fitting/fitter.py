@@ -172,6 +172,10 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
 
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
     columns, features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
+
+    if samples > 1:
+        print(f"draw {samples} samples")
+
     predictions = np.array([model.predict(features.ml.values) for _ in range(samples)]).swapaxes(0, 1)
 
     y_hat = to_pandas(predictions, index=features.index, columns=columns)

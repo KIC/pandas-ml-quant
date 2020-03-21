@@ -22,6 +22,9 @@ if 'pandas_ml_utils' in _sys.modules:
     _log.warning(f"automatically imported pandas_ml_utils {pandas_ml_utils.__version__}")
 
 
+# add read_csv short cut
+setattr(pandas, "read_ts_csv", data_fetchers.read_ts_csv)
+
 # add data fetcher functions
 for fetcher_functions in [data_fetchers]:
     for fetcher_function in dir(fetcher_functions):
