@@ -4,7 +4,6 @@ import pandas as _pd
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
-# FIXME
 def ta_gaf(df: _pd.DataFrame,
           columm_index_level=1,
           image_size=24,
