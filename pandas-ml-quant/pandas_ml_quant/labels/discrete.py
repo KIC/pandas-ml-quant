@@ -33,4 +33,5 @@ def ta_future_bband_quantile(df: _pd.Series, forecast_period=5, period=14, stdde
 def ta_opening_gap(df: _pd.DataFrame, offset=0.005, open="Open", close="Close"):
     gap = (df["Open"].shift(-1) / df["Close"]) - 1
     return gap.apply(lambda row: _np.nan if _np.isnan(row) or _np.isinf(row) else \
-                                 2 if row > offset else 1 if row < -offset else 0)
+                                 2 if row > offset else 1 if row < -offset else 0)\
+              .rename("opening_gap")

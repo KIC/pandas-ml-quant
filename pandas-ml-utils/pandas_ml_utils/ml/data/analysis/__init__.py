@@ -1,1 +1,1 @@
-from .selection import feature_selection
+from .auto_selection import feature_selection

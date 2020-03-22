@@ -11,6 +11,7 @@ from moviepy.video.io.html_tools import ipython_display
 from pandas.plotting import register_matplotlib_converters
 
 from pandas_ml_quant.plots import ta_bar, ta_stacked_bar, ta_candlestick, ta_line, ta_matrix
+from pandas_ml_quant.plots.animations.animate import plot_animation
 
 register_matplotlib_converters()
 
@@ -72,17 +73,7 @@ class TaPlot(object):
             plt.close(fig)
             return frame
 
-        def repr_html(clip):
-            f = io.StringIO()
-            with redirect_stdout(f):
-                return ipython_display(clip)._repr_html_()
-
-        animation = DataVideoClip(self.df.index, make_frame, fps=fps)
-
-        # bind the jupyter extension to the animation and return
-        setattr(DataVideoClip, 'display', ipython_display)
-        setattr(DataVideoClip, '_repr_html_', repr_html)
-        return animation
+        return plot_animation(self.df.index, make_frame, fps, **kwargs)
 
     def __call__(self, *args, **kwargs):
         """

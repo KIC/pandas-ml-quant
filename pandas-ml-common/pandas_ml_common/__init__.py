@@ -15,6 +15,8 @@ _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")
 _log.debug(f"pandas version {pd.__version__}")
 
-
 setattr(PandasObject, "ml", property(lambda self: ML(self)))
 setattr(pd.DataFrame, "to_frame", lambda self: self)
+
+PatchedDataFrame = pd.DataFrame
+PatchedSeries = pd.Series
