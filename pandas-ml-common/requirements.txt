@@ -3,4 +3,5 @@ mpl_finance
 matplotlib
 numpy
 pandas
+numpy
 dill
