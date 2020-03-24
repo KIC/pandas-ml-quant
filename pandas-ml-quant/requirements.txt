@@ -3,7 +3,7 @@ sortedcontainers
 scikit-learn
 mpl_finance
 matplotlib
-tesorflow==1.*
+tensorflow<2.0
 colorama>= 0.3.9
 pywavelets
 cachetools

@@ -11,6 +11,6 @@ for d in */ ; do
     cd "$d"
     echo
     echo "$d"
-    python -m unittest discover -s ./ -p "test_*.py" 2>&1 | grep -Eo 'FAILED.*|Ran.*'
+    python -m unittest discover -s ./ -p "test_*.py"
     cd ..
 done

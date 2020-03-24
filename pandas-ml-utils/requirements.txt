@@ -3,7 +3,7 @@ pandas-ml-common
 sortedcontainers
 scikit-learn
 statsmodels
-tesorflow==1.*
+tensorflow<2.0
 matplotlib
 cachetools
 requests
