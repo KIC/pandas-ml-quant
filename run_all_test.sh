@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# exit on any error
+set -e
+
 # add modules to path
 SCRIPT="$(readlink --canonicalize-existing "$0")"
 SCRIPTPATH="$(dirname "$SCRIPT")"
