@@ -32,8 +32,9 @@ class Model(object):
         return feature_selection(features, label, top_features, correlation_threshold, minimum_features,
                                  lags, show_plots, figsize)
 
-    def plot_features(self, features_and_labels: FeaturesAndLabels):
-        (features, _), labels, _, _ = self.df.ml.extract(features_and_labels)
+    def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
+        fnl = data.features_and_labels if isinstance(data, MlModel) else data
+        (features, _), labels, _, _ = self.df.ml.extract(fnl)
         return plot_features(features.join(labels), labels.columns[0] if hasattr(labels, 'columns') else labels.name)
 
     def fit(self,

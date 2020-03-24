@@ -10,3 +10,6 @@ sed -ie 's/](\.\.\//](/g' Readme.md
 ANCHOR='## Demonstration of all 3 libraries used together'
 SUFFIX='-> Better browse the [notebooks\/Readme.ipynb](notebooks\/Readme.ipynb) with rendered outputs'
 sed -ie "s/$ANCHOR/$ANCHOR $SUFFIX/g" Readme.md
+
+# cleanup
+rm -f Readme.mde

@@ -16,8 +16,8 @@ from pandas_ml_quant_test.config import DF_TEST
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 print(pmu.__version__)
 
-class TestKerasLayer(TestCase):
 
+class TestKerasLayer(TestCase):
 
     def test_normal_layer(self):
         """given"""
