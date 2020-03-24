@@ -16,7 +16,8 @@ jobs:
       matrix:
         python-version: [3.6]
     env:
-      LD_LIBRARY_PATH: "/tmp/lib:/usr/lib:/usr/local/lib/"
+      LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
+      PYTHONPATH: '${{ env.PYTHONPATH }}:'
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -42,4 +43,5 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        run_all_test.sh
+        sh .env.sh
+        echo "lalla $PYTHON_PATH"
