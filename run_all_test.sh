@@ -6,7 +6,7 @@ set -e
 # add modules to path
 SCRIPT="$(readlink --canonicalize-existing "$0")"
 SCRIPTPATH="$(dirname "$SCRIPT")"
-sh "$SCRIPTPATH/.env.sh"
+source "$SCRIPTPATH/.env.sh"
 
 
 # run all tests
