@@ -2,11 +2,11 @@ import matplotlib.dates as mdates
 import pandas as pd
 from mpl_finance import candlestick_ohlc
 
-from pandas_ml_common import get_pandas_object
-from pandas_ml_quant.plots.utils import new_fig_ts_axis
+from pandas_ml_common.utils import get_pandas_object
+from pandas_ml_common.plot.utils import new_fig_ts_axis
 
 
-def ta_candlestick(self, open="Open", high="High", low="Low", close="Close", ax=None, figsize=None, **kwargs):
+def plot_candlestick(self, open="Open", high="High", low="Low", close="Close", ax=None, figsize=None, **kwargs):
     df = self if isinstance(self, pd.DataFrame) else self._parent
 
     if ax is None:

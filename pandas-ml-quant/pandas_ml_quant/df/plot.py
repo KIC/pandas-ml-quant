@@ -1,17 +1,12 @@
-import io
-from contextlib import redirect_stdout
-
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import gridspec
-from moviepy.video.VideoClip import DataVideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
-from moviepy.video.io.html_tools import ipython_display
 from pandas.plotting import register_matplotlib_converters
 
-from pandas_ml_quant.plots import ta_bar, ta_stacked_bar, ta_candlestick, ta_line, ta_matrix
-from pandas_ml_quant.plots.animations.animate import plot_animation
+from pandas_ml_common.plot import plot_bar, plot_stacked_bar, plot_candlestick, plot_line, plot_matrix
+from pandas_ml_common.plot.animations import plot_animation
 
 register_matplotlib_converters()
 
@@ -44,12 +39,12 @@ class TaPlot(object):
         self.grid = grid
 
     def candlestick(self, open="Open", high="High", low="Low", close="Close", panel=0):
-        self.axis[panel] = ta_candlestick(self.df, open, high, low, close, ax=self.axis[panel])
+        self.axis[panel] = plot_candlestick(self.df, open, high, low, close, ax=self.axis[panel])
         return self._return()
 
     def stacked_bar(self, columns, padding=0.02, panel=1, **kwargs):
         # todo if x axis is multilevel then stack all bars at level > 2
-        self.axis[panel] = ta_stacked_bar(self.df, columns, ax=self.axis[panel], padding=padding, **kwargs)
+        self.axis[panel] = plot_stacked_bar(self.df, columns, ax=self.axis[panel], padding=padding, **kwargs)
         return self._return()
 
     def bars(self):
@@ -58,17 +53,17 @@ class TaPlot(object):
         pass
 
     def bar(self, fields="Volume", panel=1, colors=None, color_map: str = 'afmhot', **kwargs):
-        self.axis[panel] = ta_bar(self.df, fields, ax=self.axis[panel], colors=colors, color_map=color_map, **kwargs)
+        self.axis[panel] = plot_bar(self.df, fields, ax=self.axis[panel], colors=colors, color_map=color_map, **kwargs)
         return self._return()
 
     def line(self, fields="Close", panel=0, **kwargs):
-        self.axis[panel] = ta_line(self.df, fields, ax=self.axis[panel], **kwargs)
+        self.axis[panel] = plot_line(self.df, fields, ax=self.axis[panel], **kwargs)
         return self._return()
 
     def plot_matrix_animation(self, fields, fps=2, **kwargs):
         def make_frame(index):
             fig, ax = plt.subplots(figsize=(9, 9))
-            ta_matrix(self.df.loc[[index]], fields, ax=ax, **kwargs)
+            plot_matrix(self.df.loc[[index]], fields, ax=ax, **kwargs)
             frame = mplfig_to_npimage(fig)
             plt.close(fig)
             return frame

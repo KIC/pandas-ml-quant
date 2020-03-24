@@ -3,9 +3,10 @@ import os
 from typing import Dict
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import f1_score
 
-from pandas_ml_common import PatchedDataFrame, PatchedSeries
+from pandas_ml_common import Types
 from pandas_ml_common.utils import unique_level_columns
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import Summary
@@ -14,7 +15,7 @@ _log = logging.getLogger(__name__)
 
 # FIXME this need to be a specialized summary and moved over to the qunat library!!
 class BinaryClassificationSummary(Summary):
-    def __init__(self, df: PatchedDataFrame):
+    def __init__(self, df: Types.PatchedDataFrame):
         super().__init__(df)
         self.probability_cutoff = 0.5
         self.confusions = BinaryClassificationSummary._calculate_confusions(df, self.probability_cutoff)
@@ -83,7 +84,7 @@ class BinaryClassificationSummary(Summary):
             ax0.hlines(probability_cutoff, 0, len(df), color=sns.xkcd_rgb['silver'])
 
             # plot loss
-            color = PatchedSeries(0, index=df.index)
+            color = pd.Series(0, index=df.index)
             color.loc[(df[PREDICTION_COLUMN_NAME].iloc[:, 0] >  pc) & df[LABEL_COLUMN_NAME].iloc[:, 0] > pc] = 1
             color.loc[(df[PREDICTION_COLUMN_NAME].iloc[:, 0] <= pc) & df[LABEL_COLUMN_NAME].iloc[:, 0] > pc] = 2
 

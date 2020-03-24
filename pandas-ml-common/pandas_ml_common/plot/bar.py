@@ -2,16 +2,14 @@ from typing import List
 
 import matplotlib.dates as mdates
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from pandas.core.base import PandasObject
 
-from pandas_ml_common import get_pandas_object
-from pandas_ml_quant.encoders import ReScaler
-from pandas_ml_quant.plots.utils import new_fig_ts_axis
+from pandas_ml_common.utils import get_pandas_object, ReScaler
+from pandas_ml_common.plot.utils import new_fig_ts_axis
 
 
-def ta_bar(df, fields, figsize=None, ax=None, colors=None, color_map: str = 'afmhot', **kwargs):
+def plot_bar(df, fields, figsize=None, ax=None, colors=None, color_map: str = 'afmhot', **kwargs):
     data = get_pandas_object(df, fields).values
     colors = get_pandas_object(df, colors)
 
@@ -32,7 +30,7 @@ def ta_bar(df, fields, figsize=None, ax=None, colors=None, color_map: str = 'afm
     return ax
 
 
-def ta_stacked_bar(df, columns, figsize=None, ax=None, padding=0.02, **kwargs):
+def plot_stacked_bar(df, columns, figsize=None, ax=None, padding=0.02, **kwargs):
     # TODO add colors ...
     if ax is None:
         fig, ax = new_fig_ts_axis(figsize)

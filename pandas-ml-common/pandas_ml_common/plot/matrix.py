@@ -1,9 +1,9 @@
-from pandas_ml_common import get_pandas_object
-from pandas_ml_quant.plots.utils import new_fig_ts_axis
+from pandas_ml_common.utils import get_pandas_object
+from pandas_ml_common.plot.utils import new_fig_ts_axis
 import numpy as np
 
 
-def ta_matrix(df, fields, figsize=None, ax=None, **kwargs):
+def plot_matrix(df, fields, figsize=None, ax=None, **kwargs):
     data = fields if isinstance(fields, np.ndarray) else (get_pandas_object(df, fields).ml.values.squeeze())
 
     if ax is None:
