@@ -5,6 +5,7 @@ import numpy as _np
 import pandas as _pd
 from scipy.stats import zscore
 
+from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
@@ -23,9 +24,7 @@ def ta_ema(df: _PANDAS, period=12) -> _PANDAS:
 
 
 def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
-    if isinstance(df, _pd.Series):
-        res = ta_wilders(df.to_frame(), period).iloc[:, 0]
-    else:
+    if has_indexed_columns(df):
         resdf = _pd.DataFrame({}, index=df.index)
         for col in df.columns:
             s = df[col].dropna()
@@ -34,6 +33,8 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
             resdf = resdf.join(_pd.DataFrame({col: res}, index=s.index))
 
         res = resdf
+    else:
+        res = ta_wilders(df.to_frame(), period).iloc[:, 0]
 
     return _wcs(f"wilders_{period}", res)
 
@@ -47,7 +48,7 @@ def ta_macd(df: _PANDAS, fast_period=12, slow_period=26, signal_period=9, relati
     suffix = f'{fast_period},{slow_period},{signal_period}'
 
     for label, frame in {f"macd_{suffix}": macd, f"signal_{suffix}": signal, f"histogram_{suffix}": hist}.items():
-        if isinstance(frame, _pd.DataFrame) and len(df.columns) > 1:
+        if has_indexed_columns(frame) and len(df.columns) > 1:
             frame.columns = _pd.MultiIndex.from_product([frame.columns, [label]])
         else:
             frame.name = label
@@ -156,7 +157,7 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
 
 
 def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1) -> _PANDAS:
-    assert isinstance(s, _pd.Series)
+    assert not has_indexed_columns(s)
     mean = s.rolling(period).mean().rename("mean")
     std = s.rolling(period).std(ddof=ddof)
     df = _pd.DataFrame({}, index=mean.index)

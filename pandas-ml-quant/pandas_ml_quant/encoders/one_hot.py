@@ -3,9 +3,11 @@ from typing import Union
 import pandas as pd
 from sklearn.preprocessing import LabelBinarizer
 
+from pandas_ml_common.utils import has_indexed_columns
+
 
 def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True) -> Union[pd.Series, pd.DataFrame]:
-    if hasattr(po, "columns"):
+    if has_indexed_columns(po):
         return pd.DataFrame([ta_one_hot_encode_discrete(po[col]) for col in po.columns]).T
     else:
         if drop_na:

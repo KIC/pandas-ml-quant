@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
-from pandas_ml_common.utils import multi_index_shape, get_pandas_object, unpack_nested_arrays
+from pandas_ml_common.utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
 
 
 class ML(object):
@@ -25,7 +25,7 @@ class ML(object):
         values = unpack_nested_arrays(self.df)
 
         # return in multi level shape if multi index is used
-        if hasattr(self.df, 'columns') and isinstance(self.df.columns, pd.MultiIndex):
+        if has_indexed_columns(self.df) and isinstance(self.df.columns, pd.MultiIndex):
             index_shape = multi_index_shape(self.df.columns)
             values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
 

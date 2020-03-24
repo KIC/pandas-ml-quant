@@ -7,7 +7,7 @@ from pandas_ml_common.plot.utils import new_fig_ts_axis
 
 
 def plot_candlestick(self, open="Open", high="High", low="Low", close="Close", ax=None, figsize=None, **kwargs):
-    df = self if isinstance(self, pd.DataFrame) else self._parent
+    df = self._parent if hasattr(self, '_parent') else self
 
     if ax is None:
         fig, ax = new_fig_ts_axis(figsize)

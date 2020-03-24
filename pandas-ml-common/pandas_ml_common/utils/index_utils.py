@@ -13,6 +13,10 @@ from pandas_ml_common.utils.types import Constant
 _log = logging.getLogger(__name__)
 
 
+def has_indexed_columns(po: PandasObject):
+    return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
+
+
 def inner_join(df, join: pd.DataFrame, prefix: str = ''):
     if isinstance(df.columns, pd.MultiIndex) and not isinstance(join.columns, pd.MultiIndex):
         b = join.copy()
@@ -103,7 +107,7 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
             return res
         else:
             try:
-                if hasattr(po, 'columns'):
+                if has_indexed_columns(po):
                     if item in po.columns:
                         return po[item]
                     else:
@@ -124,7 +128,8 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
                             # try regex
                             return po[list(filter(re.compile(item).match, po.columns))]
                 else:
-                    return po[item]
+                    # return po[item]
+                    raise KeyError("should never get here ?")
             except KeyError:
                 raise KeyError(f"{item} not found in {po.columns if hasattr(po, 'columns') else po}")
 

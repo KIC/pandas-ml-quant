@@ -3,6 +3,7 @@ from typing import Callable, Tuple, Dict, Union, List, Iterable
 import numpy as np
 
 from pandas_ml_common import get_pandas_object, Types
+from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_utils.ml.data.analysis import feature_selection
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
@@ -35,7 +36,7 @@ class Model(object):
     def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
         fnl = data.features_and_labels if isinstance(data, MlModel) else data
         (features, _), labels, _, _ = self.df.ml.extract(fnl)
-        return plot_features(features.join(labels), labels.columns[0] if hasattr(labels, 'columns') else labels.name)
+        return plot_features(features.join(labels), labels.columns[0] if has_indexed_columns(labels) else labels.name)
 
     def fit(self,
             model_provider: Callable[[], MlModel],
