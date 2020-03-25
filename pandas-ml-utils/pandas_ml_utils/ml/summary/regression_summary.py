@@ -3,7 +3,7 @@ from typing import Tuple
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 
-from pandas_ml_common import Types
+from pandas_ml_common import Typing
 from pandas_ml_common.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
@@ -12,7 +12,7 @@ from pandas_ml_utils.ml.summary import Summary
 
 class RegressionSummary(Summary):
 
-    def __init__(self, df: Types.PatchedDataFrame, true_columns=None, pred_columns=None):
+    def __init__(self, df: Typing.PatchedDataFrame, true_columns=None, pred_columns=None):
         super().__init__(df)
         self.true_columns = LABEL_COLUMN_NAME if true_columns is None else true_columns
         self.pred_columns = PREDICTION_COLUMN_NAME if pred_columns is None else pred_columns

@@ -14,7 +14,7 @@ setup(
    description=pandas_ml_quant.__doc__,
    long_description=open('Readme.md').read(),
    long_description_content_type='text/markdown',
-   install_requires=[open("requirements.txt").read().splitlines()],
+   install_requires=["pandas-ml-common", *open("requirements.txt").read().splitlines()],
    extras_require={
       "dev": open("dev-requirements.txt").read().splitlines(),
    },

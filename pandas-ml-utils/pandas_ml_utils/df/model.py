@@ -1,12 +1,11 @@
-from typing import Callable, Tuple, Dict, Union, List, Iterable
+from typing import Callable, Tuple, Dict, Union, Iterable
 
-import numpy as np
-
-from pandas_ml_common import get_pandas_object, Types
+from pandas_ml_common import get_pandas_object, Typing
 from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_utils.ml.data.analysis import feature_selection
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
+from pandas_ml_utils.ml.data.splitting import Splitter, RandomSplits
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
 from pandas_ml_utils.ml.model import Model as MlModel
 from pandas_ml_utils.ml.summary import Summary
@@ -14,7 +13,7 @@ from pandas_ml_utils.ml.summary import Summary
 
 class Model(object):
 
-    def __init__(self, df: Types.PatchedDataFrame):
+    def __init__(self, df: Typing.PatchedDataFrame):
         self.df = df
 
     def feature_selection(self,
@@ -40,19 +39,15 @@ class Model(object):
 
     def fit(self,
             model_provider: Callable[[], MlModel],
-            test_size: float = 0.4,
-            youngest_size: float = None,
-            cross_validation: Tuple[int, Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]] = None,
-            test_validate_split_seed = 42,
+            training_data_splitter: Splitter = RandomSplits(),
             hyper_parameter_space: Dict = None,
             **kwargs
             ) -> Fit:
-        return fit(self.df, model_provider, test_size, youngest_size, cross_validation, test_validate_split_seed,
-                   hyper_parameter_space, **kwargs)
+        return fit(self.df, model_provider, training_data_splitter, **kwargs)
 
     def backtest(self,
                  model: MlModel,
-                 summary_provider: Callable[[Types.PatchedDataFrame], Summary] = Summary,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs) -> Summary:
         return backtest(self.df, model, summary_provider, **kwargs)
 
@@ -60,6 +55,6 @@ class Model(object):
                 model: MlModel,
                 tail: int = None,
                 samples: int = 1,
-                **kwargs) -> Types.PatchedDataFrame:
+                **kwargs) -> Typing.PatchedDataFrame:
         return predict(self.df, model, tail=tail, samples=samples, **kwargs)
 

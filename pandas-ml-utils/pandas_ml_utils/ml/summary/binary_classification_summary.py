@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from pandas_ml_common import Types
+from pandas_ml_common import Typing
 from pandas_ml_common.utils import unique_level_columns
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import Summary
@@ -15,7 +15,7 @@ _log = logging.getLogger(__name__)
 
 # FIXME this need to be a specialized summary and moved over to the qunat library!!
 class BinaryClassificationSummary(Summary):
-    def __init__(self, df: Types.PatchedDataFrame):
+    def __init__(self, df: Typing.PatchedDataFrame):
         super().__init__(df)
         self.probability_cutoff = 0.5
         self.confusions = BinaryClassificationSummary._calculate_confusions(df, self.probability_cutoff)

@@ -11,7 +11,8 @@ import pandas_ml_quant
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
-from pandas_ml_utils.ml.data.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
+from pandas_ml_utils.ml.data.splitting import RandomSplits
+from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
 
@@ -181,9 +182,9 @@ class TestModel(TestCase):
                     ]
                 )
             ),
-            test_size=0.4,
-            test_validate_split_seed=42,
-            cross_validation=(1, KFoldBoostRareEvents(n_splits=5).split)
+            RandomSplits(test_size=0.4,
+                         test_validate_split_seed=42,
+                         cross_validation=(1, KFoldBoostRareEvents(n_splits=5).split))
         )
 
     def test_debug(self):
@@ -213,9 +214,9 @@ class TestModel(TestCase):
                 ),
                 summary_provider=ClassificationSummary,
             ),
-            test_size=0.4,
-            test_validate_split_seed=42,
-            cross_validation=(1, KEquallyWeightEvents(n_splits=3).split),
+            RandomSplits(test_size=0.4,
+                         test_validate_split_seed=42,
+                         cross_validation=(1, KEquallyWeightEvents(n_splits=3).split))
         )
 
         print(fit)

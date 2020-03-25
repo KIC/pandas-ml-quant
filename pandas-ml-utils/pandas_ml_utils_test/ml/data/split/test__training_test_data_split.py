@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from pandas_ml_utils import pd, np
-from pandas_ml_utils.ml.data.splitting import train_test_split
+from pandas_ml_utils.ml.data.splitting import RandomSplits
 
 
 class TestTrainTestData(TestCase):
@@ -12,7 +12,7 @@ class TestTrainTestData(TestCase):
                            "labelA": [1,2,3,4,5]})
 
         """when"""
-        train_ix, test_ix = train_test_split(df.index, 0)
+        train_ix, test_ix = RandomSplits(0).train_test_split(df.index)
 
         """then"""
         np.testing.assert_array_almost_equal(train_ix.values, df.index.values)
@@ -24,7 +24,7 @@ class TestTrainTestData(TestCase):
                            "labelA": [1, 2, 3, 4, 5]})
 
         """when"""
-        train_ix, test_ix = train_test_split(df.index, test_size=0.5)
+        train_ix, test_ix = RandomSplits(test_size=0.5).train_test_split(df.index)
 
         """then"""
         self.assertEqual(2, len(train_ix))
@@ -36,7 +36,7 @@ class TestTrainTestData(TestCase):
                            "labelA": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
 
         """when"""
-        train_ix, test_ix = train_test_split(df.index, test_size=0.6, youngest_size=0.25)
+        train_ix, test_ix = RandomSplits(test_size=0.6, youngest_size=0.25).train_test_split(df.index)
 
         "then"
         self.assertEqual(6, len(test_ix))

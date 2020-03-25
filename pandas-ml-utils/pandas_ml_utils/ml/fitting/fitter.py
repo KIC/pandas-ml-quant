@@ -11,8 +11,9 @@ from sklearn.utils.testing import ignore_warnings
 
 from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwargs, to_pandas
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
-from pandas_ml_utils.ml.data.splitting import train_test_split
 from pandas_ml_utils.ml.data.reconstruction import assemble_prediction_frame
+from pandas_ml_utils.ml.data.splitting.random_splits import RandomSplits
+from pandas_ml_utils.ml.data.splitting.splitter import Splitter
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
@@ -26,10 +27,7 @@ if TYPE_CHECKING:
 
 def fit(df: pd.DataFrame,
         model_provider: Callable[[int], Model],
-        test_size: float = 0.4,
-        youngest_size: float = None,
-        cross_validation: Tuple[int, Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]] = None,
-        test_validate_split_seed = 42,
+        training_data_splitter: Splitter = RandomSplits(),
         hyper_parameter_space: Dict = None,
         **kwargs
         ) -> Fit:
@@ -37,13 +35,10 @@ def fit(df: pd.DataFrame,
 
     :param df: the DataFrame you apply this function to
     :param model_provider: a callable which provides a new :class:`.Model` instance i.e. for each hyper parameter if
-                           hyper parameter tuning is enforced. Usually all the Model subclasses implement __call__
-                           thus they are a provider of itself
-    :param test_size: the fraction [0, 1] of random samples which are used for a test set
-    :param youngest_size: the fraction [0, 1] of the test samples which are not random but are the youngest
-    :param cross_validation: tuple of number of epochs for each fold provider and a cross validation provider
-    :param test_validate_split_seed: seed if train, test splitting needs to be reproduceable. A magic seed 'youngest' is
-                                     available, which just uses the youngest data as test data
+           hyper parameter tuning is enforced. Usually all the Model subclasses implement __call__ thus they are a
+           provider of itself
+    :param training_data_splitter: a :class:`pandas_ml_utils.ml.data.splitting.Splitter` object
+           which provides traning and test data splits (eventually multiple folds)
     :param hyper_parameter_space: space of hyper parameters passed as kwargs to your model provider
     :return: returns a :class:`pandas_ml_utils.model.fitting.fit.Fit` object
     """
@@ -58,7 +53,7 @@ def fit(df: pd.DataFrame,
     _log.info("create model")
 
     # get indices and make training and test data sets
-    train_idx, test_idx = train_test_split(features.index, test_size, youngest_size, test_validate_split_seed)
+    train_idx, test_idx = training_data_splitter.train_test_split(features.index)
     train = (features.loc[train_idx], labels.loc[train_idx], loc_if_not_none(weights, train_idx))
     test = (features.loc[test_idx], labels.loc[test_idx], loc_if_not_none(weights, test_idx))
 
@@ -78,12 +73,12 @@ def fit(df: pd.DataFrame,
                                     hyperopt_params,
                                     constants,
                                     model_provider,
-                                    cross_validation,
+                                    None, # FIXM Ecross_validation,
                                     train,
                                     test)
 
     # finally train the model with eventually tuned hyper parameters
-    __train_loop(model, cross_validation, train, test)
+    __train_loop(model, training_data_splitter.cross_validation, train, test)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
@@ -142,7 +137,7 @@ def __hyper_opt(hyper_parameter_space,
 
     def f(args):
         sampled_parameters = {k: args[i] for i, k in enumerate(keys)}
-        model = model_provider(**join_kwargs(sampled_parameters, constants))
+        model = None # FIXME model_provider(**join_kwargs(sampled_parameters, constants))
         loss = __train_loop(model, cross_validation, train, test)
         if loss is None:
             raise ValueError("Can not hyper tune if model loss is None")
