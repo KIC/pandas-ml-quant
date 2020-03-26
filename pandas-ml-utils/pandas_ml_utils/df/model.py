@@ -43,7 +43,7 @@ class Model(object):
             hyper_parameter_space: Dict = None,
             **kwargs
             ) -> Fit:
-        return fit(self.df, model_provider, training_data_splitter, **kwargs)
+        return fit(self.df, model_provider, training_data_splitter, hyper_parameter_space, **kwargs)
 
     def backtest(self,
                  model: MlModel,

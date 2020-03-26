@@ -85,10 +85,11 @@ class KerasModel(Model):
         self.callbacks = callbacks
         self.history = None
 
-    def fit(self,
-            x: np.ndarray, y: np.ndarray,
-            x_val: np.ndarray, y_val: np.ndarray,
-            sample_weight_train: np.ndarray, sample_weight_test: np.ndarray) -> float:
+    def fit_fold(self,
+                 x: np.ndarray, y: np.ndarray,
+                 x_val: np.ndarray, y_val: np.ndarray,
+                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
+                 **kwargs) -> float:
         fitter_args = suitable_kwargs(self.keras_model.fit, **self.kwargs)
 
         if sample_weight_train is not None:

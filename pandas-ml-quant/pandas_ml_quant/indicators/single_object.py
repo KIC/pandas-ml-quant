@@ -202,3 +202,14 @@ def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1) -> _PANDAS:
         .join(z_score) \
         .join(quantile) \
         .sort_index(axis=1)
+
+
+def ta_returns(df: _PANDAS):
+    return _wcs("return", df.pct_change())
+
+
+def ta_log_returns(df: _PANDAS):
+    current = df
+    lagged = df.shift(1)
+
+    return _wcs("log_return", _np.log(current) - _np.log(lagged))

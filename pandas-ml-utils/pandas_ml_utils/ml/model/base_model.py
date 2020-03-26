@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
+from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -67,9 +68,6 @@ class Model(object):
     def validation_indices(self):
         return self._validation_indices
 
-    def plot_loss(self):
-        pass
-
     def __getitem__(self, item):
         """
         returns arguments which are stored in the kwargs filed. By providing a tuple, a default in case of missing
@@ -93,12 +91,31 @@ class Model(object):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def fit(self,
-            x: np.ndarray, y: np.ndarray,
-            x_val: np.ndarray, y_val: np.ndarray,
-            sample_weight_train: np.ndarray, sample_weight_test: np.ndarray) -> float:
+    def plot_loss(self):
         """
-        function called to fit the model
+        implement this function to plot a diagram of the training and validation losses
+        :return:
+        """
+        pass
+
+    def fit(self, data: DataGenerator) -> float:
+        """
+        draws folds from the data generator as long as it yields new data and fits the model to one fold
+
+        :param data: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator`
+        :return: returns the average loss over oll folds
+        """
+
+        losses = [self.fit_fold(*sample) for sample in data.sample()]
+        return np.array(losses).mean()
+
+    def fit_fold(self,
+                 x: np.ndarray, y: np.ndarray,
+                 x_val: np.ndarray, y_val: np.ndarray,
+                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
+                 **kwargs) -> float:
+        """
+        function called to fit the model to one fold of the data generator (i.e. k-folds)
         :param x: x
         :param y: y
         :param x_val: x validation

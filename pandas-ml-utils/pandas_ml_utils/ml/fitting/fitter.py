@@ -13,6 +13,7 @@ from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwar
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
 from pandas_ml_utils.ml.data.reconstruction import assemble_prediction_frame
 from pandas_ml_utils.ml.data.splitting.random_splits import RandomSplits
+from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
 from pandas_ml_utils.ml.data.splitting.splitter import Splitter
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
@@ -73,12 +74,12 @@ def fit(df: pd.DataFrame,
                                     hyperopt_params,
                                     constants,
                                     model_provider,
-                                    None, # FIXM Ecross_validation,
+                                    None, # FIXME Ecross_validation,
                                     train,
                                     test)
 
     # finally train the model with eventually tuned hyper parameters
-    __train_loop(model, training_data_splitter.cross_validation, train, test)
+    model.fit(DataGenerator(training_data_splitter.cross_validation, train, test))
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
@@ -96,33 +97,6 @@ def fit(df: pd.DataFrame,
     return Fit(model, model.summary_provider(df_train), model.summary_provider(df_test), trails)
 
 
-def __train_loop(model, cross_validation, train, test):
-    x_train, y_train, w_train = train[0].ml.values, train[1].ml.values, call_if_not_none(train[2], "values")
-    x_test, y_test, w_test = test[0].ml.values, test[1].ml.values, call_if_not_none(test[2], "values")
-
-    if w_train is not None:
-        w_train = w_train.reshape((len(x_train),))
-        w_test = w_test.reshape((len(x_test),))
-
-    # apply cross validation
-    if cross_validation is not None and isinstance(cross_validation, Tuple) and callable(cross_validation[1]):
-        losses = []
-        for fold_epoch in range(cross_validation[0]):
-            # cross validation, make sure we re-shuffle every fold_epoch
-            for f, (train_idx, test_idx) in enumerate(cross_validation[1](x_train, y_train)):
-                _log.info(f'fit fold {f}')
-                loss = model.fit(x_train[train_idx], y_train[train_idx],
-                                 x_train[test_idx], y_train[test_idx],
-                                 *((w_train[train_idx], w_train[test_idx]) if w_train is not None else (None, None)))
-
-                losses.append(loss)
-
-        return np.array(losses).mean()
-    else:
-        # fit without cross validation
-        return model.fit(x_train, y_train, x_test, y_test, w_train, w_test)
-
-
 @ignore_warnings(category=ConvergenceWarning)
 def __hyper_opt(hyper_parameter_space,
                 hyperopt_params,
@@ -138,7 +112,7 @@ def __hyper_opt(hyper_parameter_space,
     def f(args):
         sampled_parameters = {k: args[i] for i, k in enumerate(keys)}
         model = None # FIXME model_provider(**join_kwargs(sampled_parameters, constants))
-        loss = __train_loop(model, cross_validation, train, test)
+        loss = None # FIXME __train_loop(model, cross_validation, train, test)
         if loss is None:
             raise ValueError("Can not hyper tune if model loss is None")
 

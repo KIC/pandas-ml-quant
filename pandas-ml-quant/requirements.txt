@@ -1,4 +1,5 @@
 sortedcontainers
+stable-baselines
 scikit-learn
 mpl_finance
 matplotlib

@@ -6,12 +6,15 @@ from keras import Sequential
 from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
 from sklearn.neural_network import MLPClassifier, MLPRegressor
+from stable_baselines import A2C
+from stable_baselines.common.policies import MlpLstmPolicy
 
 import pandas_ml_quant
-from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel
+from pandas_ml_quant.model.TradingAgentGym import TradingAgent
+from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
-from pandas_ml_utils.ml.data.splitting import RandomSplits
+from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
 from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
@@ -226,4 +229,37 @@ class TestModel(TestCase):
         target_predictions = prediction.map_prediction_to_target()
         print(target_predictions)
         self.assertEqual(9, len(target_predictions))
+
+    def test_reinformcement(self):
+        df = DF_TEST.copy()
+
+        fit = df.model.fit(
+            ReinforcementModel(
+                lambda gym: A2C(MlpLstmPolicy, gym),
+                TradingAgent(input_shape=(280,9)),
+                FeaturesAndLabels(
+                    features=extract_with_post_processor(
+                        [
+                            lambda df: df["Close"].q.ta_macd().ml[['macd.*', 'signal.*']],
+                            lambda df: df.q.ta_adx().ml[['+DI', '-DM', '+DM']],
+                            lambda df: df["Close"].q.ta_mom(),
+                            lambda df: df["Close"].q.ta_apo(),
+                            lambda df: df.q.ta_atr(),
+                            lambda df: df["Close"].q.ta_trix(),
+                        ],
+                        lambda df: df.q.ta_rnn(280)
+                    ),
+                    labels=[
+                        lambda df: df["Close"].q.ta_future_bband_quantile().q.ta_one_hot_encode_discrete()
+                    ],
+                    targets=[
+                        lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
+                    ]
+                ),
+            ),
+            NaiveSplitter(),
+            total_timesteps=10
+        )
+
+
 
