@@ -1,5 +1,5 @@
 twine
 TA-Lib
-mpl_finance
+mplfinance
 matplotlib
 pylab

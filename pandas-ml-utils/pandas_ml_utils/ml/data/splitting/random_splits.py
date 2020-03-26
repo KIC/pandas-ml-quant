@@ -15,7 +15,7 @@ class RandomSplits(Splitter):
     def __init__(self,
                  test_size: float = 0.4,
                  youngest_size: float = None,
-                 cross_validation: Tuple[int, Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]] = None,
+                 cross_validation: Tuple[int, Callable[[pd.Index, pd.Index], Tuple[np.ndarray, np.ndarray]]] = None,
                  test_validate_split_seed=42):
         """
         :param test_size: the fraction [0, 1] of random samples which are used for a test set
@@ -63,6 +63,6 @@ class RandomSplits(Splitter):
         return pd.Index(train), pd.Index(test)
 
     @property
-    def cross_validation(self):
+    def cross_validation(self) -> Tuple[int, Callable[[pd.Index, pd.Index], Tuple[np.ndarray, np.ndarray]]]:
         return self._cross_validation
 

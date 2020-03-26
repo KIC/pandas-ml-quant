@@ -1,5 +1,5 @@
 mpldatacursor
-mpl_finance
+mplfinance
 matplotlib
 numpy
 pandas

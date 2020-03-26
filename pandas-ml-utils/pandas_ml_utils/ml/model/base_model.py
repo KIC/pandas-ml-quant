@@ -4,8 +4,8 @@ from typing import Callable
 
 import dill as pickle
 import numpy as np
-import pandas as pd
 
+from pandas_ml_common import Typing
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
 from pandas_ml_utils.ml.summary import Summary
@@ -38,7 +38,7 @@ class Model(object):
 
     def __init__(self,
                  features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[pd.DataFrame], Summary] = Summary,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         """
         All implementations of `Model` need to pass two arguments to `super().__init()__`.
@@ -98,7 +98,7 @@ class Model(object):
         """
         pass
 
-    def fit(self, data: DataGenerator) -> float:
+    def fit(self, data: DataGenerator, **kwargs) -> float:
         """
         draws folds from the data generator as long as it yields new data and fits the model to one fold
 
@@ -106,7 +106,7 @@ class Model(object):
         :return: returns the average loss over oll folds
         """
 
-        losses = [self.fit_fold(*sample) for sample in data.sample()]
+        losses = [self.fit_fold(*sample, **kwargs) for sample in data.sample()]
         return np.array(losses).mean()
 
     def fit_fold(self,

@@ -6,15 +6,15 @@ from keras import Sequential
 from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
 from sklearn.neural_network import MLPClassifier, MLPRegressor
-from stable_baselines import A2C
+from stable_baselines import A2C, PPO2
 from stable_baselines.common.policies import MlpLstmPolicy
 
 import pandas_ml_quant
-from pandas_ml_quant.model.TradingAgentGym import TradingAgent
+from pandas_ml_quant.model import RLTradingAgentModel
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
-from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
+from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter, RandomSequences
 from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
@@ -234,9 +234,8 @@ class TestModel(TestCase):
         df = DF_TEST.copy()
 
         fit = df.model.fit(
-            ReinforcementModel(
-                lambda gym: A2C(MlpLstmPolicy, gym),
-                TradingAgent(input_shape=(280,9)),
+            RLTradingAgentModel(
+                lambda gym:  PPO2('MlpLstmPolicy', gym, nminibatches=1), #A2C(MlpLstmPolicy, gym),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
@@ -256,8 +255,10 @@ class TestModel(TestCase):
                         lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
                     ]
                 ),
+                input_shape=(280, 9),
+                initial_capital=100000
             ),
-            NaiveSplitter(),
+            RandomSequences(0.1, 0.7),
             total_timesteps=10
         )
 

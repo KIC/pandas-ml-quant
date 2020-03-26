@@ -15,9 +15,9 @@ class DataGenerator(object):
     # this way each model can implement cross validation on their own and we can use the data generator for the gym
 
     def __init__(self,
-                 cross_validation: Callable,
                  train: Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.DataFrame],
-                 test: Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.DataFrame]):
+                 test: Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.DataFrame],
+                 cross_validation: Callable = None):
         self.cross_validation = cross_validation
         self.train_x = train[0]
         self.train_y = train[1]
@@ -30,6 +30,10 @@ class DataGenerator(object):
         x_train, y_train, w_train = self.train_x.ml.values, self.train_y.ml.values, call_if_not_none(self.train_w, "values")
         x_test, y_test, w_test = self.test_x.ml.values, self.test_y.ml.values, call_if_not_none(self.test_w, "values")
         cv = self.cross_validation
+
+        # add a default fold epoch of 1
+        if callable(cv):
+            cv = (1, cv)
 
         # loop through folds and yield data until done then raise StopIteration
         if cv is not None and isinstance(cv, Tuple) and callable(cv[1]):

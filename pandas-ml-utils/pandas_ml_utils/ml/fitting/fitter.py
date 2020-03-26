@@ -79,7 +79,7 @@ def fit(df: pd.DataFrame,
                                     test)
 
     # finally train the model with eventually tuned hyper parameters
-    model.fit(DataGenerator(training_data_splitter.cross_validation, train, test))
+    model.fit(DataGenerator(train, test, training_data_splitter.cross_validation), **kwargs)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects

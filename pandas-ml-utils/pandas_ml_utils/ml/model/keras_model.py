@@ -9,8 +9,8 @@ from copy import deepcopy
 from typing import List, Callable, TYPE_CHECKING, Tuple
 
 import numpy as np
-import pandas as pd
 
+from pandas_ml_common import Typing
 from pandas_ml_common.utils import merge_kwargs, suitable_kwargs
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
@@ -28,7 +28,7 @@ class KerasModel(Model):
     def __init__(self,
                  keras_compiled_model_provider: Callable[[], KModel],
                  features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[pd.DataFrame], Summary] = Summary,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  epochs: int = 100,
                  callbacks: List[Callable] = [],
                  **kwargs):

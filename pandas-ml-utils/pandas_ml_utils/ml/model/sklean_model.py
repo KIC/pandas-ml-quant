@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Callable
 
 import numpy as np
-import pandas as pd
+from pandas_ml_common import Typing
 from sklearn.linear_model import LogisticRegression
 
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
@@ -20,7 +20,7 @@ class SkModel(Model):
     def __init__(self,
                  skit_model,
                  features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[pd.DataFrame], Summary] = Summary,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.skit_model = skit_model

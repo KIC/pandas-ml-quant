@@ -27,7 +27,7 @@ def call_callable_dynamic_args(func, *args, **kwargs):
         else:
             return func(*call_args)
     except Exception as e:
-        raise RuntimeError(e, f"error while calling {func} whith arguments {call_args}")
+        raise RuntimeError(e, f"error while calling {func}({spec.args}) whith arguments {call_args}")
 
 
 def suitable_kwargs(func, **kwargs):

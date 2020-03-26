@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Callable
 
 import pandas as pd
 import numpy as np
@@ -9,12 +9,13 @@ from pandas_ml_utils.ml.data.splitting.splitter import Splitter
 
 class RandomSequences(Splitter):
 
-    def __init__(self, test_size, session_size=0.7, folds=100, seed=None):
+    def __init__(self, test_size=0.4, session_size=0.7, max_folds=100, seed=None):
         super().__init__()
         self.test_size = test_size
         self.session_size = session_size
-        self.folds = folds
+        self.max_folds = max_folds
         self.seed = seed
+        self.min_fold_validation_size=2
 
     def train_test_split(self, index: pd.Index) -> Tuple[pd.Index, pd.Index]:
         # we just split the sequence int past and recent data
@@ -22,12 +23,28 @@ class RandomSequences(Splitter):
         return index[0:end_idx], index[end_idx:]
 
     @property
-    def cross_validation(self):
+    def cross_validation(self) -> Tuple[int, Callable[[pd.Index, pd.Index], Tuple[np.ndarray, np.ndarray]]]:
         # this is the magic part of this splitter, because we randomly start from the taining set only moving forward
-        def fold(features, labels):
-            # FIXME use session size
-            idx = np.random.choice(len(features - 2))
-            return features[:idx], features[idx:]
+        # if max_folds is None then we infinitly keep sampling data
 
-        return fold
+        def sampler(features_index, labels_index) -> Tuple[np.ndarray, np.ndarray]:
+            # convert pandas index to array index
+            index = np.arange(len(features_index))
+
+            # calculate the latest possible index such that we can sample a whole session
+            max_idx = int(len(index) * (1 - self.session_size)) - self.min_fold_validation_size
+            assert max_idx > 0, f"not enough data! {features_index.shape}"
+
+            # sample the data
+            for i in (range(self.max_folds) if self.max_folds is not None else Splitter.infinity_sample_range()):
+                if self.seed is not None:
+                    with temp_seed(self.seed):
+                        idx = np.random.choice(max_idx)
+                else:
+                    idx = np.random.choice(max_idx)
+
+                # finally yield the resulting indices
+                yield index[:idx], index[idx:]
+
+        return 1, sampler
 
