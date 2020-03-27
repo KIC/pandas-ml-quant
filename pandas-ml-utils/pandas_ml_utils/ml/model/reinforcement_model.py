@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Tuple, Generator, List
+from typing import Callable, Tuple, Generator, List, Dict
 
 import gym
 import numpy as np
@@ -10,6 +10,7 @@ from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
 from ..data.splitting.sampeling import Sampler
+from stable_baselines.common.vec_env import DummyVecEnv
 
 _log = logging.getLogger(__name__)
 
@@ -60,17 +61,20 @@ class ReinforcementModel(Model):
             i = self.current_index
             return self.next_observation(i, *[t[i] if t is not None else None for t in self.train])
 
-        def step(self, action) -> Tuple[np.ndarray, float, bool]:
+        def step(self, action) -> Tuple[np.ndarray, float, bool, Dict]:
             # initialize reward for this action
             done = False
             reward = 0
 
             # try to execute the action, if it fails with an exception we are done with this session
             try:
+                if action.shape != self.action_space.shape:
+                    action = action[-1]
+
                 i = self.current_index
                 reward = self.take_action(action, i, *[t[i] if t is not None else None for t in self.train])
                 self.last_reward = reward
-            except Exception:
+            except StopIteration:
                 done = True
 
             # now update the observation of the environment
@@ -80,7 +84,7 @@ class ReinforcementModel(Model):
             observation = self.next_observation(i_new, *[t[i_new] if t is not None else None for t in self.train]) if not done else None
 
             # return the new observation the reward of this action and whether the session is over
-            return observation, reward, done
+            return observation, reward, done, {}
 
         def take_action(self,
                         action,
@@ -101,7 +105,7 @@ class ReinforcementModel(Model):
 
         def set_data_generator(self, sampler: Sampler, **kwargs):
             self.data_generator = sampler.sample()
-            self.reset()
+            return self.reset()
 
     def __init__(self,
                  reinforcement_model_provider: Callable[[DataFrameGym], RLModel],
@@ -127,14 +131,12 @@ class ReinforcementModel(Model):
 
         return self.gym.reward
 
-    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        data = None # DataGenerator((x, x, None), (x, x, None))
-        self.gym.set_data_generator(data, **self.kwargs)
+    def predict(self, sampler: Sampler) -> np.ndarray:
+        obs = self.gym.set_data_generator(sampler, **self.kwargs)
         prediction = []
 
-        for i in range(len(x)):
-            obs = self.gym.reset()
-            action, state = self.rl_model.predict(obs)
+        for i in range(self.gym.last_index):
+            action, state = self.rl_model.predict([obs])
             prediction.append(action)
 
             obs, reward, done, _ = self.gym.step(action)
@@ -148,6 +150,7 @@ class ReinforcementModel(Model):
 
     def __setstate__(self, state):
         # FIXME need to be implemented
+        # rl_model.set_env(self.gym)
         pass
 
     def __call__(self, *args, **kwargs):

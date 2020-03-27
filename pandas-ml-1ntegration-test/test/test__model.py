@@ -7,6 +7,7 @@ from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from stable_baselines import PPO2
+from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
 from pandas_ml_quant.model.rl_trading_agent import TradingAgentGym
@@ -235,7 +236,7 @@ class TestModel(TestCase):
 
         fit = df.model.fit(
             ReinforcementModel(
-                lambda gym:  PPO2('MlpLstmPolicy', gym, nminibatches=1),
+                lambda gym:  PPO2('MlpLstmPolicy', DummyVecEnv([lambda: gym]), nminibatches=1),
                 TradingAgentGym((280, 9), initial_capital=100000, commission=0),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
@@ -258,5 +259,9 @@ class TestModel(TestCase):
                 )
             ),
             RandomSequences(0.1, 0.7),
-            total_timesteps=10
+            total_timesteps=10,
+            verbose=1
         )
+
+        print(fit.test_summary.df[PREDICTION_COLUMN_NAME])
+

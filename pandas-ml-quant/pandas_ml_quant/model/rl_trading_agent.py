@@ -51,7 +51,7 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
             # sell
             pass
         else:
-            raise ValueError(f"unkown action type {action_type}!")
+            raise ValueError(f"unknown action type {action_type}!")
 
         # FIXME currently returns fake award
         # TODO throw a value error if bankrupt
