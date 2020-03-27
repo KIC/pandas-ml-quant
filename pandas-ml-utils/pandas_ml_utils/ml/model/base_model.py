@@ -127,9 +127,18 @@ class Model(object):
         """
         pass
 
-    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def predict(self, sampler: Sampler) -> np.ndarray:
         """
-        prediction of the model for each target
+        predict as many samples as we can sample from the sampler
+
+        :param sampler:
+        :return:
+        """
+        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
+
+    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        prediction of the model for each sample and target
 
         :param x: x
         :return: prediction of the model for each target

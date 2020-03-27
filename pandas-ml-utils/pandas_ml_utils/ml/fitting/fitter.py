@@ -2,28 +2,26 @@ from __future__ import annotations
 
 import logging
 from time import perf_counter
-from typing import Callable, Tuple, Dict, TYPE_CHECKING
+from typing import Callable, Dict, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
 
-from pandas_ml_common.utils import loc_if_not_none, call_if_not_none, merge_kwargs, to_pandas
+from pandas_ml_common.utils import merge_kwargs, to_pandas
+from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
 from pandas_ml_utils.ml.data.reconstruction import assemble_prediction_frame
+from pandas_ml_utils.ml.data.splitting import DummySplitter, Splitter
 from pandas_ml_utils.ml.data.splitting.random_splits import RandomSplits
 from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
-from pandas_ml_utils.ml.data.splitting.splitter import Splitter
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
-from pandas_ml_utils.constants import *
 
 _log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from hyperopt import Trials
+    pass
 
 
 def fit(df: pd.DataFrame,
@@ -79,15 +77,15 @@ def fit(df: pd.DataFrame,
     #                                test)
 
     # finally train the model with eventually tuned hyper parameters
-    sampler = DataGenerator(training_data_splitter, features, labels, targets, weights).train_test_split()
+    sampler = DataGenerator(training_data_splitter, features, labels, targets, weights).train_test_sampler()
     model.fit(sampler, **kwargs)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
-    train_arrs, train_idx = sampler.training()
-    test_arrs, test_idx = sampler.validation()
-    prediction = (to_pandas(model.predict(train_arrs[0]), train_idx, labels.columns),
-                  to_pandas(model.predict(test_arrs[0]), test_idx, labels.columns))
+    train_sampler, train_idx = sampler.training()
+    test_sampler, test_idx = sampler.validation()
+    prediction = (to_pandas(model.predict(train_sampler), train_idx, labels.columns),
+                  to_pandas(model.predict(test_sampler), test_idx, labels.columns))
 
     features, labels, targets = sampler[0], sampler[1], sampler[2]
     df_train, df_test = [
@@ -117,7 +115,8 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
     if samples > 1:
         print(f"draw {samples} samples")
 
-    predictions = np.array([model.predict(features.ml.values) for _ in range(samples)]).swapaxes(0, 1)
+    sampler = DataGenerator(DummySplitter(samples), features, targets).complete_samples()
+    predictions = model.predict(sampler)
 
     y_hat = to_pandas(predictions, index=features.index, columns=columns)
     return _assemple_result_frame(targets, y_hat, None, None, None, features)
@@ -127,8 +126,10 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
     (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=labels.columns)
+    sampler = DataGenerator(DummySplitter(1), features, targets).complete_samples()
+    predictions = model.predict(sampler)
 
+    y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)
     df_backtest = _assemple_result_frame(targets, y_hat, labels, None, None, features)  # FIXME add loss and weights
     return (summary_provider or model.summary_provider)(df_backtest)
 

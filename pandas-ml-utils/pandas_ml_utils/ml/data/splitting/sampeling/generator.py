@@ -22,11 +22,11 @@ class Sampler(object):
     def __getitem__(self, item) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         return self.train[item], self.test[item]
 
-    def training(self) -> Tuple[List[np.ndarray], Typing.PdIndex]:
-        return [t.ml.values if t is not None else None for t in self.train], self.train[0].index
+    def training(self) -> Tuple['Sampler', Typing.PdIndex]:
+        return Sampler(self.train, []), self.train[0].index
 
-    def validation(self) -> Tuple[List[np.ndarray], Typing.PdIndex]:
-        return [t.ml.values if t is not None else None for t in self.test], self.test[0].index
+    def validation(self) -> Tuple['Sampler', Typing.PdIndex]:
+        return Sampler(self.test, []), self.test[0].index
 
     def sample(self) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
         train = [t.ml.values if t is not None else None for t in self.train]
@@ -44,7 +44,7 @@ class Sampler(object):
                 for f, (train_idx, test_idx) in enumerate(cv[1](train[0], train[1])):
                     _log.info(f'fit fold {f}')
                     yield ([t[train_idx] if t is not None else None for t in train],
-                           [t[test_idx] if t is not None else None for t in train])
+                           ([t[test_idx] if t is not None else None for t in train] if test_idx is not None else []))
         else:
             # fit without cross validation
             yield train, test
@@ -59,8 +59,11 @@ class DataGenerator(object):
         self.splitter = splitter
         self.frames = frames
 
-    def train_test_split(self) -> Sampler:
+    def train_test_sampler(self) -> Sampler:
         train_idx, test_idx = self.splitter.train_test_split(self.frames[0].index)
         train = [loc_if_not_none(frame, train_idx) for frame in self.frames]
         test = [loc_if_not_none(frame, test_idx) for frame in self.frames]
         return Sampler(train, test, self.splitter.cross_validation)
+
+    def complete_samples(self) -> Sampler:
+        return Sampler(self.frames, [], self.splitter.cross_validation)

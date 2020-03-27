@@ -114,7 +114,7 @@ class KerasModel(Model):
 
         return min(fit_history.history['loss'])
 
-    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         return self._exec_within_session(self.keras_model.predict, x)
 
     def get_weights(self):

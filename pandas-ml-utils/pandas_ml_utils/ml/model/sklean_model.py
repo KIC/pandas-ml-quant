@@ -57,7 +57,7 @@ class SkModel(Model):
                 from sklearn.metrics import mean_squared_error
                 return mean_squared_error(prediction, y).mean()
 
-    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):
             y_hat = self.skit_model.predict_proba(SkModel.reshape_rnn_as_ar(x))
             binary_classifier = len(self.label_shape) == 1 or self.label_shape[1] == 1
