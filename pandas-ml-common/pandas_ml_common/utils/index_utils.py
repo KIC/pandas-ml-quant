@@ -69,7 +69,7 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
         _log.warning("passed item was None")
         return None
     elif isinstance(item, Constant):
-        return pd.Series(np.full(len(po), item.value), name=item, index=po.index)
+        return pd.Series(np.full(len(po), item.value), name=f"{item.value}", index=po.index)
     elif isinstance(item, PandasObject):
         return item
     else:

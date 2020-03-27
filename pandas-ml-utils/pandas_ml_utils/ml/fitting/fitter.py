@@ -115,7 +115,7 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
     if samples > 1:
         print(f"draw {samples} samples")
 
-    sampler = DataGenerator(DummySplitter(samples), features, targets).complete_samples()
+    sampler = DataGenerator(DummySplitter(samples), features, None, targets, None).complete_samples()
     predictions = model.predict(sampler)
 
     y_hat = to_pandas(predictions, index=features.index, columns=columns)
@@ -126,7 +126,7 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
     (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    sampler = DataGenerator(DummySplitter(1), features, targets).complete_samples()
+    sampler = DataGenerator(DummySplitter(1), features, labels, targets, None).complete_samples()
     predictions = model.predict(sampler)
 
     y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)

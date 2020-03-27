@@ -11,7 +11,7 @@ from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
 from pandas_ml_quant.model.rl_trading_agent import TradingAgentGym
-from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel
+from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel, Constant
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
 from pandas_ml_utils.ml.data.splitting import RandomSplits, RandomSequences
@@ -250,12 +250,10 @@ class TestModel(TestCase):
                         ],
                         lambda df: df.q.ta_rnn(280)
                     ),
-                    labels=[
-                        lambda df: df["Close"].q.ta_future_bband_quantile().q.ta_one_hot_encode_discrete()
-                    ],
                     targets=[
                         lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
-                    ]
+                    ],
+                    labels=[Constant(0)],
                 )
             ),
             RandomSequences(0.1, 0.7),
@@ -264,4 +262,12 @@ class TestModel(TestCase):
         )
 
         print(fit.test_summary.df[PREDICTION_COLUMN_NAME])
+
+        prediction = df.model.predict(fit.model, tail=3)
+        print(prediction[PREDICTION_COLUMN_NAME])
+        self.assertEqual(3, len(prediction))
+
+        backtest = df.model.backtest(fit.model).df
+        print(backtest[PREDICTION_COLUMN_NAME])
+        self.assertEqual(3, len(prediction))
 
