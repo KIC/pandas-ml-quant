@@ -1,10 +1,10 @@
 import logging
-from typing import Tuple, Callable, List
+from typing import Tuple, Callable, List, Generator
 
 import numpy as np
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import call_if_not_none, loc_if_not_none
+from pandas_ml_common.utils import loc_if_not_none
 from pandas_ml_utils.ml.data.splitting import Splitter
 
 _log = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class Sampler(object):
     def validation(self) -> Tuple[List[np.ndarray], Typing.PdIndex]:
         return [t.ml.values if t is not None else None for t in self.test], self.test[0].index
 
-    def sample(self) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+    def sample(self) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
         train = [t.ml.values if t is not None else None for t in self.train]
         test = [t.ml.values if t is not None else None for t in self.test]
         cv = self.cross_validation

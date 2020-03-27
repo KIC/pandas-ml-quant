@@ -31,26 +31,40 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         self.capital = self.initial_capital
         return super().reset()
 
-    def take_action(self, action, idx, features, labels) -> float:
-        if action < 1:
+    def take_action(self,
+                    action,
+                    idx: int,
+                    features: np.ndarray,
+                    labels: np.ndarray,
+                    targets: np.ndarray,
+                    weights: np.ndarray) -> float:
+        action_type = action[0]
+        amount = action[1] / 10
+
+        if action_type < 1:
             # hold
             pass
-        elif action < 2:
+        elif action_type < 2:
             # buy
             pass
-        elif action < 3:
+        elif action_type < 3:
             # sell
             pass
         else:
-            raise ValueError(f"unkown action {action}!")
+            raise ValueError(f"unkown action type {action_type}!")
 
         # FIXME currently returns fake award
         # TODO throw a value error if bankrupt
         return 0.1
 
-    def next_observation(self, idx, x) -> np.ndarray:
+    def next_observation(self,
+                         idx: int,
+                         features: np.ndarray,
+                         labels: np.ndarray,
+                         targets: np.ndarray,
+                         weights: np.ndarray) -> np.ndarray:
         # FIXME currently returns only the features, but we also want to return some net worth, history, ...
-        return x
+        return features
 
     def render(self, mode='human'):
         if mode == 'system':

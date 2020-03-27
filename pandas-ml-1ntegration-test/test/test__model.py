@@ -113,9 +113,7 @@ class TestModel(TestCase):
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
                     ],
-                    sample_weights=[
-                        df["Volume"]
-                    ]
+                    sample_weights=["Volume"]
                 ),
                 # kwargs
                 forecasting_time_steps=7,

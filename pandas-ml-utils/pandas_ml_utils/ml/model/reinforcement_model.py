@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Generator, List
 
 import gym
 import numpy as np
@@ -9,7 +9,7 @@ from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
-from ..data.splitting.sampeling import DataGenerator
+from ..data.splitting.sampeling import Sampler
 
 _log = logging.getLogger(__name__)
 
@@ -35,12 +35,12 @@ class ReinforcementModel(Model):
 
             # initialize palace holder variables
             # TODO exclude these variables from serialization
-            self.data_generator = None
-            self.last_reward = None
-            self.current_index = 0
-            self.last_index = -1
-            self.features = None
-            self.labels = None
+            self.data_generator: Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None] = None
+            self.last_reward: float = None
+            self.current_index: int = 0
+            self.last_index: int = -1
+            self.train: Tuple[List[np.ndarray]] = None
+            self.test: Tuple[List[np.ndarray]] = None
 
         @property
         def reward(self):
@@ -50,14 +50,15 @@ class ReinforcementModel(Model):
             # get a new data set from the generator
             # NOTE the total numbers which can be drawn from the generator must be greater or equal to the total number
             # of iteration of the learning agent
-            self.features, _, self.labels, _, _, _ = next(self.data_generator)
+            self.train, self.test = next(self.data_generator)
 
             # reset indices and max timesteps
             self.current_index = 0
-            self.last_index = len(self.features)
+            self.last_index = len(self.train[0])
 
             # return the very first observation
-            return self.next_observation(self.current_index, self.features[self.current_index])
+            i = self.current_index
+            return self.next_observation(i, *[t[i] if t is not None else None for t in self.train])
 
         def step(self, action) -> Tuple[np.ndarray, float, bool]:
             # initialize reward for this action
@@ -67,7 +68,7 @@ class ReinforcementModel(Model):
             # try to execute the action, if it fails with an exception we are done with this session
             try:
                 i = self.current_index
-                reward = self.take_action(action, i, self.features[i], self.labels[i])
+                reward = self.take_action(action, i, *[t[i] if t is not None else None for t in self.train])
                 self.last_reward = reward
             except Exception:
                 done = True
@@ -76,19 +77,30 @@ class ReinforcementModel(Model):
             self.current_index += 1
             i_new = self.current_index
             done = done or i_new >= self.last_index
-            observation = self.next_observation(i_new, self.features[i_new]) if not done else None
+            observation = self.next_observation(i_new, *[t[i_new] if t is not None else None for t in self.train]) if not done else None
 
             # return the new observation the reward of this action and whether the session is over
             return observation, reward, done
 
-        def take_action(self, action, idx, features, labels) -> float:
+        def take_action(self,
+                        action,
+                        idx: int,
+                        features: np.ndarray,
+                        labels: np.ndarray,
+                        targets: np.ndarray,
+                        weights: np.ndarray) -> float:
             pass
 
-        def next_observation(self, idx, x) -> np.ndarray:
+        def next_observation(self,
+                             idx: int,
+                             features: np.ndarray,
+                             labels: np.ndarray,
+                             targets: np.ndarray,
+                             weights: np.ndarray) -> np.ndarray:
             pass
 
-        def set_data_generator(self, generator: DataGenerator, **kwargs):
-            self.data_generator = generator.sample()
+        def set_data_generator(self, sampler: Sampler, **kwargs):
+            self.data_generator = sampler.sample()
             self.reset()
 
     def __init__(self,
@@ -106,17 +118,17 @@ class ReinforcementModel(Model):
         # FIXME plot loss .. .somehow ... i.e. use callbacks and collect the rewards ..
         pass
 
-    def fit(self, data: DataGenerator, **kwargs) -> float:
+    def fit(self, sampler: Sampler, **kwargs) -> float:
         # initialize the training and test gym
         # use a DummyVecEnv to enable parallel training
 
-        self.gym.set_data_generator(data, **self.kwargs)
+        self.gym.set_data_generator(sampler, **self.kwargs)
         call_callable_dynamic_args(self.rl_model.learn, **self.kwargs, **kwargs)
 
         return self.gym.reward
 
     def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        data = DataGenerator((x, x, None), (x, x, None))
+        data = None # DataGenerator((x, x, None), (x, x, None))
         self.gym.set_data_generator(data, **self.kwargs)
         prediction = []
 

@@ -13,6 +13,7 @@ if __name__ == "__main__":
         print("Testing components:")
         print(components)
         tests_run = 0
+        tests_failed = 0
 
         for component in components:
             sys.path.insert(0, component)
@@ -26,6 +27,7 @@ if __name__ == "__main__":
             assert len(test_result.errors) + len(test_result.failures) <= 0, f"test failed for {component}"
 
             tests_run += test_result.testsRun
+            tests_failed += len(test_result.failures) + len(test_result.errors)
             print("\n-------------------------------------------------\n")
 
         print(f"tests run: {tests_run}")
