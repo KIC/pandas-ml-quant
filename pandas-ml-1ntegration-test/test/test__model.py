@@ -236,8 +236,9 @@ class TestModel(TestCase):
 
         fit = df.model.fit(
             ReinforcementModel(
-                lambda gym:  PPO2('MlpLstmPolicy', DummyVecEnv([lambda: gym]), nminibatches=1),
-                TradingAgentGym((280, 9), initial_capital=100000, commission=0),
+                lambda: PPO2('MlpLstmPolicy',
+                             DummyVecEnv([lambda: TradingAgentGym((280, 9), initial_capital=100000, commission=0)]),
+                             nminibatches=1),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [

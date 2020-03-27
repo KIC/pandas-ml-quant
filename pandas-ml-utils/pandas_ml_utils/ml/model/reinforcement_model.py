@@ -25,6 +25,12 @@ class ReinforcementModel(Model):
         def predict(self, observation, state=None, mask=None, deterministic=False):
             pass
 
+        def get_env(self):
+            pass
+
+        def set_env(self, env):
+            pass
+
     class DataFrameGym(gym.Env):
 
         def __init__(self,
@@ -109,55 +115,57 @@ class ReinforcementModel(Model):
 
     def __init__(self,
                  reinforcement_model_provider: Callable[[DataFrameGym], RLModel],
-                 gym: DataFrameGym,
                  features_and_labels: FeaturesAndLabels,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.reinforcement_model_provider = reinforcement_model_provider
-        self.rl_model = call_callable_dynamic_args(reinforcement_model_provider, gym, **self.kwargs, **kwargs)
-        self.gym = gym
-
-    def plot_loss(self):
-        # FIXME plot loss .. .somehow ... i.e. use callbacks and collect the rewards ..
-        pass
+        self.rl_model = call_callable_dynamic_args(reinforcement_model_provider, **self.kwargs, **kwargs)
 
     def fit(self, sampler: Sampler, **kwargs) -> float:
         # initialize the training and test gym
         # use a DummyVecEnv to enable parallel training
 
-        self.gym.set_data_generator(sampler, **self.kwargs)
-        call_callable_dynamic_args(self.rl_model.learn, **self.kwargs, **kwargs)
+        for env in self.rl_model.get_env().envs:
+            env.set_data_generator(sampler, **self.kwargs)
 
-        return self.gym.reward
+        call_callable_dynamic_args(self.rl_model.learn, **self.kwargs, **kwargs)
+        return 0  # FIXME use a callback get some reward and return as a loss
 
     def predict(self, sampler: Sampler) -> np.ndarray:
-        obs = self.gym.set_data_generator(sampler, **self.kwargs)
+        envs = self.rl_model.get_env().envs[:1]
+        obs = [env.set_data_generator(sampler, **self.kwargs) for env in envs]
         prediction = []
+        done = [False]
 
-        for i in range(self.gym.last_index):
-            action, state = self.rl_model.predict([obs])
+        while not np.array(done).all():
+            action, state = self.rl_model.predict(obs)
             prediction.append(action)
 
-            obs, reward, done, _ = self.gym.step(action)
-            self.gym.render()
+            obs, reward, done, _ = zip(*[env.step(action) for env in envs])
+            for env in envs:
+                env.render()
 
         return np.array(prediction)
 
+    def plot_loss(self):
+        # FIXME plot loss .. .somehow ... i.e. use callbacks and collect the rewards ..
+        pass
+
     def __getstate__(self):
         # FIXME need to be implemented
+        # rl_model.get_env() -> save the first env!
         pass
 
     def __setstate__(self, state):
         # FIXME need to be implemented
-        # rl_model.set_env(self.gym)
+        # rl_model.set_env(saved <- envs)
         pass
 
     def __call__(self, *args, **kwargs):
         # create a new version of this model
         return ReinforcementModel(
             self.reinforcement_model_provider,
-            self.gym,
             self.features_and_labels,
             self.summary_provider,
             **self.kwargs, **kwargs
