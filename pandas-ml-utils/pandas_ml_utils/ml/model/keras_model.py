@@ -93,7 +93,8 @@ class KerasModel(Model):
         fitter_args = suitable_kwargs(self.keras_model.fit, **self.kwargs)
 
         if sample_weight_train is not None:
-            print(f"using sample weights {sample_weight_train.shape}")
+            print(f"using sample weights {sample_weight_train.shape} -> (?, 1)")
+            sample_weight_train = sample_weight_train.ravel()
 
         if len(fitter_args) > 0:
             print(f'pass args to fit: {fitter_args}')
@@ -113,7 +114,7 @@ class KerasModel(Model):
 
         return min(fit_history.history['loss'])
 
-    def predict(self, x):
+    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
         return self._exec_within_session(self.keras_model.predict, x)
 
     def get_weights(self):

@@ -7,7 +7,7 @@ from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, TARGET_COLUMN_NAME
 
 def assemble_prediction_frame(frames: Dict[str, pd.DataFrame]):
     # filter non frames
-    valid_frames = {head: frame for head, frame in frames.items() if frame is not None}
+    valid_frames = {head: frame.copy() for head, frame in frames.items() if frame is not None}
 
     for head, frame in valid_frames.items():
         frame.columns = pd.MultiIndex.from_product([[head], frame.columns.to_list()])

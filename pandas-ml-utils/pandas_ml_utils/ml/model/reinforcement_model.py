@@ -1,9 +1,8 @@
 import logging
-from typing import Callable
+from typing import Callable, Tuple
 
 import gym
 import numpy as np
-from stable_baselines.common.vec_env import DummyVecEnv
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import call_callable_dynamic_args
@@ -37,12 +36,17 @@ class ReinforcementModel(Model):
             # initialize palace holder variables
             # TODO exclude these variables from serialization
             self.data_generator = None
+            self.last_reward = None
             self.current_index = 0
             self.last_index = -1
             self.features = None
             self.labels = None
 
-        def reset(self):
+        @property
+        def reward(self):
+            return self.last_reward
+
+        def reset(self) -> np.ndarray:
             # get a new data set from the generator
             # NOTE the total numbers which can be drawn from the generator must be greater or equal to the total number
             # of iteration of the learning agent
@@ -55,7 +59,7 @@ class ReinforcementModel(Model):
             # return the very first observation
             return self.next_observation(self.current_index, self.features[self.current_index])
 
-        def step(self, action):
+        def step(self, action) -> Tuple[np.ndarray, float, bool]:
             # initialize reward for this action
             done = False
             reward = 0
@@ -64,6 +68,7 @@ class ReinforcementModel(Model):
             try:
                 i = self.current_index
                 reward = self.take_action(action, i, self.features[i], self.labels[i])
+                self.last_reward = reward
             except Exception:
                 done = True
 
@@ -85,35 +90,60 @@ class ReinforcementModel(Model):
         def set_data_generator(self, generator: DataGenerator, **kwargs):
             self.data_generator = generator.sample()
             self.reset()
-            return self
 
     def __init__(self,
-                 reinforcement_model: Callable[[DataFrameGym], RLModel],
+                 reinforcement_model_provider: Callable[[DataFrameGym], RLModel],
                  gym: DataFrameGym,
                  features_and_labels: FeaturesAndLabels,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
-        self.reinforcement_model = reinforcement_model
+        self.reinforcement_model_provider = reinforcement_model_provider
+        self.rl_model = call_callable_dynamic_args(reinforcement_model_provider, gym, **self.kwargs, **kwargs)
         self.gym = gym
 
     def plot_loss(self):
-        # FIXME plos loss .. .somehow .
+        # FIXME plot loss .. .somehow ... i.e. use callbacks and collect the rewards ..
         pass
 
     def fit(self, data: DataGenerator, **kwargs) -> float:
         # initialize the training and test gym
         # use a DummyVecEnv to enable parallel training
-        train_gym = self.gym.set_data_generator(data, **self.kwargs)
-        # test_gym = self.gym(x_val, y_val, **self.kwargs)
 
-        model = call_callable_dynamic_args(self.reinforcement_model, train_gym, **self.kwargs, **kwargs)
-        call_callable_dynamic_args(model.learn, **self.kwargs, **kwargs)
+        self.gym.set_data_generator(data, **self.kwargs)
+        call_callable_dynamic_args(self.rl_model.learn, **self.kwargs, **kwargs)
 
-        # FIXME return some kind of loss
+        return self.gym.reward
+
+    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        data = DataGenerator((x, x, None), (x, x, None))
+        self.gym.set_data_generator(data, **self.kwargs)
+        prediction = []
+
+        for i in range(len(x)):
+            obs = self.gym.reset()
+            action, state = self.rl_model.predict(obs)
+            prediction.append(action)
+
+            obs, reward, done, _ = self.gym.step(action)
+            self.gym.render()
+
+        return np.array(prediction)
+
+    def __getstate__(self):
+        # FIXME need to be implemented
         pass
 
-    def predict(self, x: np.ndarray) -> np.ndarray:
-        # FIXME implement prediction ...
+    def __setstate__(self, state):
+        # FIXME need to be implemented
         pass
 
+    def __call__(self, *args, **kwargs):
+        # create a new version of this model
+        return ReinforcementModel(
+            self.reinforcement_model_provider,
+            self.gym,
+            self.features_and_labels,
+            self.summary_provider,
+            **self.kwargs, **kwargs
+        )

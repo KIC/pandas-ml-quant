@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas_ml_common import Typing
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
-from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
+from pandas_ml_utils.ml.data.splitting.sampeling import Sampler
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -98,15 +98,16 @@ class Model(object):
         """
         pass
 
-    def fit(self, data: DataGenerator, **kwargs) -> float:
+    def fit(self, sampler: Sampler, **kwargs) -> float:
         """
         draws folds from the data generator as long as it yields new data and fits the model to one fold
 
-        :param data: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator`
+        :param sampler: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling.Sampler`
         :return: returns the average loss over oll folds
         """
 
-        losses = [self.fit_fold(*sample, **kwargs) for sample in data.sample()]
+        # sample: train[features, labels, target, weights], test[features, labels, target, weights]
+        losses = [self.fit_fold(s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs) for s in sampler.sample()]
         return np.array(losses).mean()
 
     def fit_fold(self,
@@ -126,7 +127,7 @@ class Model(object):
         """
         pass
 
-    def predict(self, x: np.ndarray) -> np.ndarray:
+    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
         prediction of the model for each target
 

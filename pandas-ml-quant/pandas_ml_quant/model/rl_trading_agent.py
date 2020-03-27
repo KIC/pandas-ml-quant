@@ -26,7 +26,7 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         self.capital = None
         self.trades = None
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         self.trades = []
         self.capital = self.initial_capital
         return super().reset()
@@ -62,23 +62,4 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         elif mode == 'human':
             # TODO plot something using matplotlib
             pass
-
-
-class RLTradingAgentModel(ReinforcementModel):
-
-    def __init__(self,
-                 reinforcement_model: Callable[[ReinforcementModel.DataFrameGym], ReinforcementModel.RLModel],
-                 features_and_labels: FeaturesAndLabels,
-                 input_shape,
-                 initial_capital=100000,
-                 commission=lambda size: 0.025,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 **kwargs):
-        super().__init__(reinforcement_model,
-                         TradingAgentGym(input_shape, initial_capital, commission),
-                         features_and_labels,
-                         summary_provider,
-                         **kwargs)
-
-
 

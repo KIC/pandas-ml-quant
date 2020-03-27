@@ -6,15 +6,14 @@ from keras import Sequential
 from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
 from sklearn.neural_network import MLPClassifier, MLPRegressor
-from stable_baselines import A2C, PPO2
-from stable_baselines.common.policies import MlpLstmPolicy
+from stable_baselines import PPO2
 
 import pandas_ml_quant
-from pandas_ml_quant.model import RLTradingAgentModel
+from pandas_ml_quant.model.rl_trading_agent import TradingAgentGym
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
-from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter, RandomSequences
+from pandas_ml_utils.ml.data.splitting import RandomSplits, RandomSequences
 from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
@@ -113,6 +112,9 @@ class TestModel(TestCase):
                     ], lambda df: df.q.ta_rnn(28)),
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
+                    ],
+                    sample_weights=[
+                        df["Volume"]
                     ]
                 ),
                 # kwargs
@@ -234,8 +236,9 @@ class TestModel(TestCase):
         df = DF_TEST.copy()
 
         fit = df.model.fit(
-            RLTradingAgentModel(
-                lambda gym:  PPO2('MlpLstmPolicy', gym, nminibatches=1), #A2C(MlpLstmPolicy, gym),
+            ReinforcementModel(
+                lambda gym:  PPO2('MlpLstmPolicy', gym, nminibatches=1),
+                TradingAgentGym((280, 9), initial_capital=100000, commission=0),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
@@ -254,13 +257,8 @@ class TestModel(TestCase):
                     targets=[
                         lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
                     ]
-                ),
-                input_shape=(280, 9),
-                initial_capital=100000
+                )
             ),
             RandomSequences(0.1, 0.7),
             total_timesteps=10
         )
-
-
-

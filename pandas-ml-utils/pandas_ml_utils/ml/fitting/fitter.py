@@ -54,49 +54,97 @@ def fit(df: pd.DataFrame,
     _log.info("create model")
 
     # get indices and make training and test data sets
-    train_idx, test_idx = training_data_splitter.train_test_split(features.index)
-    train = (features.loc[train_idx], labels.loc[train_idx], loc_if_not_none(weights, train_idx))
-    test = (features.loc[test_idx], labels.loc[test_idx], loc_if_not_none(weights, test_idx))
+    #train_idx, test_idx = training_data_splitter.train_test_split(features.index)
+    #train = (features.loc[train_idx], labels.loc[train_idx], loc_if_not_none(weights, train_idx))
+    #test = (features.loc[test_idx], labels.loc[test_idx], loc_if_not_none(weights, test_idx))
 
-    # eventually perform a hyper parameter optimization first
-    if hyper_parameter_space is not None:
-        # next isolate hyperopt parameters and constants only used for hyper parameter tuning like early stopping
-        constants = {}
-        hyperopt_params = {}
-        for k, v in list(hyper_parameter_space.items()):
-            if k.startswith("__"):
-                hyperopt_params[k[2:]] = hyper_parameter_space.pop(k)
-            elif isinstance(v, (int, float, bool)):
-                constants[k] = hyper_parameter_space.pop(k)
-
-        # optimize hyper parameters
-        model, trails = __hyper_opt(hyper_parameter_space,
-                                    hyperopt_params,
-                                    constants,
-                                    model_provider,
-                                    None, # FIXME Ecross_validation,
-                                    train,
-                                    test)
+    # FIXME eventually perform a hyper parameter optimization first
+    #if hyper_parameter_space is not None:
+    #    # next isolate hyperopt parameters and constants only used for hyper parameter tuning like early stopping
+    #    constants = {}
+    #    hyperopt_params = {}
+    #    for k, v in list(hyper_parameter_space.items()):
+    #        if k.startswith("__"):
+    #            hyperopt_params[k[2:]] = hyper_parameter_space.pop(k)
+    #        elif isinstance(v, (int, float, bool)):
+    #            constants[k] = hyper_parameter_space.pop(k)
+    #
+    #    # optimize hyper parameters
+    #    model, trails = __hyper_opt(hyper_parameter_space,
+    #                                hyperopt_params,
+    #                                constants,
+    #                                model_provider,
+    #                                None, # FIXME Ecross_validation,
+    #                                train,
+    #                                test)
 
     # finally train the model with eventually tuned hyper parameters
-    model.fit(DataGenerator(train, test, training_data_splitter.cross_validation), **kwargs)
+    sampler = DataGenerator(training_data_splitter, features, labels, targets, weights).train_test_split()
+    model.fit(sampler, **kwargs)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
-    prediction_train = to_pandas(model.predict(train[0].ml.values), train_idx, labels.columns)
-    prediction_test = to_pandas(model.predict(test[0].ml.values), test_idx, labels.columns)
+    train_arrs, train_idx = sampler.training()
+    test_arrs, test_idx = sampler.validation()
+    prediction = (to_pandas(model.predict(train_arrs[0]), train_idx, labels.columns),
+                  to_pandas(model.predict(test_arrs[0]), test_idx, labels.columns))
 
-    targets = (loc_if_not_none(targets, train_idx), loc_if_not_none(targets, test_idx))
-    df_train = assemble_prediction_frame({TARGET_COLUMN_NAME: targets[0], PREDICTION_COLUMN_NAME: prediction_train, LABEL_COLUMN_NAME: train[1], FEATURE_COLUMN_NAME: train[0]})
-    df_test = assemble_prediction_frame({TARGET_COLUMN_NAME: targets[1], PREDICTION_COLUMN_NAME: prediction_test, LABEL_COLUMN_NAME: test[1], FEATURE_COLUMN_NAME: test[0]})
+    features, labels, targets = sampler[0], sampler[1], sampler[2]
+    df_train, df_test = [
+        _assemple_result_frame(targets[i], prediction[i], labels[i], None, None, features[i])  # FIXME add loss and weights
+        for i in range(2)]
 
     # update model properties and return the fit
     model._validation_indices = test_idx
     model.features_and_labels._min_required_samples = min_required_samples
-    model.features_and_labels._label_columns = labels.columns
+    model.features_and_labels._label_columns = labels[0].columns.tolist()
     return Fit(model, model.summary_provider(df_train), model.summary_provider(df_test), trails)
 
 
+def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:
+    min_required_samples = model.features_and_labels.min_required_samples
+
+    if tail is not None:
+        if min_required_samples is not None:
+            # just use the tail for feature engineering
+            df = df[-(abs(tail) + (min_required_samples - 1)):]
+        else:
+            _log.warning("could not determine the minimum required data from the model")
+
+    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
+    columns, features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
+
+    if samples > 1:
+        print(f"draw {samples} samples")
+
+    predictions = np.array([model.predict(features.ml.values) for _ in range(samples)]).swapaxes(0, 1)
+
+    y_hat = to_pandas(predictions, index=features.index, columns=columns)
+    return _assemple_result_frame(targets, y_hat, None, None, None, features)
+
+
+def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
+    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
+    (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+
+    y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=labels.columns)
+
+    df_backtest = _assemple_result_frame(targets, y_hat, labels, None, None, features)  # FIXME add loss and weights
+    return (summary_provider or model.summary_provider)(df_backtest)
+
+
+def _assemple_result_frame(targets, prediction, labels, gross_loss, weights, features):
+    return assemble_prediction_frame(
+        {TARGET_COLUMN_NAME: targets,
+         PREDICTION_COLUMN_NAME: prediction,
+         LABEL_COLUMN_NAME: labels,
+         GROSS_LOSS_COLUMN_NAME: gross_loss,
+         SAMPLE_WEIGHTS_COLUMN_NAME: weights,
+         FEATURE_COLUMN_NAME: features})
+
+
+
+"""
 @ignore_warnings(category=ConvergenceWarning)
 def __hyper_opt(hyper_parameter_space,
                 hyperopt_params,
@@ -128,36 +176,4 @@ def __hyper_opt(hyper_parameter_space,
     print(f'best parameters: {repr(best_parameters)}')
     return best_model, trails
 
-
-def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:
-    min_required_samples = model.features_and_labels.min_required_samples
-
-    if tail is not None:
-        if min_required_samples is not None:
-            # just use the tail for feature engineering
-            df = df[-(abs(tail) + (min_required_samples - 1)):]
-        else:
-            _log.warning("could not determine the minimum required data from the model")
-
-    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    columns, features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
-
-    if samples > 1:
-        print(f"draw {samples} samples")
-
-    predictions = np.array([model.predict(features.ml.values) for _ in range(samples)]).swapaxes(0, 1)
-
-    y_hat = to_pandas(predictions, index=features.index, columns=columns)
-    return assemble_prediction_frame({TARGET_COLUMN_NAME: targets, PREDICTION_COLUMN_NAME: y_hat, FEATURE_COLUMN_NAME: features})
-
-
-def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
-    kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
-
-    y_hat = to_pandas(model.predict(features.ml.values), index=features.index, columns=labels.columns)
-
-    df_backtest = assemble_prediction_frame({TARGET_COLUMN_NAME: targets, PREDICTION_COLUMN_NAME: y_hat, LABEL_COLUMN_NAME: labels, FEATURE_COLUMN_NAME: features})
-    return (summary_provider or model.summary_provider)(df_backtest)
-
-
+"""

@@ -29,3 +29,4 @@ class Typing(object):
     DataFrame = pd.DataFrame
     Series = pd.Series
     Pandas = Union[DataFrame, Series]
+    PdIndex = pd.Index

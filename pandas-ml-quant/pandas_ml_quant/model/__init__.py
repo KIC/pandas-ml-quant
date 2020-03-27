@@ -1,1 +1,1 @@
-from .rl_trading_agent import RLTradingAgentModel
+from .rl_trading_agent import TradingAgentGym
