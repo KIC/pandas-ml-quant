@@ -5,6 +5,7 @@ import pandas as pd
 
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
+from pandas_ml_common import Typing
 
 T = TypeVar('T', str, List, Callable[[Any], Union[pd.DataFrame, pd.Series]])
 
@@ -20,11 +21,11 @@ class FeaturesAndLabels(object):
     """
 
     def __init__(self,
-                 features: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]],
-                 labels: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]],
-                 sample_weights: Union[str, Callable[[Any], pd.Series]] = None,
-                 gross_loss: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
-                 targets: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]] = None,
+                 features: Typing.MlGetItem,
+                 labels: Typing.MlGetItem,
+                 sample_weights: Typing.MlGetItem = None,
+                 gross_loss: Typing.MlGetItem = None,
+                 targets: Typing.MlGetItem = None,
                  label_type = None,
                  **kwargs):
         """

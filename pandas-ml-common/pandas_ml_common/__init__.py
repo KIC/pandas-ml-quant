@@ -2,7 +2,7 @@
 __version__ = '0.1.1'
 
 import logging
-from typing import Union
+from typing import Union, List, Callable, Any
 
 import numpy as np
 import pandas as pd
@@ -30,3 +30,4 @@ class Typing(object):
     Series = pd.Series
     Pandas = Union[DataFrame, Series]
     PdIndex = pd.Index
+    MlGetItem = Union[str, List['MlGetItem'], Callable[[Any], Union[pd.DataFrame, pd.Series]], Constant]
