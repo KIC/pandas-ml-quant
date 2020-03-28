@@ -23,12 +23,14 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         # TODO add some observations to the observation space i.e.
         #   our net worth, the amount of BTC bought or sold, and the total amount in USD we’ve spent on or received
         #   from those BTC.
-        self.capital = None
+        self.cash = None
+        self.position = 0
         self.trades = None
+        self.net = 0
 
     def reset(self) -> np.ndarray:
         self.trades = []
-        self.capital = self.initial_capital
+        self.cash = self.initial_capital
         return super().reset()
 
     def take_action(self,
@@ -40,22 +42,31 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
                     weights: np.ndarray) -> float:
         action_type = action[0]
         amount = action[1] / 10
+        net = self.cash + self.position * targets[0]
 
         if action_type < 1:
             # hold
             pass
         elif action_type < 2:
             # buy
-            pass
+            if self.position < 0.999:
+                self.position += amount
+                self.cash -= targets[0] * amount
         elif action_type < 3:
             # sell
-            pass
+            if self.position > 0:
+                self.position -= amount
+                self.cash += targets[0] * amount
         else:
             raise ValueError(f"unknown action type {action_type}!")
 
-        # FIXME currently returns fake award
-        # TODO throw a value error if bankrupt
-        return 0.1
+        new_net = self.cash + self.position * targets[0]
+        self.net = new_net
+
+        if net < self.initial_capital * 0.8:
+            raise StopIteration("lost more then 20%")
+
+        return new_net / net - 1
 
     def next_observation(self,
                          idx: int,
@@ -68,8 +79,7 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
 
     def render(self, mode='human'):
         if mode == 'system':
-            # TODO print something
-            pass
+            print(self.net)
         elif mode == 'notebook':
             # TODO plot something using matplotlib
             pass

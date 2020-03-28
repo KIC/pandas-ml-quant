@@ -84,8 +84,8 @@ def fit(df: pd.DataFrame,
     # assemble result objects
     train_sampler, train_idx = sampler.training()
     test_sampler, test_idx = sampler.validation()
-    prediction = (to_pandas(model.predict(train_sampler), train_idx, labels.columns),
-                  to_pandas(model.predict(test_sampler), test_idx, labels.columns))
+    prediction = (to_pandas(model.predict(train_sampler, **kwargs), train_idx, labels.columns),
+                  to_pandas(model.predict(test_sampler, **kwargs), test_idx, labels.columns))
 
     features, labels, targets = sampler[0], sampler[1], sampler[2]
     df_train, df_test = [
@@ -116,7 +116,7 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
         print(f"draw {samples} samples")
 
     sampler = DataGenerator(DummySplitter(samples), features, None, targets, None).complete_samples()
-    predictions = model.predict(sampler)
+    predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=columns)
     return _assemple_result_frame(targets, y_hat, None, None, None, features)
@@ -127,7 +127,7 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
     (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     sampler = DataGenerator(DummySplitter(1), features, labels, targets, None).complete_samples()
-    predictions = model.predict(sampler)
+    predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)
     df_backtest = _assemple_result_frame(targets, y_hat, labels, None, None, features)  # FIXME add loss and weights

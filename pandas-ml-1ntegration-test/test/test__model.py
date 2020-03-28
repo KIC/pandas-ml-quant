@@ -252,14 +252,15 @@ class TestModel(TestCase):
                         lambda df: df.q.ta_rnn(280)
                     ),
                     targets=[
-                        lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
+                        lambda df: df["Close"]
                     ],
                     labels=[Constant(0)],
                 )
             ),
-            RandomSequences(0.1, 0.7),
-            total_timesteps=10,
-            verbose=1
+            RandomSequences(0.1, 0.7, max_folds=None),
+            total_timesteps=1000,
+            verbose=1,
+            render='system'
         )
 
         print(fit.test_summary.df[PREDICTION_COLUMN_NAME])

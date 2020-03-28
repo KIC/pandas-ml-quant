@@ -127,7 +127,7 @@ class Model(object):
         """
         pass
 
-    def predict(self, sampler: Sampler) -> np.ndarray:
+    def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
         """
         predict as many samples as we can sample from the sampler
 

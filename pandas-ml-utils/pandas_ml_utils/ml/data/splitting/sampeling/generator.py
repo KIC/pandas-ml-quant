@@ -22,6 +22,13 @@ class Sampler(object):
     def __getitem__(self, item) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         return self.train[item], self.test[item]
 
+    @property
+    def nr_of_source_events(self) -> Tuple[int, int]:
+        return (
+            len(self.train[0]) if self.train is not None and len(self.train) > 0 else -1,
+            len(self.test[0]) if self.test is not None and len(self.test) > 0 else -1
+        )
+
     def training(self) -> Tuple['Sampler', Typing.PdIndex]:
         return Sampler(self.train, []), self.train[0].index
 
