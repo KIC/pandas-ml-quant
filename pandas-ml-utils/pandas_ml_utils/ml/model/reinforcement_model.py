@@ -49,7 +49,7 @@ class ReinforcementModel(Model):
             self.current_index: int = 0
             self.last_index: int = -1
             self.train: Tuple[List[np.ndarray]] = None
-            self.test: Tuple[List[np.ndarray]] = None
+            # self.test: Tuple[List[np.ndarray]] = None
 
         @property
         def reward(self):
@@ -63,7 +63,7 @@ class ReinforcementModel(Model):
             # get a new data set from the generator
             # NOTE the total numbers which can be drawn from the generator must be greater or equal to the total number
             # of iteration of the learning agent
-            self.train, self.test = next(self.data_generator)
+            self.train, _ = next(self.data_generator)
 
             # reset indices and max timesteps and add a new reward history
             self.current_index = 0
@@ -149,7 +149,6 @@ class ReinforcementModel(Model):
         sessions = np.array([env.nr_of_sessions for env in envs]).sum()
         _log.info(f"average reward = {average_reward} in {sessions}")
 
-        print(sessions)
         return average_reward
 
     def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
