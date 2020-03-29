@@ -10,7 +10,7 @@ from pandas_ml_common import get_pandas_object as _get_pandas_object
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
-def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=False) -> _PANDAS:
+def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=True) -> _PANDAS:
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
     c = _get_pandas_object(df, close).shift(1)
@@ -27,7 +27,7 @@ def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=False) ->
     return ranges.max(axis=1).rename("true_range")
 
 
-def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=False, exponential='wilder') -> _PANDAS:
+def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=True, exponential='wilder') -> _PANDAS:
     if exponential is True:
         atr = _f.ta_ema(ta_tr(df, high, low, close, relative), period)
     if exponential == 'wilder':
@@ -47,7 +47,7 @@ def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
         "down": (l.shift(1) / l - 1) if relative else (l.shift(1) - l)
     }, index=df.index)
 
-    atr = ta_atr(df, period, high, low, close, relative=False)
+    atr = ta_atr(df, period, high, low, close, relative=relative)
     pdm = _f.ta_wilders(temp.apply(lambda r: r[0] if r["up"] > r["down"] and r["up"] > 0 else 0, raw=False, axis=1), period)
     ndm = _f.ta_wilders(temp.apply(lambda r: r[1] if r["down"] > r["up"] and r["down"] > 0 else 0, raw=False, axis=1), period)
 
@@ -97,7 +97,7 @@ def ta_bop(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close"
     return ((c - o) / (h - l)).rename("bop")
 
 
-def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", alpha=0.015) -> _PANDAS:
+def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", alpha=0.015, downscale=True) -> _PANDAS:
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
     c = _get_pandas_object(df, close)
@@ -105,6 +105,6 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
     tp = (h + l + c) / 3
     tp_sma = _f.ta_sma(tp, period)
     md = tp.rolling(period).apply(lambda x: _np.abs(x - x.mean()).sum() / period)
-    return ((1 / alpha) * (tp - tp_sma) / md / 100).rename(f"cci_{period}")
+    return ((1 / alpha) * (tp - tp_sma) / md / 100 / (5 if downscale else 1)).rename(f"cci_{period}")
 
 
