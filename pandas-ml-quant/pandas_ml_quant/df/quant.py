@@ -1,8 +1,9 @@
 import pandas as pd
 
-import pandas_ml_quant.indicators as indicators
-import pandas_ml_quant.encoders as encoders
-import pandas_ml_quant.labels as labels
+import pandas_ml_quant.analysis.indicators as indicators
+import pandas_ml_quant.analysis.encoders as encoders
+import pandas_ml_quant.analysis.labels as labels
+import pandas_ml_quant.analysis.backtest as backtest
 from pandas_ml_quant.df.plot import TaPlot
 
 
@@ -24,7 +25,7 @@ def wrapper(func):
 
 
 # add indicators
-for indicator_functions in [indicators, encoders, labels]:
+for indicator_functions in [indicators, encoders, labels, backtest]:
     for indicator_function in dir(indicator_functions):
         if indicator_function.startswith("ta_"):
             setattr(Quant, indicator_function, wrapper(getattr(indicator_functions, indicator_function)))

@@ -1,8 +1,7 @@
 import pandas as _pd
 import numpy as _np
 from typing import Union as _Union
-import pandas_ml_quant.indicators as _i
-from pandas_ml_common import get_pandas_object as _get_pandas_object
+import pandas_ml_quant.analysis.indicators as _i
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 

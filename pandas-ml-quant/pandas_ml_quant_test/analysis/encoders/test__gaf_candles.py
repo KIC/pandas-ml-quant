@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from pandas_ml_quant import np
-from pandas_ml_quant.encoders import ta_candles_as_culb
+from pandas_ml_quant.analysis.encoders import ta_candles_as_culb
 from pandas_ml_quant_test.config import DF_TEST
 
 

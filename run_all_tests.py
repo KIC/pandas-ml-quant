@@ -36,4 +36,4 @@ if __name__ == "__main__":
             sys.exit(1)
     except:
         # make sure the CI-Pipeline fails
-        sys.exit(126)
+        sys.exit(1)

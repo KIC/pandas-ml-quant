@@ -5,7 +5,7 @@ import numpy as _np
 import pandas as _pd
 
 from pandas_ml_common import get_pandas_object as _get_pandas_object
-import pandas_ml_quant.indicators.single_object as _i
+import pandas_ml_quant.analysis.indicators.single_object as _i
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 

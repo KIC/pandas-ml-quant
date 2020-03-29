@@ -1,6 +1,6 @@
 from unittest import TestCase
-from pandas_ml_quant import pd, np
-from pandas_ml_quant.labels import ta_opening_gap, ta_future_bband_quantile
+from pandas_ml_quant import pd
+from pandas_ml_quant.analysis.labels import ta_opening_gap, ta_future_bband_quantile
 from pandas_ml_quant_test.config import DF_TEST
 
 

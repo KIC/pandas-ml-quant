@@ -1,4 +1,4 @@
-from pandas_ml_quant.indicators import ta_rnn
+from pandas_ml_quant.analysis.indicators import ta_rnn
 from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
 

@@ -1,7 +1,7 @@
 from unittest import TestCase
-from pandas_ml_quant import pd, np
-from pandas_ml_quant.encoders import ta_gaf
-from pandas_ml_quant.indicators import ta_rnn
+from pandas_ml_quant import np
+from pandas_ml_quant.analysis.encoders import ta_gaf
+from pandas_ml_quant.analysis.indicators import ta_rnn
 from pandas_ml_quant_test.config import DF_TEST
 
 

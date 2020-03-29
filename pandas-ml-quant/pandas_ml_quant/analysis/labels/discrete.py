@@ -3,7 +3,7 @@ from typing import Union as _Union
 import pandas as _pd
 import numpy as _np
 
-import pandas_ml_quant.indicators as _i
+import pandas_ml_quant.analysis.indicators as _i
 from pandas_ml_quant.utils import index_of_bucket as _index_of_bucket
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]

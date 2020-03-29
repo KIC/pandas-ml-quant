@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from pandas_ml_quant.portfolio.transactionlog import TransactionLog
+from pandas_ml_quant.trading.transaction_log import TransactionLog
 from pandas_ml_quant_test.config import DF_TEST
 
 
-class TestBalance(TestCase):
+class TestTransactionLog(TestCase):
 
     def test_balance_valuation_open_close(self):
         df = DF_TEST[-10:].copy()
