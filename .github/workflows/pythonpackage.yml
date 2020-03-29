@@ -17,6 +17,8 @@ jobs:
         python-version: [3.7]
     env:
       LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
+      C_INCLUDE_PATH: '/tmp/include/ta-lib/'
+      CPLUS_INCLUDE_PATH: '/tmp/include/ta-lib/'
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
