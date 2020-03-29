@@ -1,6 +1,6 @@
 from unittest import TestCase
 from pandas_ml_quant import pd, np
-from pandas_ml_quant.analysis.encoders.one_hot import ta_one_hot_encode_discrete
+from pandas_ml_quant.analysis import ta_one_hot_encode_discrete
 from pandas_ml_quant_test.config import DF_TEST
 
 

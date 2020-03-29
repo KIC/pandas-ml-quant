@@ -1,5 +1,6 @@
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 from moviepy.video.io.bindings import mplfig_to_npimage
@@ -22,6 +23,7 @@ class TaPlot(object):
             ax = fig.add_subplot(gs, sharex=axis[0] if i > 0 else None)
             ax.xaxis_date()
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
+            ax.legend(loc='best')
 
             if i < rows - 1:
                 ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -56,7 +58,7 @@ class TaPlot(object):
         self.axis[panel] = plot_bar(self.df, fields, ax=self.axis[panel], colors=colors, color_map=color_map, **kwargs)
         return self._return()
 
-    def line(self, fields="Close", panel=0, **kwargs):
+    def line(self, fields="Close", panel=0, oscillator=False, **kwargs):
         self.axis[panel] = plot_line(self.df, fields, ax=self.axis[panel], **kwargs)
         return self._return()
 
@@ -69,6 +71,13 @@ class TaPlot(object):
             return frame
 
         return plot_animation(self.df.index, make_frame, fps, **kwargs)
+
+    def with_symetric_scale(self, *panels):
+        for panel in panels:
+            yl = np.abs(np.array(list(self.axis[panel].get_ylim()))).max() * 1.1
+            self.axis[panel].set_ylim(-yl, +yl)
+
+        return self._return()
 
     def __call__(self, *args, **kwargs):
         """

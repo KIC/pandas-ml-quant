@@ -12,7 +12,7 @@ class TestQuantComponent(TestCase):
         df = DF_TEST.copy()
 
         ta_functions = [ta for ta in dir(df.q) if ta.startswith("ta_")]
-        self.assertGreaterEqual(44, len(ta_functions))
+        self.assertGreaterEqual(len(ta_functions), 44)
 
         # FIXME call all functions
         df.q.ta_sma(20)

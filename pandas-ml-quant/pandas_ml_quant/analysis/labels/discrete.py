@@ -1,12 +1,53 @@
 from typing import Union as _Union
 
-import pandas as _pd
 import numpy as _np
+import pandas as _pd
 
+import pandas_ml_quant.analysis.filters as _f
 import pandas_ml_quant.analysis.indicators as _i
+from pandas_ml_common import get_pandas_object as _get_pandas_object
 from pandas_ml_quant.utils import index_of_bucket as _index_of_bucket
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
+
+
+def ta_cross_over(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
+    # return only > 0
+    return ta_cross(df, a, b, period).clip(lower=0)
+
+
+def ta_cross_under(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
+    # return only < 0
+    return ta_cross(df, a, b, period).clip(upper=0)
+
+
+def ta_cross(df: _pd.DataFrame, a=None, b=None, period=1):
+    # get pandas objects for crossing
+    if a is None and b is None:
+        assert len(df.columns) == 2, f"ambiguous crossing of {df.columns}"
+        a = df[df.columns[0]]
+        b = df[df.columns[1]]
+    elif b is None:
+        b = _get_pandas_object(df, a)
+        a = df
+    elif a is None:
+        b = _get_pandas_object(df, b)
+        a = df
+    else:
+        a = _get_pandas_object(df, a)
+        b = _get_pandas_object(df, b)
+
+    # get periods
+    a1 = a.shift(period)
+    b1 = b.shift(period)
+
+    # if a1 < b1 and a > b then a crosses over b
+    a_over_b = ((a1 < b1) & (a > b)).astype(int)
+
+    # if a1 > b1 and a < b then a cross under b
+    a_under_b = ((a1 > b1) & (a < b)).astype(int) * -1
+
+    return a_over_b + a_under_b
 
 
 def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
@@ -20,7 +61,7 @@ def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
 
 def ta_future_bband_quantile(df: _pd.Series, forecast_period=5, period=14, stddev=2.0, ddof=1, include_mean=False):
     # we want to know if a future price is violating the current upper/lower band
-    bands = _i.ta_bbands(df, period, stddev, ddof)
+    bands = _f.ta_bbands(df, period, stddev, ddof)
     bands = bands[["lower", "mean", "upper"] if include_mean else ["lower", "upper"] ]
     future = df.shift(-forecast_period)
 

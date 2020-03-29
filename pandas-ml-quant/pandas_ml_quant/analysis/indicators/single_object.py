@@ -5,141 +5,82 @@ import numpy as _np
 import pandas as _pd
 from scipy.stats import zscore
 
+from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
+from pandas_ml_quant.analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
-def ta_inverse(df: _PANDAS) -> _PANDAS:
-    return df.apply(lambda col: col * -1 + col.min() + col.max(), raw=True)
-
-
-def ta_sma(df: _PANDAS, period=12) -> _PANDAS:
-    return _wcs(f"sma_{period}", df.rolling(period).mean())
-
-
-def ta_ema(df: _PANDAS, period=12) -> _PANDAS:
-    return _wcs(f"ema_{period}", df.ewm(span=period, adjust=False, min_periods=period-1).mean())
-
-
-def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
+def ta_macd(df: Typing.PandasPatched, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
     if has_indexed_columns(df):
-        resdf = _pd.DataFrame({}, index=df.index)
-        for col in df.columns:
-            s = df[col].dropna()
-            res = _np.zeros(s.shape)
-            _ws(s.values, period, res)
-            resdf = resdf.join(_pd.DataFrame({col: res}, index=s.index))
+        res = _pd.DataFrame({}, index=df.index)
+        for col in df.columns.to_list():
+            d = ta_macd(df[col], fast_period, slow_period, slow_period, relative)
+            d.columns = _pd.MultiIndex.from_product([[col], d.columns])
+            res = res.join(d)
 
-        res = resdf
+        res.columns = _pd.MultiIndex.from_tuples(res.columns.to_list())
+        return res
     else:
-        res = ta_wilders(df.to_frame(), period).iloc[:, 0]
+        fast = _ema(df, fast_period)
+        slow = _ema(df, slow_period)
 
-    return _wcs(f"wilders_{period}", res)
+        macd = (fast / slow - 1) if relative else (fast - slow)
+        signal = _ema(macd, signal_period)
+        hist = macd - signal
+        suffix = f'{fast_period},{slow_period},{signal_period}'
 
-
-def ta_macd(df: _PANDAS, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
-    fast = ta_ema(df, fast_period)
-    fast.columns=df.columns
-    slow = ta_ema(df, slow_period)
-    slow.columns=df.columns
-
-    macd = (fast / slow - 1) if relative else (fast - slow)
-    macd.columns = df.columns
-    signal = ta_ema(macd, signal_period)
-    signal.columns = df.columns
-    hist = macd - signal
-    suffix = f'{fast_period},{slow_period},{signal_period}'
-
-    for label, frame in {f"macd_{suffix}": macd, f"signal_{suffix}": signal, f"histogram_{suffix}": hist}.items():
-        if has_indexed_columns(frame) and len(df.columns) > 1:
-            frame.columns = _pd.MultiIndex.from_product([frame.columns, [label]])
-        else:
+        for label, frame in {f"macd_{suffix}": macd, f"signal_{suffix}": signal, f"histogram_{suffix}": hist}.items():
             frame.name = label
 
-    macd = macd.to_frame() if isinstance(macd, _pd.Series) else macd
-    return macd.join(signal).join(hist)
+        macd = macd.to_frame() if isinstance(macd, _pd.Series) else macd
+        return macd.join(signal).join(hist)
 
 
-def ta_mom(df: _PANDAS, period=10) -> _PANDAS:
-    return _wcs(f"mom_{period}", df.diff(period))
+def ta_mom(df: _PANDAS, period=10, relative=True) -> _PANDAS:
+    return _wcs(f"mom_{period}", df.pct_change(period) if relative else df.diff(period))
 
 
 def ta_roc(df: _PANDAS, period=10) -> _PANDAS:
     return _wcs(f"roc_{period}", df.pct_change(period))
 
 
-def ta_stddev(df: _PANDAS, period=5, nbdev=1, ddof=1) -> _PANDAS:
-    return _wcs(f"stddev_{period}", (df.rolling(period).std(ddof=ddof) * nbdev))
+def ta_stddev(df: _PANDAS, period=5, nbdev=1, ddof=1, downscale=True) -> _PANDAS:
+    return _wcs(f"stddev_{period}", (df.rolling(period).std(ddof=ddof) * nbdev) / (100 if downscale else 1))
 
 
 def ta_rsi(df: _PANDAS, period=14):
     returns = df.diff()
 
-    pos = ta_wilders(returns.clip(lower=0), period)
-    neg = ta_wilders(_np.abs(returns.clip(upper=0)), period)
+    pos = _wilders(returns.clip(lower=0), period)
+    neg = _wilders(_np.abs(returns.clip(upper=0)), period)
 
     return _wcs(f"rsi_{period}", pos / (pos + neg), returns)
 
 
 def ta_apo(df: _PANDAS, fast_period=12, slow_period=26, exponential=False, relative=True) -> _PANDAS:
-    fast = ta_ema(df, fast_period) if exponential else ta_sma(df, fast_period)
-    slow = ta_ema(df, slow_period) if exponential else ta_sma(df, slow_period)
+    fast = _ema(df, fast_period) if exponential else _sma(df, fast_period)
+    slow = _ema(df, slow_period) if exponential else _sma(df, slow_period)
     apo = (fast / slow) if relative else (fast - slow)
     return _wcs(f"apo_{fast_period},{slow_period},{int(exponential)}", apo, df)
 
 
 def ta_trix(df: _PANDAS, period=30) -> _PANDAS:
-    return _wcs(f"trix_{period}", ta_ema(ta_ema(ta_ema(df, period), period), period).pct_change() * 100, df)
+    return _wcs(f"trix_{period}", _ema(_ema(_ema(df, period), period), period).pct_change() * 100, df)
 
 
 def ta_ppo(df: _pd.DataFrame, fast_period=12, slow_period=26, exponential=True) -> _PANDAS:
-    fast = ta_ema(df, period=fast_period) if exponential else ta_sma(df, period=fast_period)
-    slow = ta_ema(df, period=slow_period) if exponential else ta_sma(df, period=slow_period)
+    fast = _ema(df, period=fast_period) if exponential else _sma(df, period=fast_period)
+    slow = _ema(df, period=slow_period) if exponential else _sma(df, period=slow_period)
     return _wcs(f"ppo_{fast_period},{slow_period},{int(exponential)}", (fast - slow) / slow, df)
 
 
-def ta_zscore(df: _PANDAS, period=20, ddof=1):
-    res = df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1])
+def ta_zscore(df: _PANDAS, period=20, ddof=1, downscale=True):
+    res = df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1] / (10 if downscale else 1))
 
     return _wcs(f"z_{period}", res)
-
-
-def ta_decimal_year(df: _PANDAS):
-    return df.index.strftime("%j").astype(float) - 1 / 366 + df.index.strftime("%Y").astype(float)
-
-
-def ta_week_day(po: _PANDAS):
-    if not isinstance(po.index, _pd.DatetimeIndex):
-        df = po.copy()
-        df.index = _pd.to_datetime(df.index)
-    else:
-        df = po
-
-    return (df.index.dayofweek / 6.0).to_series(index=po.index, name="dow")
-
-
-def ta_week(po: _PANDAS):
-    if not isinstance(po.index, _pd.DatetimeIndex):
-        df = po.copy()
-        df.index = _pd.to_datetime(df.index)
-    else:
-        df = po
-
-    return (df.index.week / 52.0).to_series(index=po.index, name="week")
-
-
-def ta_ewma_covariance(df: _PANDAS, convert_to='returns', alpha=0.97):
-    data = df.copy()
-
-    if convert_to == 'returns':
-        data = df.pct_change()
-    if convert_to == 'log-returns':
-        data = _np.log(df) - _np.log(df.shift(1))
-
-    data.columns = data.columns.to_list()
-    return data.ewm(com=alpha).cov()
 
 
 def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_date=False):
@@ -160,54 +101,6 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
         ratio.index = ratio.index - _pd.DateOffset(days=(ratio.index[-1] - ratio.index[0]).days + 7 - 1)
 
     return ratio
-
-
-def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1) -> _PANDAS:
-    assert not has_indexed_columns(s)
-    mean = s.rolling(period).mean().rename("mean")
-    std = s.rolling(period).std(ddof=ddof)
-    df = _pd.DataFrame({}, index=mean.index)
-
-    for stddev in reversed(stddevs):
-        df[f'lower-{stddev}'] = mean - (std * stddev)
-
-    df["mean"] = mean
-
-    for stddev in stddevs:
-        df[f'upper-{stddev}'] = mean + (std * stddev)
-
-    return df
-
-
-def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1) -> _PANDAS:
-    mean = df.rolling(period).mean()
-    std = df.rolling(period).std(ddof=ddof)
-    most_recent = df.rolling(period).apply(lambda x: x[-1], raw=True)
-
-    upper = mean + (std * stddev)
-    lower = mean - (std * stddev)
-    z_score = (most_recent - mean) / std
-    quantile = (most_recent > upper).astype(int) - (most_recent < lower).astype(int)
-
-    if isinstance(mean, _pd.Series):
-        upper.name = "upper"
-        mean.name = "mean"
-        lower.name = "lower"
-        z_score.name = "z"
-        quantile.name = "quantile"
-    else:
-        upper.columns = _pd.MultiIndex.from_product([upper.columns, ["upper"]])
-        mean.columns = _pd.MultiIndex.from_product([mean.columns, ["mean"]])
-        lower.columns = _pd.MultiIndex.from_product([lower.columns, ["lower"]])
-        z_score.columns = _pd.MultiIndex.from_product([z_score.columns, ["z"]])
-        quantile.columns = _pd.MultiIndex.from_product([z_score.columns, ["quantile"]])
-
-    return _pd.DataFrame(upper) \
-        .join(mean) \
-        .join(lower) \
-        .join(z_score) \
-        .join(quantile) \
-        .sort_index(axis=1)
 
 
 def ta_returns(df: _PANDAS):

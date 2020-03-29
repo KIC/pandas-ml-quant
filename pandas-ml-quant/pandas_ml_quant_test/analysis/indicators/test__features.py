@@ -3,8 +3,7 @@ from unittest import TestCase
 import numpy as np
 import talib
 
-from pandas_ml_quant.analysis.indicators import *
-from pandas_ml_quant.analysis.indicators.single_object import *
+from pandas_ml_quant.analysis import *
 from pandas_ml_quant_test.config import DF_TEST
 from pandas_ml_common import Constant
 
@@ -29,14 +28,24 @@ class TestIndicator(TestCase):
 
         np.testing.assert_array_almost_equal(talib_macd[-100:].values[0], my_macd[-100:].values[0])
 
+        # test multi
+        my_multi_macd = ta_macd(DF_TEST[["Close", "Open"]], relative=False)
+        self.assertListEqual([('Close', 'macd_12,26,26'),
+                              ('Close', 'signal_12,26,26'),
+                              ('Close', 'histogram_12,26,26'),
+                              ('Open', 'macd_12,26,26'),
+                              ('Open', 'signal_12,26,26'),
+                              ('Open', 'histogram_12,26,26')],
+                             my_multi_macd.columns.to_list())
+
     def test__mom(self):
-        me = ta_mom(DF_TEST["Close"])[-100:]
+        me = ta_mom(DF_TEST["Close"], relative=False)[-100:]
         ta = talib.MOM(DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta)
 
     def test__stddev(self):
-        me = ta_stddev(DF_TEST["Close"], ddof=0)[-100:]
+        me = ta_stddev(DF_TEST["Close"], ddof=0, downscale=False)[-100:]
         ta = talib.STDDEV(DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta)
@@ -163,7 +172,7 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me, np.array([[-0.067, -0.232, -0.073, -0.318, -0.319,  1.776]]), 0.001)
 
     def test__z_score(self):
-        me = ta_zscore(DF_TEST)[-1:]
+        me = ta_zscore(DF_TEST, downscale=False)[-1:]
 
         np.testing.assert_array_almost_equal(me, np.array([[ 0.546, 0.256, 0.271, 0.457,  0.457, -0.929]]), 0.001)
 
