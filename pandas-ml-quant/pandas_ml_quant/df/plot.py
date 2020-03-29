@@ -23,7 +23,6 @@ class TaPlot(object):
             ax = fig.add_subplot(gs, sharex=axis[0] if i > 0 else None)
             ax.xaxis_date()
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
-            ax.legend(loc='best')
 
             if i < rows - 1:
                 ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -103,8 +102,17 @@ class TaPlot(object):
         else:
             self.bar()
 
+        return self.with_legend()
+
+    def with_legend(self):
+        for panel in self.axis:
+            panel.legend(loc=2)
+
+        return self
+
     def _return(self):
         self.grid.tight_layout(self.fig)
+
 
 
 
