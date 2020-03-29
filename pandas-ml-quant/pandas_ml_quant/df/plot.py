@@ -70,7 +70,12 @@ class TaPlot(object):
             plt.close(fig)
             return frame
 
+        plt.close(self.fig)
         return plot_animation(self.df.index, make_frame, fps, **kwargs)
+
+    def set_scale(self, panel, min, max):
+        self.axis[panel].set_ylim(min, max)
+        return self._return()
 
     def with_symetric_scale(self, *panels):
         for panel in panels:

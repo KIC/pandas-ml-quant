@@ -34,18 +34,6 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"wilders_{period}", res)
 
 
-def ta_ewma_covariance(df: _PANDAS, convert_to='returns', alpha=0.97):
-    data = df.copy()
-
-    if convert_to == 'returns':
-        data = df.pct_change()
-    if convert_to == 'log-returns':
-        data = _np.log(df) - _np.log(df.shift(1))
-
-    data.columns = data.columns.to_list()
-    return data.ewm(com=alpha).cov()
-
-
 def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1) -> _PANDAS:
     assert not has_indexed_columns(s)
     mean = s.rolling(period).mean().rename("mean")
@@ -71,7 +59,11 @@ def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1) -> _PANDAS:
     upper = mean + (std * stddev)
     lower = mean - (std * stddev)
     z_score = (most_recent - mean) / std
-    quantile = (most_recent > upper).astype(int) - (most_recent < lower).astype(int)
+    quantile = _pd.Series(None, index=df.index)
+    quantile[most_recent <= lower] = 0
+    quantile[most_recent > lower] = 1
+    quantile[most_recent > mean] = 2
+    quantile[most_recent > upper] = 3
 
     if isinstance(mean, _pd.Series):
         upper.name = "upper"
