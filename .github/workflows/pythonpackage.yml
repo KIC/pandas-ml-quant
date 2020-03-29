@@ -17,8 +17,6 @@ jobs:
         python-version: [3.7]
     env:
       LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
-      TA_LIBRARY_PATH: '/tmp/lib/'
-      TA_INCLUDE_PATH: '/tmp/include/ta-lib/'
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -29,7 +27,7 @@ jobs:
       env:
         LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
         TA_LIBRARY_PATH: '/tmp/lib/'
-        TA_INCLUDE_PATH: '/tmp/include/ta-lib/'
+        TA_INCLUDE_PATH: '/tmp/include/'
       run: |
         wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
         tar -xzf ta-lib-0.4.0-src.tar.gz
