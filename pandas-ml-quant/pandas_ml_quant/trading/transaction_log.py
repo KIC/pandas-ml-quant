@@ -22,6 +22,16 @@ class TransactionLog(object):
         self.index_close = []
         self.current_index = 0
 
+    def long_rebalance(self, amount):
+        if len(self.transactions) <= 0:
+            self.action(TransactionLog.OPEN, amount)
+        else:
+            delta = self.transactions[-1] - amount
+            if delta > 0:
+                self.action(TransactionLog.OPEN, delta)
+            else:
+                self.action(TransactionLog.CLOSE, delta)
+
     def action(self, action: int, amount):
         if action > 0:
             self.add_open_transaction(self.current_index, amount)

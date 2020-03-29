@@ -41,9 +41,14 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
 
 def ta_macd(df: _PANDAS, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
     fast = ta_ema(df, fast_period)
+    fast.columns=df.columns
     slow = ta_ema(df, slow_period)
+    slow.columns=df.columns
+
     macd = (fast / slow - 1) if relative else (fast - slow)
+    macd.columns = df.columns
     signal = ta_ema(macd, signal_period)
+    signal.columns = df.columns
     hist = macd - signal
     suffix = f'{fast_period},{slow_period},{signal_period}'
 
@@ -126,13 +131,14 @@ def ta_week(po: _PANDAS):
 
 
 def ta_ewma_covariance(df: _PANDAS, convert_to='returns', alpha=0.97):
-    data = df
+    data = df.copy()
 
     if convert_to == 'returns':
         data = df.pct_change()
     if convert_to == 'log-returns':
         data = _np.log(df) - _np.log(df.shift(1))
 
+    data.columns = data.columns.to_list()
     return data.ewm(com=alpha).cov()
 
 

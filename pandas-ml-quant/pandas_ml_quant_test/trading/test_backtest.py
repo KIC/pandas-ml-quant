@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_quant_test.config import DF_TEST, DF_TEST_MULTI
 import pandas_ml_quant
 import numpy as np
 
@@ -18,3 +18,8 @@ class TestBackTest(TestCase):
 
         print(bt)
         np.testing.assert_almost_equal(151.908073, bt["net"].iloc[-1])
+
+    def test_markowitz(self):
+        df = DF_TEST_MULTI.copy()
+
+        print(df)
