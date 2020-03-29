@@ -21,5 +21,8 @@ class TestBackTest(TestCase):
 
     def test_markowitz(self):
         df = DF_TEST_MULTI.copy()
-
-        print(df)
+        # portfolios = df.ml["Close"]\
+        #     .q.ta_markowitz(return_period=20)\
+        #     .q.backtest(df.ml["Close"], lambda weights: weights)  # FIXME allow to backtest multiple assets
+        #
+        # print(portfolios)
