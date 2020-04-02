@@ -42,6 +42,15 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         self.current_net = 0
         return super().reset()
 
+    def interpret_action(self, action):
+        if self.allow_short:
+            # 0 - 10  ->  -10 - 10
+            action -= int(self.trading_fraction / 2) * 2
+
+        # we convert the action in to a target balance we pass to the transaction log
+        balance = action / self.trading_fraction * self.initial_capital
+        return balance
+
     def take_action(self,
                     action,
                     idx: int,
@@ -54,10 +63,6 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         if idx <= 0:
             self.trade_log.rebalance(0)
             return 0
-
-        if self.allow_short:
-            # 0 - 10  ->  -10 - 10
-            action -= int(self.trading_fraction / 2) * 2
 
         # we use a n/fractions as target balance -> 10 shares 20,... shares, ...
         balance = action / self.trading_fraction * self.initial_capital

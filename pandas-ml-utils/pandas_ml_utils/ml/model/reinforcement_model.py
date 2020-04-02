@@ -81,11 +81,8 @@ class ReinforcementModel(Model):
 
             # try to execute the action, if it fails with an exception we are done with this session
             try:
-                if action.shape != self.action_space.shape:
-                    action = action[-1]
-
                 i = self.current_index
-                reward = self.take_action(action, i, *[t[i] if t is not None else None for t in self.train])
+                reward = self.take_action(self.interpret_action(action), i, *[t[i] if t is not None else None for t in self.train])
                 self.reward_history[-1].append(reward)
                 self.last_reward = reward
             except StopIteration:
@@ -99,6 +96,9 @@ class ReinforcementModel(Model):
 
             # return the new observation the reward of this action and whether the session is over
             return observation, reward, done, {}
+
+        def interpret_action(self, action):
+            return action
 
         def take_action(self,
                         action,
@@ -160,7 +160,7 @@ class ReinforcementModel(Model):
 
         for i in range(samples):
             action, state = self.rl_model.predict(obs)
-            prediction.append(action)
+            prediction.append(envs[0].interpret_action(action))
 
             obs, reward, done, _ = zip(*[env.step(action) for env in envs])
             for env, dne in zip(envs, done):
