@@ -19,7 +19,7 @@ class TestOneHotEncoder(TestCase):
                                                 [0, 0, 0, 1, 0],
                                                 [0, 0, 0, 1, 0],
                                                 [0, 0, 0, 0, 1]]),
-                                      encoded.ml.values)
+                                      encoded._.values)
 
     def test_one_hot_encoder_arr(self):
         df = pd.DataFrame({"a": [1, 2, 3, 4, 4, 5],
@@ -27,7 +27,7 @@ class TestOneHotEncoder(TestCase):
 
         encoded = ta_one_hot_encode_discrete(df[["a", "b"]])
 
-        print(repr(encoded.ml.values))
+        print(repr(encoded._.values))
         self.assertListEqual(df.index.tolist(), encoded.index.tolist())
         np.testing.assert_array_equal(np.array([[[1, 0, 0, 0, 0],
                                                  [1, 0, 0, 0, 0]],
@@ -46,7 +46,7 @@ class TestOneHotEncoder(TestCase):
 
                                                 [[0, 0, 0, 0, 1],
                                                  [0, 0, 0, 0, 1]]]),
-                                      encoded.ml.values)
+                                      encoded._.values)
 
     def test_chained_encoder(self):
         df = DF_TEST.copy()

@@ -25,10 +25,10 @@ def map_prediction_to_target(df, prediction, targets):
         return round(val, d) if isinstance(val, float) else val
 
     dfp = get_pandas_object(df, prediction)
-    p = dfp.ml.values.reshape((len(df), -1))
+    p = dfp._.values.reshape((len(df), -1))
 
     dft = get_pandas_object(df, targets)
-    t = dft.ml.values.reshape((len(df), -1))
+    t = dft._.values.reshape((len(df), -1))
 
     if p.shape[1] == t.shape[1]:
         # 1:1 mapping
@@ -47,7 +47,7 @@ def map_prediction_to_target(df, prediction, targets):
             return [(_round(l[i - 1], 2), _round(l[i], 2)) for i in range(1, len(l))]
 
         index = [(date, target) for date in df.index for target in
-                 build_tuples(dft.loc[date].ml.values.tolist())]
+                 build_tuples(dft.loc[date]._.values.tolist())]
     else:
         raise ValueError(f"unable to match {len(p.shape[1])} predictions to {t.shape[1]} +/-1 targets")
 

@@ -9,7 +9,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_feature_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w = df.ml.extract(
+        (f, min), l, t, w = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
@@ -29,12 +29,12 @@ class TestFeaturePostProcesor(TestCase):
 
         self.assertEqual((6674, 10), f.shape)
         self.assertEqual((6674, 1), l.shape)
-        self.assertEqual((6674, 5, 2), f.ml.values.shape)
+        self.assertEqual((6674, 5, 2), f._.values.shape)
 
     def test_feature_and_label_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w = df.ml.extract(
+        (f, min), l, t, w = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
@@ -58,7 +58,7 @@ class TestFeaturePostProcesor(TestCase):
 
         self.assertEqual((6672, 30), f.shape)
         self.assertEqual((6672, 4), l.shape)
-        # FIXME self.assertEqual((6674, 3, 5, 2), f.ml.values.shape)
+        # FIXME self.assertEqual((6674, 3, 5, 2), f._.values.shape)
 
     def test_post_z_standardisation(self):
         # FIXME implement me ...

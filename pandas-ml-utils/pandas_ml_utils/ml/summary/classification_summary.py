@@ -24,8 +24,8 @@ class ClassificationSummary(Summary):
         import matplotlib.pyplot as plt
 
         # get true and prediction data
-        truth = self.df[self.true_columns].ml.values.reshape((len(self.df), -1))
-        prediction = self.df[self.pred_columns].ml.values.reshape(truth.shape)
+        truth = self.df[self.true_columns]._.values.reshape((len(self.df), -1))
+        prediction = self.df[self.pred_columns]._.values.reshape(truth.shape)
 
         # calculate legends
         legend = [(col[1] if isinstance(col, tuple) else col) for col in self.df[self.true_columns].columns.tolist()]
@@ -70,11 +70,11 @@ class ClassificationSummary(Summary):
         return plot_confusion_matrix(cm, figsize=figsize)
 
     def _fix_label_prediction_representation(self):
-        true_values = self.df[self.true_columns].ml.values
+        true_values = self.df[self.true_columns]._.values
         if len(true_values.shape) > 1:
             true_values = true_values.reshape((len(true_values), -1))
 
-        pred_values = self.df[self.pred_columns].ml.values.reshape(true_values.shape)
+        pred_values = self.df[self.pred_columns]._.values.reshape(true_values.shape)
 
         if len(true_values.shape) > 1 and true_values.shape[1] > 1:
             true_values = np.apply_along_axis(np.argmax, 1, true_values)

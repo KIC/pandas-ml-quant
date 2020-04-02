@@ -14,7 +14,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape(self):
         df = DF_TEST.copy()
 
-        (features, _), labels, targets, weights = df.ml.extract(
+        (features, _), labels, targets, weights = df._.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi().ta.rnn(280),
@@ -34,15 +34,15 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         )
 
         print(features, labels, weights)
-        print(features.ml.values.shape, labels.ml.values.shape)
+        print(features._.values.shape, labels._.values.shape)
         print(len(df))
 
         # we need RNN shape to be [row, time_step, feature]
-        self.assertEqual((6463, 280, 2), features.ml.values.shape)
+        self.assertEqual((6463, 280, 2), features._.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 1, 4), labels.ml.values.shape)
-        self.assertEqual((6463, 4), labels.ml.values.squeeze().shape)
+        self.assertEqual((6463, 1, 4), labels._.values.shape)
+        self.assertEqual((6463, 4), labels._.values.squeeze().shape)
 
         self.assertEqual(len(features), len(labels))
         self.assertLess(len(features), len(df))
@@ -50,7 +50,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape_two_labels(self):
         df = DF_TEST.copy()
 
-        (features, min_samples), labels, targets, weights = df.ml.extract(
+        (features, min_samples), labels, targets, weights = df._.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi().ta.rnn(280),
@@ -73,11 +73,11 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         # we need RNN shape to be [row, time_step, feature]
         self.assertEqual(294, min_samples)
-        self.assertEqual((6463, 280, 2), features.ml.values.shape)
+        self.assertEqual((6463, 280, 2), features._.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 2, 3), labels.ml.values.shape)
-        self.assertEqual((6463, 2, 3), labels.ml.values.squeeze().shape)
+        self.assertEqual((6463, 2, 3), labels._.values.shape)
+        self.assertEqual((6463, 2, 3), labels._.values.squeeze().shape)
 
         self.assertEqual(len(features), len(labels))
         self.assertLess(len(features), len(df))
@@ -104,7 +104,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             file
         )
 
-        (features, _), labels, targets, weights = df.ml.extract(
+        (features, _), labels, targets, weights = df._.extract(
             deserialize(file, FeaturesAndLabels),
             # kwargs of call
             forecasting_time_steps=7,
@@ -112,10 +112,10 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         )
 
         # we need RNN shape to be [row, time_step, feature]
-        self.assertEqual((6463, 280, 2), features.ml.values.shape)
+        self.assertEqual((6463, 280, 2), features._.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 2, 3), labels.ml.values.shape)
+        self.assertEqual((6463, 2, 3), labels._.values.shape)
 
 
 """

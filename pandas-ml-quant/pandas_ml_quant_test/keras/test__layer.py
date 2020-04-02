@@ -27,7 +27,7 @@ class TestKerasLayer(TestCase):
         model.add(NormalDistributionLayer())
         model.compile(loss=mdn_cost, optimizer='adam')
 
-        x = df["Close"].ta.rnn(range(5)).ml.values.squeeze()
+        x = df["Close"].ta.rnn(range(5))._.values.squeeze()
         print(x.shape)
 
         # FIXME errors if bazch size is > 1

@@ -34,7 +34,7 @@ class Model(object):
 
     def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
         fnl = data.features_and_labels if isinstance(data, MlModel) else data
-        (features, _), labels, _, _ = self.df.ml.extract(fnl)
+        (features, _), labels, _, _ = self.df._.extract(fnl)
         return plot_features(features.join(labels), labels.columns[0] if has_indexed_columns(labels) else labels.name)
 
     def fit(self,

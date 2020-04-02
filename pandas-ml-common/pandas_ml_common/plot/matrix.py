@@ -4,7 +4,7 @@ import numpy as np
 
 
 def plot_matrix(df, fields, figsize=None, ax=None, **kwargs):
-    data = fields if isinstance(fields, np.ndarray) else (get_pandas_object(df, fields).ml.values.squeeze())
+    data = fields if isinstance(fields, np.ndarray) else (get_pandas_object(df, fields)._.values.squeeze())
 
     if ax is None:
         fig, ax = new_fig_ts_axis(figsize)

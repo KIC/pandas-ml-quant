@@ -11,7 +11,7 @@ class TestGAF(TestCase):
         timesteps = ta_rnn(s, [1, 2, 3])
 
         gaf = ta_gaf(timesteps)
-        shape = gaf.ml.values.shape
+        shape = gaf._.values.shape
         np.testing.assert_almost_equal(0.37, gaf.iloc[-1][0][0][0], 2)
         self.assertEqual((6760, 1, 3, 3), shape)
 
@@ -20,5 +20,5 @@ class TestGAF(TestCase):
         timesteps = ta_rnn(df, [1, 2, 3])
 
         gaf = ta_gaf(timesteps)
-        shape = gaf.ml.values.shape
+        shape = gaf._.values.shape
         self.assertEqual((6760, 2, 3, 3), shape)

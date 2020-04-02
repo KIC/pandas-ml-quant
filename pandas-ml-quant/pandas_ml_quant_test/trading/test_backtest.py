@@ -20,7 +20,7 @@ class TestBackTest(TestCase):
         np.testing.assert_almost_equal(151.908073, bt["net"].iloc[-1])
 
     def test_crossing_pairs_strategy(self):
-        df = DF_TEST_MULTI.ml["Close"].copy()
+        df = DF_TEST_MULTI._["Close"].copy()
         correlation = df["Close", "spy"].rolling(60).corr(df["Close", "gld"])
         signal = correlation\
             .to_frame()\
@@ -32,7 +32,7 @@ class TestBackTest(TestCase):
         print(porfolios)
 
     def test_markowitz(self):
-        df = DF_TEST_MULTI.ml["Close"].copy()
+        df = DF_TEST_MULTI._["Close"].copy()
         weights = df.ta.markowitz(return_period=20)
 
         prices = df.loc[weights.index]

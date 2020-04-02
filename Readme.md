@@ -183,7 +183,7 @@ fnl = FeaturesAndLabels(
 )
 
 # NOTE the df.ml property provides access to (raw) data as it is useful/needed by statistical models
-(features, req_samples), labels, targets, weights = df.ml.extract(fnl)
+(features, req_samples), labels, targets, weights = df._.extract(fnl)
 features.describe()
 ```
 

@@ -200,8 +200,8 @@ class TestModel(TestCase):
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
-                            lambda df: df["Close"].ta.macd().ml[['macd.*', 'signal.*']],
-                            lambda df: df.ta.adx().ml[['+DI', '-DM', '+DM']],
+                            lambda df: df["Close"].ta.macd()._[['macd.*', 'signal.*']],
+                            lambda df: df.ta.adx()._[['+DI', '-DM', '+DM']],
                             lambda df: df["Close"].ta.mom(),
                             lambda df: df["Close"].ta.apo(),
                             lambda df: df.ta.atr(),
@@ -253,8 +253,8 @@ class TestModel(TestCase):
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
-                            lambda df: df["Close"].ta.macd().ml[['macd.*', 'signal.*']],
-                            lambda df: df.ta.adx().ml[['+DI', '-DM', '+DM']],
+                            lambda df: df["Close"].ta.macd()._[['macd.*', 'signal.*']],
+                            lambda df: df.ta.adx()._[['+DI', '-DM', '+DM']],
                             lambda df: df["Close"].ta.mom(),
                             lambda df: df["Close"].ta.apo(),
                             lambda df: df.ta.atr(),

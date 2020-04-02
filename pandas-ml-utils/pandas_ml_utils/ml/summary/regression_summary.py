@@ -21,8 +21,8 @@ class RegressionSummary(Summary):
         import matplotlib.pyplot as plt
 
         df = self.df
-        x = df[self.pred_columns].ml.values
-        y = df[self.true_columns].ml.values
+        x = df[self.pred_columns]._.values
+        y = df[self.true_columns]._.values
         mn = min(x.min(), y.min())
         mx = max(x.max(), y.max())
 
