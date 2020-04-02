@@ -1,6 +1,6 @@
 import numpy as _np
 import pandas as _pd
-
+from pandas_ml_common import Typing as _t
 from pandas_ml_common.utils import ReScaler
 
 
@@ -17,11 +17,7 @@ def ta_rescale(df: _pd.DataFrame, range=(-1, 1), axis=None):
             return _pd.Series(rescaled, name=df.name, index=df.index)
 
 
-def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close"):
-    relative = _pd.DataFrame(index=df.index)
-    relative[open] = (_np.log(df[open]) - _np.log(df[close].shift(1)))
-    relative[close] = (_np.log(df[close]) - _np.log(df[close].shift(1)))
-    relative[high] = (_np.log(df[high]) - _np.log(df[close].shift(1)))
-    relative[low] = (_np.log(df[low]) - _np.log(df[close].shift(1)))
-    return relative
-
+def ta_z_normalization(df: _t.PatchedPandas, period=90):
+    # TODO imlpemnet a rolling z-scaling for all columns in the frame such that the have 0 mean and 1 stddev
+    raise ValueError("not implemented yet")
+    pass

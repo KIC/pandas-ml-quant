@@ -1,90 +1,139 @@
 from typing import Callable
 
+import numpy as np
 import pandas as pd
 
 
+PRICE = "price"
+ASSET_VALUE = "asset_value"
+POS_OPEN = "position_open"
+POS_CLOSE = "position_close"
+POS_NET = "position_net"
+CASH_SLIPP = "slippage"
+CASH_OPEN = "cash_open"
+CASH_CLOSE = "cash_close"
+CASH_NET = "cash_net"
+NET = "net"
+
+
 class TransactionLog(object):
-    OPEN = 1
-    CLOSE = -1
-    SKIP = 0
-
-    PRICE = "price"
-    ASSET_VALUE = "asset value"
-    POSITION = "position"
-    CASH = "cash"
-    NET = "net"
-
     def __init__(self):
         super().__init__()
-        self.transactions = []
-        self.index = []
-        self.index_open = []
-        self.index_close = []
-        self.current_index = 0
-
-    def long_rebalance(self, amount):
-        if len(self.transactions) <= 0:
-            self.action(TransactionLog.OPEN, amount)
-        else:
-            delta = self.transactions[-1] - amount
-            if delta > 0:
-                self.action(TransactionLog.OPEN, delta)
-            else:
-                self.action(TransactionLog.CLOSE, delta)
-
-    def action(self, action: int, amount):
-        if action > 0:
-            self.add_open_transaction(self.current_index, amount)
-        elif action < 0:
-            if len(self.transactions) > 0 and self.transactions[-1] > 0:
-                self.add_close_transaction(self.current_index, amount)
-
-        self.current_index += 1
-        return self.current_index
+        self.transactions_open = {}
+        self.transactions_close = {}
 
     def add_open_transaction(self, iloc: int, amount: float):
-        self.transactions.append((self.transactions[-1] if len(self.transactions) > 0 else 0) + amount)
-        self.index_open.append(iloc)
-        self.index.append(iloc)
+        if iloc in self.transactions_open:
+            self.transactions_open[iloc] = [*self.transactions_open[iloc], amount]
+        else:
+            self.transactions_open[iloc] = [amount]
 
     def add_close_transaction(self, iloc: int, amount: float):
-        assert self.transactions[-1] != 0, "can not close non existing position"
-
         # make sure we close one bar later as we can see in this toy example:
         # price | position | value
         # 10    | 1        | 10
         # 20    | 0        | 20       # we sold here so we need to have a value
         # 15    | 0        | 0
 
-        self.transactions.append((self.transactions[-1] if len(self.transactions) > 0 else 0) + amount)
-        self.index_close.append(iloc + 1)
-        self.index.append(iloc + 1)
+        if iloc in self.transactions_close:
+            self.transactions_close[iloc] = [*self.transactions_close[iloc], amount]
+        else:
+            self.transactions_close[iloc] = [amount]
 
     def evaluate(self, prices: pd.Series, slippage: Callable[[float], float] = lambda value: 0):
-        df = prices.to_frame()
-        df.columns = [TransactionLog.PRICE]
-        df[TransactionLog.POSITION] = None
-        df[TransactionLog.CASH] = 0
+        with pd.option_context('mode.chained_assignment', None):
+            df = prices.to_frame()
+            open_keys = [*self.transactions_open.keys()]
+            close_keys = [*self.transactions_close.keys()]
 
-        # set positions
-        if len(self.index) > 0:
-            df[TransactionLog.POSITION].iloc[self.index] = self.transactions
+            # calculate positions
+            df[POS_OPEN] = 0
+            df[POS_OPEN].iloc[open_keys] = [np.array([v]).sum() for v in self.transactions_open.values()]
 
-        # evaulate asset value
-        df = df.fillna(method='ffill', axis=0).fillna(0)
-        df[TransactionLog.ASSET_VALUE] = df[TransactionLog.PRICE] * df[TransactionLog.POSITION]
+            df[POS_CLOSE] = 0
+            df[POS_CLOSE].iloc[close_keys] = [np.array([v]).sum() for v in self.transactions_close.values()]
 
-        # add cash effects
-        open = df[TransactionLog.ASSET_VALUE].iloc[self.index_open]
-        df[TransactionLog.CASH].iloc[self.index_open] -= open - open.apply(slippage)
+            df[POS_NET] = (df[POS_OPEN] + df[POS_CLOSE]).cumsum()
 
-        close = df[TransactionLog.ASSET_VALUE].shift(1).iloc[self.index_close]
-        df[TransactionLog.CASH].iloc[self.index_close] += close + close.apply(slippage)
+            # calculate cash balance
+            df[CASH_OPEN] = 0
+            df[CASH_CLOSE] = 0
+            df[CASH_SLIPP] = 0
 
-        # cum sum cash balance
-        df[TransactionLog.CASH] = df[TransactionLog.CASH].fillna(0).cumsum()
+            open = df[POS_OPEN].iloc[open_keys] * prices.iloc[open_keys]
+            df[CASH_OPEN].iloc[open_keys] -= open
 
-        # calculate net value
-        df[TransactionLog.NET] = df[TransactionLog.CASH] + df[TransactionLog.ASSET_VALUE]
-        return df
+            close = df[POS_CLOSE].iloc[close_keys] * -prices.iloc[close_keys]
+            df[CASH_CLOSE].iloc[close_keys] += close
 
+            df[CASH_SLIPP].iloc[open_keys] += open.apply(slippage)
+            df[CASH_SLIPP].iloc[close_keys] += close.apply(slippage)
+
+            df[CASH_NET] = (df[CASH_OPEN] + df[CASH_CLOSE] + df[CASH_SLIPP]).cumsum()
+            pd.set_option('display.max_columns', 500)
+
+            # calculate position value
+            df[ASSET_VALUE] = df[POS_NET] * prices
+            df[NET] = df[CASH_NET] + df[ASSET_VALUE]
+
+            return df
+
+
+class StreamingTransactionLog(object):
+    OPEN = 1
+    CLOSE = -1
+
+    def __init__(self):
+        self.log = TransactionLog()
+        self.current_index = 0
+        self.current_position = None
+
+    def rebalance(self, balance):
+        if self.current_position is None:
+            self.log.add_open_transaction(self.current_index, balance)
+            self.current_position = 0
+        else:
+            if balance == 0:
+                if self.current_position != 0:
+                    self.log.add_close_transaction(self.current_index, -self.current_position)
+            elif self.current_position > 0 and balance < 0:
+                # swing long to short
+                self.log.add_close_transaction(self.current_index, -self.current_position)
+                self.log.add_open_transaction(self.current_index, balance)
+            elif self.current_position < 0 and balance > 0:
+                # swing short to long
+                self.log.add_close_transaction(self.current_index, -self.current_position)
+                self.log.add_open_transaction(self.current_index, balance)
+            else:
+                if balance > 0:
+                    # long
+                    delta = balance - self.current_position
+                    if delta > 0:
+                        self.log.add_open_transaction(self.current_index, delta)
+                    else:
+                        self.log.add_close_transaction(self.current_index, delta)
+                else:
+                    # short
+                    delta = balance - self.current_position
+                    if delta > 0:
+                        self.log.add_close_transaction(self.current_index, delta)
+                    else:
+                        self.log.add_open_transaction(self.current_index, delta)
+
+        self.current_index += 1
+        self.current_position = balance
+
+    def perform_action(self, action: int, amount):
+        action = int(action)
+        amount = float(amount)
+
+        if action > 0:
+            self.log.add_open_transaction(self.current_index, amount)
+        elif action < 0:
+            self.log.add_close_transaction(self.current_index, action)
+
+        self.current_index += 1
+        return self.current_index
+
+    def evaluate(self, prices: pd.Series, slippage: Callable[[float], float] = lambda value: 0):
+        return self.log.evaluate(prices, slippage)

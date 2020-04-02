@@ -1,6 +1,16 @@
+import numpy as _np
 import pandas as _pd
 
 from pandas_ml_common import get_pandas_object as _get_pandas_object
+
+
+def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close"):
+    relative = _pd.DataFrame(index=df.index)
+    relative[open] = (_np.log(df[open]) - _np.log(df[close].shift(1)))
+    relative[close] = (_np.log(df[close]) - _np.log(df[close].shift(1)))
+    relative[high] = (_np.log(df[high]) - _np.log(df[close].shift(1)))
+    relative[low] = (_np.log(df[low]) - _np.log(df[close].shift(1)))
+    return relative
 
 
 def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", relative_close=False):

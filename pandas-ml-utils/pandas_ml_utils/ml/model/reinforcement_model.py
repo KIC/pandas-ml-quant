@@ -167,10 +167,6 @@ class ReinforcementModel(Model):
             for env, dne in zip(envs, done):
                 call_callable_dynamic_args(env.render, kwargs)
 
-                # eventually the agent got killed and needs to reset
-                if dne and i < samples - 1:
-                    env.reset()
-
         return np.array(prediction)
 
     def plot_loss(self):

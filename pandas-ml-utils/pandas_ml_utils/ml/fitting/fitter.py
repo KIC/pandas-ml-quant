@@ -4,7 +4,6 @@ import logging
 from time import perf_counter
 from typing import Callable, Dict, TYPE_CHECKING
 
-import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils import merge_kwargs, to_pandas
@@ -89,14 +88,14 @@ def fit(df: pd.DataFrame,
 
     features, labels, targets = sampler[0], sampler[1], sampler[2]
     df_train, df_test = [
-        _assemple_result_frame(targets[i], prediction[i], labels[i], None, None, features[i])  # FIXME add loss and weights
+        _assemble_result_frame(targets[i], prediction[i], labels[i], None, None, features[i])  # FIXME add loss and weights
         for i in range(2)]
 
     # update model properties and return the fit
     model._validation_indices = test_idx
     model.features_and_labels._min_required_samples = min_required_samples
     model.features_and_labels._label_columns = labels[0].columns.tolist()
-    return Fit(model, model.summary_provider(df_train), model.summary_provider(df_test), trails)
+    return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails)
 
 
 def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:
@@ -119,7 +118,7 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
     predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=columns)
-    return _assemple_result_frame(targets, y_hat, None, None, None, features)
+    return _assemble_result_frame(targets, y_hat, None, None, None, features)
 
 
 def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
@@ -130,11 +129,11 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
     predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)
-    df_backtest = _assemple_result_frame(targets, y_hat, labels, None, None, features)  # FIXME add loss and weights
-    return (summary_provider or model.summary_provider)(df_backtest)
+    df_backtest = _assemble_result_frame(targets, y_hat, labels, None, None, features)  # FIXME add loss and weights
+    return (summary_provider or model.summary_provider)(df_backtest, **kwargs)
 
 
-def _assemple_result_frame(targets, prediction, labels, gross_loss, weights, features):
+def _assemble_result_frame(targets, prediction, labels, gross_loss, weights, features):
     return assemble_prediction_frame(
         {TARGET_COLUMN_NAME: targets,
          PREDICTION_COLUMN_NAME: prediction,

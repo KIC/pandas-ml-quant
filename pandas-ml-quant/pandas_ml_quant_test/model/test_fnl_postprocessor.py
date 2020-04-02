@@ -1,0 +1,65 @@
+from unittest import TestCase
+
+from pandas_ml_quant import PostProcessedFeaturesAndLabels, Constant
+from pandas_ml_quant_test.config import DF_TEST
+
+
+class TestFeaturePostProcesor(TestCase):
+
+    def test_feature_post_processing(self):
+        df = DF_TEST.copy()
+
+        (f, min), l, t, w = df.ml.extract(
+            PostProcessedFeaturesAndLabels(
+                features=[
+                    "Close",
+                    lambda df: df["Close"].q.ta_trix(),
+                ],
+                feature_post_processor=[
+                    lambda df: df.q.ta_rnn(5)
+                ],
+                labels=[
+                    Constant(0)
+                ],
+                targets=[
+                    lambda df: df["Close"]
+                ],
+            )
+        )
+
+        self.assertEqual((6674, 10), f.shape)
+        self.assertEqual((6674, 1), l.shape)
+        self.assertEqual((6674, 5, 2), f.ml.values.shape)
+
+    def test_feature_and_label_post_processing(self):
+        df = DF_TEST.copy()
+
+        (f, min), l, t, w = df.ml.extract(
+            PostProcessedFeaturesAndLabels(
+                features=[
+                    "Close",
+                    lambda df: df["Close"].q.ta_trix(),
+                ],
+                feature_post_processor=[
+                    lambda df: df.q.ta_rnn(5),
+                    lambda df: df.q.ta_rnn(3),
+                ],
+                labels=[
+                    Constant(0)
+                ],
+                labels_post_processor=[
+                    lambda df: df.q.ta_rnn(4),
+                ],
+                targets=[
+                    lambda df: df["Close"]
+                ],
+            )
+        )
+
+        self.assertEqual((6672, 30), f.shape)
+        self.assertEqual((6672, 4), l.shape)
+        # FIXME self.assertEqual((6674, 3, 5, 2), f.ml.values.shape)
+
+    def test_post_z_standardisation(self):
+        # FIXME implement me ...
+        pass

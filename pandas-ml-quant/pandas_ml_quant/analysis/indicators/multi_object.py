@@ -97,14 +97,13 @@ def ta_bop(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close"
     return ((c - o) / (h - l)).rename("bop")
 
 
-def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", alpha=0.015, downscale=True) -> _PANDAS:
+def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", alpha=0.015) -> _PANDAS:
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
     c = _get_pandas_object(df, close)
 
     tp = (h + l + c) / 3
     tp_sma = _f.ta_sma(tp, period)
+
     md = tp.rolling(period).apply(lambda x: _np.abs(x - x.mean()).sum() / period)
-    return ((1 / alpha) * (tp - tp_sma) / md / 100 / (5 if downscale else 1)).rename(f"cci_{period}")
-
-
+    return ((1 / alpha) * (tp - tp_sma) / md / 100).rename(f"cci_{period}")

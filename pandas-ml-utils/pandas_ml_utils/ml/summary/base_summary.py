@@ -1,6 +1,7 @@
 import os
-import pandas as pd
+
 import pandas_ml_utils.html as html
+from pandas_ml_common import Typing
 
 
 class Summary(object):
@@ -11,7 +12,7 @@ class Summary(object):
      * implement `_repr_html_()`
     """
 
-    def __init__(self, df: pd.DataFrame, **kwargs):
+    def __init__(self, df: Typing.PatchedDataFrame, **kwargs):
         self._df = df
         self.kwargs = kwargs
 

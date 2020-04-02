@@ -13,7 +13,7 @@ from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix a
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
-def ta_macd(df: Typing.PandasPatched, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
+def ta_macd(df: Typing.PatchedPandas, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
     if has_indexed_columns(df):
         res = _pd.DataFrame({}, index=df.index)
         for col in df.columns.to_list():
@@ -78,7 +78,7 @@ def ta_ppo(df: _pd.DataFrame, fast_period=12, slow_period=26, exponential=True) 
 
 
 def ta_zscore(df: _PANDAS, period=20, ddof=1, downscale=True):
-    res = df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1] / (10 if downscale else 1))
+    res = df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1] / (4 if downscale else 1))
 
     return _wcs(f"z_{period}", res)
 

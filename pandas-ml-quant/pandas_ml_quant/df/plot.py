@@ -61,6 +61,9 @@ class TaPlot(object):
         self.axis[panel] = plot_line(self.df, fields, ax=self.axis[panel], **kwargs)
         return self._return()
 
+    def plot_matrix(self, panel, fields, **kwargs):
+        plot_matrix()
+
     def plot_matrix_animation(self, fields, fps=2, **kwargs):
         def make_frame(index):
             fig, ax = plt.subplots(figsize=(9, 9))

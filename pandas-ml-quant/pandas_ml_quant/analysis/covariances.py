@@ -4,7 +4,7 @@ import numpy as _np
 from pandas_ml_common import Typing
 
 
-def ta_ewma_covariance(df: Typing.PandasPatched, convert_to='returns', alpha=0.97):
+def ta_ewma_covariance(df: Typing.PatchedPandas, convert_to='returns', alpha=0.97):
     data = df.copy()
 
     if convert_to == 'returns':

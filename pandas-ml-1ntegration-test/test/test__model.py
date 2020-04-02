@@ -232,12 +232,23 @@ class TestModel(TestCase):
         self.assertEqual(9, len(target_predictions))
 
     def test_reinformcement(self):
+        # given a data frame
         df = DF_TEST.copy()
 
+        # and a trading agent
+        class ARGym(TradingAgentGym):
+
+            def calculate_trade_reward(self, portfolio_performance_log):
+                return portfolio_performance_log["net"].iloc[-1]
+
+            def next_observation(self, idx, features, labels, targets, weights):
+                return features
+
+        # when we fit the agent
         fit = df.model.fit(
             ReinforcementModel(
                 lambda: PPO2('MlpLstmPolicy',
-                             DummyVecEnv([lambda: TradingAgentGym((280, 9), initial_capital=100000, commission=0)]),
+                             DummyVecEnv([lambda: ARGym((280, 9), initial_capital=100000)]),
                              nminibatches=1),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
@@ -258,7 +269,7 @@ class TestModel(TestCase):
                 )
             ),
             RandomSequences(0.1, 0.7, max_folds=None),
-            total_timesteps=1000,
+            total_timesteps=10,
             verbose=1,
             render='system'
         )

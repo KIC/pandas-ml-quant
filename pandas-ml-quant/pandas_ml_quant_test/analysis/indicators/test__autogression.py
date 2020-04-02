@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 
 from pandas_ml_quant import pd
-from pandas_ml_quant.analysis.indicators import ta_rnn
+from pandas_ml_quant.analysis.encoders import ta_rnn
 from pandas_ml_quant_test.config import DF_TEST
 
 

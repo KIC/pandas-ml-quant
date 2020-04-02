@@ -10,22 +10,24 @@ from pandas.core.base import PandasObject
 
 from pandas_ml_common.df.ml import ML
 from pandas_ml_common.lazy import LazyInit
-from pandas_ml_common.utils import get_pandas_object, Constant, inner_join
+from pandas_ml_common.utils import get_pandas_object, Constant, inner_join, has_indexed_columns
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")
 _log.debug(f"pandas version {pd.__version__}")
 
 setattr(PandasObject, "ml", property(lambda self: ML(self)))
+setattr(PandasObject, "_", property(lambda self: ML(self)))
 setattr(PandasObject, "inner_join", inner_join)
 setattr(pd.DataFrame, "to_frame", lambda self: self)
+setattr(pd.DataFrame, "has_indexed_columns", lambda self: has_indexed_columns(self))
 # setattr(pd.Series, 'columns', lambda self: [self.name]) # FIXME leads to problems where we do hasattr(?, columns)
 
 
 class Typing(object):
     PatchedDataFrame = pd.DataFrame
     PatchedSeries = pd.Series
-    PandasPatched = Union[PatchedDataFrame, PatchedSeries]
+    PatchedPandas = Union[PatchedDataFrame, PatchedSeries]
 
     DataFrame = pd.DataFrame
     Series = pd.Series

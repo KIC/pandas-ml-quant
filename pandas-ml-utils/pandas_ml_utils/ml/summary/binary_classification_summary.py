@@ -13,8 +13,10 @@ from pandas_ml_utils.ml.summary import Summary
 
 _log = logging.getLogger(__name__)
 
+
 # FIXME this need to be a specialized summary and moved over to the qunat library!!
 class BinaryClassificationSummary(Summary):
+
     def __init__(self, df: Typing.PatchedDataFrame):
         super().__init__(df)
         self.probability_cutoff = 0.5

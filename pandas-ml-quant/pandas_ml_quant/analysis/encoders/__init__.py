@@ -4,3 +4,5 @@ from .candles import *
 from .normalization import *
 from .resample import *
 from .time import *
+from .auto_regression import *
+from .volume import *

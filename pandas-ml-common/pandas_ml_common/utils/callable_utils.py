@@ -3,7 +3,7 @@ from typing import Dict
 import logging
 
 _log = logging.getLogger(__name__)
-
+_DEBUG = False
 
 def call_callable_dynamic_args(func, *args, **kwargs):
     if not callable(func):
@@ -26,10 +26,14 @@ def call_callable_dynamic_args(func, *args, **kwargs):
     try:
         if spec.varkw:
             # inject the rest of kwargs if we have some left overs
-            _log.info(f"call {func}({call_args},{kwargs})")
+            if _DEBUG:
+                _log.debug(f"call {func}({call_args},{kwargs})")
+
             return func(*call_args, **kwargs)
         else:
-            _log.info(f"call {func}({kwargs})")
+            if _DEBUG:
+                _log.debug(f"call {func}({kwargs})")
+
             return func(*call_args)
     except Exception as e:
         raise RuntimeError(e, f"error while calling {func}({spec.args}) whith arguments {call_args}, {kwargs}")

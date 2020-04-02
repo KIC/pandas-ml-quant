@@ -8,6 +8,7 @@ import pandas
 import pandas_ml_quant.data.datafetching as data_fetchers
 from pandas_ml_common import *
 from pandas_ml_quant.df.quant import Quant
+from pandas_ml_quant.model import *
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")
