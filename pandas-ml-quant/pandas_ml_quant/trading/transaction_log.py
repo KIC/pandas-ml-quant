@@ -23,17 +23,15 @@ class TransactionLog(object):
         self.transactions_close = {}
 
     def add_open_transaction(self, iloc: int, amount: float):
+        amount = float(amount)
+
         if iloc in self.transactions_open:
             self.transactions_open[iloc] = [*self.transactions_open[iloc], amount]
         else:
             self.transactions_open[iloc] = [amount]
 
     def add_close_transaction(self, iloc: int, amount: float):
-        # make sure we close one bar later as we can see in this toy example:
-        # price | position | value
-        # 10    | 1        | 10
-        # 20    | 0        | 20       # we sold here so we need to have a value
-        # 15    | 0        | 0
+        amount = float(amount)
 
         if iloc in self.transactions_close:
             self.transactions_close[iloc] = [*self.transactions_close[iloc], amount]

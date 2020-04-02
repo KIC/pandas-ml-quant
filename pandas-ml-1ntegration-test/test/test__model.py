@@ -284,3 +284,5 @@ class TestModel(TestCase):
         print(backtest[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
 
+        fit.model.plot_loss()
+

@@ -11,7 +11,6 @@ from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
 from ..data.splitting.sampeling import Sampler
-from stable_baselines.common.vec_env import DummyVecEnv
 
 _log = logging.getLogger(__name__)
 
@@ -171,14 +170,18 @@ class ReinforcementModel(Model):
 
     def plot_loss(self):
         import matplotlib.pyplot as plt
+        mins = []
 
         for i, session in enumerate(self.reward_history):
             s = pd.Series(session).cumsum()
+            mins.append(s.min())
             plt.plot(s, label=f'reward {i}')
 
         # only plot legend if it fits on the plot
-        if len(self.reward_history) <= 5:
+        if len(self.reward_history) <= 10:
             plt.legend(loc='best')
+
+        print(f'worst reward: {np.array(mins).min()}')
 
     def __getstate__(self):
         # FIXME need to be implemented

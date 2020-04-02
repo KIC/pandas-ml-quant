@@ -22,7 +22,7 @@ class TestRescaling(TestCase):
 
     def test_relative_candles(self):
         df = DF_TEST[-2:].copy()
-        relative = ta_realative_candles(df)
+        relative = ta_realative_candles(df, volume=None)
 
         np.testing.assert_array_almost_equal(np.array([0.002469,  0.002021,  0.002533, -0.002829]),
                                              relative.values[-1])

@@ -10,7 +10,7 @@ class TestCandleEncoder(TestCase):
     def test_multi_channel(self):
         df = DF_TEST.copy()
         ohlc_values = df[["Open", "High", "Low", "Close"]].iloc[-1].values
-        culb = ta_candles_as_culb(df)
+        culb = ta_candles_as_culb(df, volume=None)
         culb_values = culb.iloc[-1].values
 
         self.assertGreaterEqual(culb["upper"].values.max(), 0)

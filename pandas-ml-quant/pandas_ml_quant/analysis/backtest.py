@@ -32,7 +32,7 @@ def ta_backtest(signal: Typing.PatchedDataFrame,
         if isinstance(direction_amount, tuple):
             trades.perform_action(*direction_amount)
         else:
-            trades.rebalance(direction_amount)
+            trades.rebalance(float(direction_amount))
 
     signal.to_frame().apply(trade_log_action, axis=1, raw=True)
     return trades.evaluate(prices.rename("price"), slippage)
