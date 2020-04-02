@@ -88,7 +88,7 @@ class TaPlot(object):
 
     def __call__(self, *args, **kwargs):
         """
-        TODO i am thinking of something like df.q.ta_plot()(candlesticks=True, sma=200)
+        TODO i am thinking of something like df.ta.plot()(candlesticks=True, sma=200)
              ... more thinking needed
 
         :param args:

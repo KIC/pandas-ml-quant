@@ -65,7 +65,7 @@ useful/needed by statistical and ml models
 df = pd.fetch_yahoo("SPY").loc[:'2020-03-17']
 
 # NOTE the access to the q_uant property
-df[-200:].q.ta_plot(figsize=(10, 5))()
+df[-200:].ta.plot(figsize=(10, 5))()
 ```
 
 ```{.json .output n=2}
@@ -89,11 +89,11 @@ df[-200:].q.ta_plot(figsize=(10, 5))()
 ```
 
 ```{.python .input  n=3}
-plt = df[-100:].q.ta_plot(figsize=(10, 6))
+plt = df[-100:].ta.plot(figsize=(10, 6))
 plt.candlestick()
-plt.line(df[-100:]["Close"].q.ta_sma(period=20))
+plt.line(df[-100:]["Close"].ta.sma(period=20))
 plt.bar("Volume")
-plt.line(df[-100:]["Volume"].q.ta_sma(period=20), panel=1)
+plt.line(df[-100:]["Volume"].ta.sma(period=20), panel=1)
 ```
 
 ```{.json .output n=3}
@@ -125,7 +125,7 @@ price in the future will be:
 
 ```{.python .input  n=4}
 # NOTE all technical analysis starts with the "ta_" prefix
-df["Close"].q.ta_future_bband_quantile(5, 5).hist()
+df["Close"].ta.future_bband_quantile(5, 5).hist()
 ```
 
 ```{.json .output n=4}
@@ -159,26 +159,26 @@ So we can build up a features and labels definition like so:
 ```{.python .input  n=5}
 fnl = FeaturesAndLabels(
     features=[
-        lambda df: df["Close"].q.ta_macd(),
-        lambda df: df["Close"].q.ta_apo(),
-        lambda df: df["Close"].q.ta_rsi(),
-        lambda df: df["Close"].q.ta_roc(),
-        lambda df: df["Close"].q.ta_trix(),
-        lambda df: df["Close"].q.ta_ppo(),
-        lambda df: df["Close"].pct_change().q.ta_zscore() / 4.,
-        lambda df: df["Close"].q.ta_week_day(),
-        lambda df: df["Close"].q.ta_week(),
-        lambda df: df["Close"].q.ta_up_down_volatility_ratio(),
-        lambda df: df.q.ta_adx(), 
-        lambda df: df.q.ta_atr(),
-        lambda df: df.q.ta_tr(),
-        lambda df: df.q.ta_williams_R(),
-        lambda df: df.q.ta_ultimate_osc(),
-        lambda df: df.q.ta_bop(),
-        lambda df: df.q.ta_cci(),
+        lambda df: df["Close"].ta.macd(),
+        lambda df: df["Close"].ta.apo(),
+        lambda df: df["Close"].ta.rsi(),
+        lambda df: df["Close"].ta.roc(),
+        lambda df: df["Close"].ta.trix(),
+        lambda df: df["Close"].ta.ppo(),
+        lambda df: df["Close"].pct_change().ta.zscore() / 4.,
+        lambda df: df["Close"].ta.week_day(),
+        lambda df: df["Close"].ta.week(),
+        lambda df: df["Close"].ta.up_down_volatility_ratio(),
+        lambda df: df.ta.adx(), 
+        lambda df: df.ta.atr(),
+        lambda df: df.ta.tr(),
+        lambda df: df.ta.williams_R(),
+        lambda df: df.ta.ultimate_osc(),
+        lambda df: df.ta.bop(),
+        lambda df: df.ta.cci(),
     ],
     labels=[
-        lambda df: df["Close"].q.ta_future_bband_quantile(5, 5)
+        lambda df: df["Close"].ta.future_bband_quantile(5, 5)
     ]
 )
 
@@ -369,18 +369,18 @@ Lets ahve a closer look tho this features
 df.model.plot_features(
     FeaturesAndLabels(
         features=[
-            lambda df: df["Close"].q.ta_week_day(),
-            lambda df: df.q.ta_adx()[["ADX"]], 
-            lambda df: df.q.ta_atr(),
-            lambda df: df.q.ta_bop(),
-            lambda df: df.q.ta_cci(),
+            lambda df: df["Close"].ta.week_day(),
+            lambda df: df.ta.adx()[["ADX"]], 
+            lambda df: df.ta.atr(),
+            lambda df: df.ta.bop(),
+            lambda df: df.ta.cci(),
         ],
         labels=[
-            lambda df: df["Close"].q.ta_future_bband_quantile(5, 5, stddev=2.0)
+            lambda df: df["Close"].ta.future_bband_quantile(5, 5, stddev=2.0)
 
         ],
         targets=[
-            lambda df: df["Close"].q.ta_bbands(5, stddev=2.0)[["lower", "upper"]]
+            lambda df: df["Close"].ta.bbands(5, stddev=2.0)[["lower", "upper"]]
         ]
     )
 )
@@ -430,20 +430,20 @@ fit = df.model.fit(
         FeaturesAndLabels(
             features=extract_with_post_processor(
                 [
-                    lambda df: df["Close"].q.ta_week_day(),
-                    lambda df: df.q.ta_adx()[["ADX"]], 
-                    lambda df: df.q.ta_atr(),
-                    lambda df: df.q.ta_bop(),
-                    lambda df: df.q.ta_cci(),
+                    lambda df: df["Close"].ta.week_day(),
+                    lambda df: df.ta.adx()[["ADX"]], 
+                    lambda df: df.ta.atr(),
+                    lambda df: df.ta.bop(),
+                    lambda df: df.ta.cci(),
                 ],
-                lambda df: df.q.ta_rnn(lags)
+                lambda df: df.ta.rnn(lags)
             ),
             labels=[
-                lambda df: df["Close"].q.ta_future_bband_quantile(5, 5, stddev=2.0).q.ta_one_hot_encode_discrete()
+                lambda df: df["Close"].ta.future_bband_quantile(5, 5, stddev=2.0).ta.one_hot_encode_discrete()
 
             ],
             targets=[
-                lambda df: df["Close"].q.ta_bbands(5, stddev=2.0)[["lower", "upper"]]
+                lambda df: df["Close"].ta.bbands(5, stddev=2.0)[["lower", "upper"]]
             ]
         ),
         summary_provider=ClassificationSummary,

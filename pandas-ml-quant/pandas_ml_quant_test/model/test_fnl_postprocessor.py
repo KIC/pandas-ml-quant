@@ -13,10 +13,10 @@ class TestFeaturePostProcesor(TestCase):
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
-                    lambda df: df["Close"].q.ta_trix(),
+                    lambda df: df["Close"].ta.trix(),
                 ],
                 feature_post_processor=[
-                    lambda df: df.q.ta_rnn(5)
+                    lambda df: df.ta.rnn(5)
                 ],
                 labels=[
                     Constant(0)
@@ -38,17 +38,17 @@ class TestFeaturePostProcesor(TestCase):
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
-                    lambda df: df["Close"].q.ta_trix(),
+                    lambda df: df["Close"].ta.trix(),
                 ],
                 feature_post_processor=[
-                    lambda df: df.q.ta_rnn(5),
-                    lambda df: df.q.ta_rnn(3),
+                    lambda df: df.ta.rnn(5),
+                    lambda df: df.ta.rnn(3),
                 ],
                 labels=[
                     Constant(0)
                 ],
                 labels_post_processor=[
-                    lambda df: df.q.ta_rnn(4),
+                    lambda df: df.ta.rnn(4),
                 ],
                 targets=[
                     lambda df: df["Close"]
