@@ -45,4 +45,4 @@ class Time2Vec(Layer):
         return K.concatenate([sin_trans ,original], -1)
 
     def compute_output_shape(self, input_shape):
-        return (input_shape[0], input_shape[1], self.output_dim +1)
+        return input_shape[0], input_shape[1], self.output_dim +1
