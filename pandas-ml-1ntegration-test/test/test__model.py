@@ -191,7 +191,7 @@ class TestModel(TestCase):
                          cross_validation=(1, KFoldBoostRareEvents(n_splits=5).split))
         )
 
-    def test_debug(self):
+    def test_future_bband_quantile_clasification(self):
         df = DF_TEST.copy()
 
         fit = df.model.fit(
@@ -226,6 +226,7 @@ class TestModel(TestCase):
         print(fit)
         prediction = df.model.predict(fit.model, tail=3)
         self.assertEqual(3, len(prediction))
+        self.assertEqual((3,), np.array(prediction[PREDICTION_COLUMN_NAME].iloc[-1, -1]).shape)
 
         target_predictions = prediction.map_prediction_to_target()
         print(target_predictions)

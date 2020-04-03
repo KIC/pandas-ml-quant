@@ -12,7 +12,7 @@ from pandas_ml_utils.ml.summary import Summary
 
 class RegressionSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, true_columns=None, pred_columns=None):
+    def __init__(self, df: Typing.PatchedDataFrame, true_columns=None, pred_columns=None, **kwargs):
         super().__init__(df)
         self.true_columns = LABEL_COLUMN_NAME if true_columns is None else true_columns
         self.pred_columns = PREDICTION_COLUMN_NAME if pred_columns is None else pred_columns

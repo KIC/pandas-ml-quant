@@ -1,4 +1,4 @@
-from keras.layers import Layer
+from keras.layers import Layer, Concatenate
 import tensorflow as tf
 
 
