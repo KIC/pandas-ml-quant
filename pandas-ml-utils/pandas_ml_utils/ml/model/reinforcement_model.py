@@ -82,7 +82,9 @@ class ReinforcementModel(Model):
             # try to execute the action, if it fails with an exception we are done with this session
             try:
                 i = self.current_index
-                reward = self.take_action(self.interpret_action(action), i, *[t[i] if t is not None else None for t in self.train])
+                state = [t[i] if t is not None else None for t in self.train]
+                interpreted_action = self.interpret_action(action, i, *state)
+                reward = self.take_action(interpreted_action, i, *state)
                 self.reward_history[-1].append(reward)
                 self.last_reward = reward
             except StopIteration:
@@ -95,9 +97,15 @@ class ReinforcementModel(Model):
             observation = self.next_observation(i_new, *[t[i_new] if t is not None else None for t in self.train]) if not done else None
 
             # return the new observation the reward of this action and whether the session is over
-            return observation, reward, done, {}
+            return observation, reward, done, {"interpreted_action": interpreted_action}
 
-        def interpret_action(self, action):
+        def interpret_action(self,
+                        action,
+                        idx: int,
+                        features: np.ndarray,
+                        labels: np.ndarray,
+                        targets: np.ndarray,
+                        weights: np.ndarray) -> float:
             return action
 
         def take_action(self,
@@ -157,14 +165,20 @@ class ReinforcementModel(Model):
         envs = self.rl_model.get_env().envs[:1]
         obs = [env.set_data_generator(sampler, **self.kwargs) for env in envs]
         prediction = []
+        done = False
 
         for i in range(samples):
-            action, state = self.rl_model.predict(obs)
-            prediction.append(envs[0].interpret_action(action))
+            if not done:
+                action, state = self.rl_model.predict(obs)
+                obs, reward, done, info = zip(*[env.step(action) for env in envs])
+                prediction.append(info[0]["interpreted_action"])
 
-            obs, reward, done, _ = zip(*[env.step(action) for env in envs])
-            for env, dne in zip(envs, done):
-                call_callable_dynamic_args(env.render, kwargs)
+                for env, dne in zip(envs, done):
+                    call_callable_dynamic_args(env.render, kwargs)
+
+                done = any(done)
+            else:
+                prediction.append(np.nan)
 
         return np.array(prediction)
 
