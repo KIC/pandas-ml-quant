@@ -27,9 +27,9 @@ def ta_markowitz(df: Typing.PatchedDataFrame,
 
     # risk
     if covariances is None:
-        cov = ta_ewma_covariance(df.ml[prices])
+        cov = ta_ewma_covariance(df._[prices])
     elif isinstance(covariances, str):
-        cov = df.ml[covariances]
+        cov = df._[covariances]
     else:
         cov = covariances
     cov = cov.dropna()
@@ -101,11 +101,11 @@ def ta_markowitz(df: Typing.PatchedDataFrame,
 def _default_returns_estimator(df, prices, expected_returns, return_period, nr_of_assets):
     # return
     if expected_returns is None:
-        exp_ret = df.ml[prices].pct_change().rolling(return_period).mean()
+        exp_ret = df._[prices].pct_change().rolling(return_period).mean()
     elif isinstance(expected_returns, (int, float, np.ndarray)):
         exp_ret = pd.Series(np.ones((len(df), nr_of_assets)) * expected_returns, index=df.index)
     elif isinstance(expected_returns, str):
-        exp_ret = df.ml[expected_returns]
+        exp_ret = df._[expected_returns]
     else:
         exp_ret = expected_returns
 

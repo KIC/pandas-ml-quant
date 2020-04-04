@@ -44,12 +44,16 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
 
     # TODO add logic for multi index
     for i in range(len(columns)):
-        if i >= last_idx and arr.shape[1] > len(columns):
-            col_vals = arr[:, i:]
+        if i >= last_idx and arr.shape[-1] > len(columns):
+            col_vals = np.take(arr, range(i, arr.shape[-1]), -1)
         else:
-            col_vals = arr[:, i]
+            col_vals = np.take(arr, i, axis=-1)
+
+        # might save one dimension
+        if len(col_vals.shape) > 1 and col_vals.shape[1] == 1:
+            col_vals = col_vals.reshape((arr.shape[0], *col_vals.shape[2:]))
 
         # eventually we need to nest back multi dimensional arrays
-        df[columns[i]] = [row.tolist() for row in col_vals] if len(col_vals.shape) > 1 else arr[:, i]
+        df[columns[i]] = [row.tolist() for row in col_vals] if len(col_vals.shape) > 1 else col_vals
 
     return df

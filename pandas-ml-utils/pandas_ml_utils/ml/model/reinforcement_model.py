@@ -41,22 +41,14 @@ class ReinforcementModel(Model):
             self.observation_space = observation_space
 
             # initialize palace holder variables
-            self.reward_history = [[]]
             # TODO exclude these variables from serialization
+            self.reward_history_collector = None
             self.data_generator: Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None] = None
             self.last_reward: float = None
             self.current_index: int = 0
             self.last_index: int = -1
             self.train: Tuple[List[np.ndarray]] = None
             # self.test: Tuple[List[np.ndarray]] = None
-
-        @property
-        def reward(self):
-            return self.reward_history[:-1] if len(self.reward_history[-1]) <= 0 else self.reward_history
-
-        @property
-        def nr_of_sessions(self):
-            return len(self.reward_history) - (1 if len(self.reward_history[-1]) <= 0 else 0)
 
         def reset(self) -> np.ndarray:
             # get a new data set from the generator
@@ -67,8 +59,7 @@ class ReinforcementModel(Model):
             # reset indices and max timesteps and add a new reward history
             self.current_index = 0
             self.last_index = len(self.train[0])
-            if len(self.reward_history[-1]) > 0:
-                self.reward_history.append([])
+            self.reward_history_collector(None)
 
             # return the very first observation
             i = self.current_index
@@ -82,8 +73,10 @@ class ReinforcementModel(Model):
             # try to execute the action, if it fails with an exception we are done with this session
             try:
                 i = self.current_index
-                reward = self.take_action(self.interpret_action(action), i, *[t[i] if t is not None else None for t in self.train])
-                self.reward_history[-1].append(reward)
+                state = [t[i] if t is not None else None for t in self.train]
+                interpreted_action = self.interpret_action(action, i, *state)
+                reward = self.take_action(interpreted_action, i, *state)
+                self.reward_history_collector(reward)
                 self.last_reward = reward
             except StopIteration:
                 done = True
@@ -95,9 +88,15 @@ class ReinforcementModel(Model):
             observation = self.next_observation(i_new, *[t[i_new] if t is not None else None for t in self.train]) if not done else None
 
             # return the new observation the reward of this action and whether the session is over
-            return observation, reward, done, {}
+            return observation, reward, done, {"interpreted_action": interpreted_action}
 
-        def interpret_action(self, action):
+        def interpret_action(self,
+                        action,
+                        idx: int,
+                        features: np.ndarray,
+                        labels: np.ndarray,
+                        targets: np.ndarray,
+                        weights: np.ndarray) -> float:
             return action
 
         def take_action(self,
@@ -117,8 +116,9 @@ class ReinforcementModel(Model):
                              weights: np.ndarray) -> np.ndarray:
             pass
 
-        def set_data_generator(self, sampler: Sampler, **kwargs):
+        def set_data_generator(self, sampler: Sampler, reward_history_collector, **kwargs):
             self.data_generator = sampler.sample()
+            self.reward_history_collector = reward_history_collector
             return self.reset()
 
     def __init__(self,
@@ -135,50 +135,68 @@ class ReinforcementModel(Model):
     def fit(self, sampler: Sampler, **kwargs) -> float:
         # provide the data generator for every environment
         envs = self.rl_model.get_env().envs
+        self.reward_history = []
 
         for env in envs:
-            env.set_data_generator(sampler, **self.kwargs)
+            rh = []
+            self.reward_history.append(rh)
+            env.set_data_generator(sampler,
+                                   lambda reward: rh[-1].append(reward) if reward is not None else rh.append([]),
+                                   **self.kwargs)
 
         call_callable_dynamic_args(self.rl_model.learn, **self.kwargs, **kwargs)
 
         # collect statistics of all environments
-        envs = self.rl_model.get_env().envs
-        self.reward_history = [np.array(hist) for env in envs for hist in env.reward_history]
-        average_reward = np.array([hist.mean() for hist in self.reward_history]).mean()
-        sessions = np.array([env.nr_of_sessions for env in envs]).sum()
-        _log.info(f"average reward = {average_reward} in {sessions}")
-
-        return average_reward
+        latest_rewards = np.array([rh[-1] for erh in self.reward_history for rh in erh if len(rh) > 1])
+        return latest_rewards.mean()
 
     def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
         # set a fresh env
         self.rl_model.set_env(self.env)
         samples, _ = sampler.nr_of_source_events
         envs = self.rl_model.get_env().envs[:1]
-        obs = [env.set_data_generator(sampler, **self.kwargs) for env in envs]
+        rh = []
+
+        obs = [env.set_data_generator(sampler,
+                                      lambda reward: rh[-1].append(reward) if reward is not None else rh.append([]),
+                                      **self.kwargs) for env in envs]
+
         prediction = []
+        done = False
 
         for i in range(samples):
-            action, state = self.rl_model.predict(obs)
-            prediction.append(envs[0].interpret_action(action))
+            if not done:
+                action, state = self.rl_model.predict(obs)
+                obs, reward, done, info = zip(*[env.step(action) for env in envs])
+                prediction.append(info[0]["interpreted_action"])
 
-            obs, reward, done, _ = zip(*[env.step(action) for env in envs])
-            for env, dne in zip(envs, done):
-                call_callable_dynamic_args(env.render, kwargs)
+                for env, dne in zip(envs, done):
+                    call_callable_dynamic_args(env.render, kwargs)
+
+                done = any(done)
+            else:
+                prediction.append(np.nan)
 
         return np.array(prediction)
 
-    def plot_loss(self):
+    def plot_loss(self, accumulate_reward=False):
         import matplotlib.pyplot as plt
+        plots = 0
         mins = []
 
-        for i, session in enumerate(self.reward_history):
-            s = pd.Series(session).cumsum()
-            mins.append(s.min())
-            plt.plot(s, label=f'reward {i}')
+        for env_hist in self.reward_history:
+            for i, session in enumerate(env_hist):
+                if len(session) > 1:
+                    s = pd.Series(session)
+                    if accumulate_reward:
+                        s = s.cumsum()
+
+                    mins.append(s.min())
+                    plt.plot(s, label=f'reward {i}')
+                    plots += 1
 
         # only plot legend if it fits on the plot
-        if len(self.reward_history) <= 10:
+        if plots <= 10:
             plt.legend(loc='best')
 
         print(f'worst reward: {np.array(mins).min()}')

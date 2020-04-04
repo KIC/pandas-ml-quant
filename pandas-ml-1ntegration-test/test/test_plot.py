@@ -10,5 +10,5 @@ class TestPlot(TestCase):
     def test_line(self):
         df = DF_TEST
 
-        qp = df.q.ta_plot(rows=1)
-        qp.line(df.q.ta_adx())
+        qp = df.ta.plot(rows=1)
+        qp.line(df.ta.adx())

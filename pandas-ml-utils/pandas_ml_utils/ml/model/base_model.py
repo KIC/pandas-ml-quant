@@ -134,6 +134,7 @@ class Model(object):
         :param sampler:
         :return:
         """
+        # make shape (rows, samples, ...)
         return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:

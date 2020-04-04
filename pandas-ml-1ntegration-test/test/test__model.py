@@ -33,8 +33,8 @@ class TestModel(TestCase):
                 MLPRegressor(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
                 FeaturesAndLabels(
                     features=[
-                        lambda df: df["Close"].q.ta_rsi().q.ta_rnn(28),
-                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(28)
+                        lambda df: df["Close"].ta.rsi().ta.rnn(28),
+                        lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(28)
                     ],
                     labels=[
                         lambda df: (df["Close"] / df["Open"] - 1).shift(-1),
@@ -62,8 +62,8 @@ class TestModel(TestCase):
                 MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
                 FeaturesAndLabels(
                     features=[
-                        lambda df: df["Close"].q.ta_rsi().q.ta_rnn(28),
-                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).q.ta_rnn(28)
+                        lambda df: df["Close"].ta.rsi().ta.rnn(28),
+                        lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(28)
                     ],
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
@@ -108,9 +108,9 @@ class TestModel(TestCase):
                 model_provider,
                 FeaturesAndLabels(
                     features=extract_with_post_processor([
-                        lambda df: df["Close"].q.ta_rsi(),
-                        lambda df: (df["Volume"] / df["Volume"].q.ta_ema(14) - 1).rename("RelVolume")
-                    ], lambda df: df.q.ta_rnn(28)),
+                        lambda df: df["Close"].ta.rsi(),
+                        lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).rename("RelVolume")
+                    ], lambda df: df.ta.rnn(28)),
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
                     ],
@@ -166,18 +166,18 @@ class TestModel(TestCase):
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
-                            lambda df: df["Close"].q.ta_trix(),
-                            lambda df: df["Close"].q.ta_ppo(),
-                            lambda df: df["Close"].q.ta_apo(),
-                            lambda df: df["Close"].q.ta_macd(),
-                            lambda df: df.q.ta_adx(),
+                            lambda df: df["Close"].ta.trix(),
+                            lambda df: df["Close"].ta.ppo(),
+                            lambda df: df["Close"].ta.apo(),
+                            lambda df: df["Close"].ta.macd(),
+                            lambda df: df.ta.adx(),
                         ],
-                        lambda df: df.q.ta_rnn(range(10))
+                        lambda df: df.ta.rnn(range(10))
                     ),
                     labels=[
-                        lambda df: df["Close"].q.ta_sma(period=60) \
-                            .q.ta_cross(df["Close"].q.ta_sma(period=20)) \
-                            .q.ta_rnn([1, 2, 3, 4, 5]) \
+                        lambda df: df["Close"].ta.sma(period=60) \
+                            .ta.cross(df["Close"].ta.sma(period=20)) \
+                            .ta.rnn([1, 2, 3, 4, 5]) \
                             .abs() \
                             .sum(axis=1) \
                             .shift(-5) \
@@ -191,7 +191,7 @@ class TestModel(TestCase):
                          cross_validation=(1, KFoldBoostRareEvents(n_splits=5).split))
         )
 
-    def test_debug(self):
+    def test_future_bband_quantile_clasification(self):
         df = DF_TEST.copy()
 
         fit = df.model.fit(
@@ -200,20 +200,20 @@ class TestModel(TestCase):
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
-                            lambda df: df["Close"].q.ta_macd().ml[['macd.*', 'signal.*']],
-                            lambda df: df.q.ta_adx().ml[['+DI', '-DM', '+DM']],
-                            lambda df: df["Close"].q.ta_mom(),
-                            lambda df: df["Close"].q.ta_apo(),
-                            lambda df: df.q.ta_atr(),
-                            lambda df: df["Close"].q.ta_trix(),
+                            lambda df: df["Close"].ta.macd()._[['macd.*', 'signal.*']],
+                            lambda df: df.ta.adx()._[['+DI', '-DM', '+DM']],
+                            lambda df: df["Close"].ta.mom(),
+                            lambda df: df["Close"].ta.apo(),
+                            lambda df: df.ta.atr(),
+                            lambda df: df["Close"].ta.trix(),
                         ],
-                        lambda df: df.q.ta_rnn(280)
+                        lambda df: df.ta.rnn(280)
                     ),
                     labels=[
-                        lambda df: df["Close"].q.ta_future_bband_quantile().q.ta_one_hot_encode_discrete()
+                        lambda df: df["Close"].ta.future_bband_quantile().ta.one_hot_encode_discrete()
                     ],
                     targets=[
-                        lambda df: df["Close"].q.ta_bbands()[["lower", "upper"]]
+                        lambda df: df["Close"].ta.bbands()[["lower", "upper"]]
                     ]
                 ),
                 summary_provider=ClassificationSummary,
@@ -226,6 +226,7 @@ class TestModel(TestCase):
         print(fit)
         prediction = df.model.predict(fit.model, tail=3)
         self.assertEqual(3, len(prediction))
+        self.assertEqual((3,), np.array(prediction[PREDICTION_COLUMN_NAME].iloc[-1, -1]).shape)
 
         target_predictions = prediction.map_prediction_to_target()
         print(target_predictions)
@@ -248,19 +249,15 @@ class TestModel(TestCase):
         fit = df.model.fit(
             ReinforcementModel(
                 lambda: PPO2('MlpLstmPolicy',
-                             DummyVecEnv([lambda: ARGym((280, 9), initial_capital=100000)]),
+                             DummyVecEnv([lambda: ARGym((28, 2), initial_capital=100000)]),
                              nminibatches=1),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
-                            lambda df: df["Close"].q.ta_macd().ml[['macd.*', 'signal.*']],
-                            lambda df: df.q.ta_adx().ml[['+DI', '-DM', '+DM']],
-                            lambda df: df["Close"].q.ta_mom(),
-                            lambda df: df["Close"].q.ta_apo(),
-                            lambda df: df.q.ta_atr(),
-                            lambda df: df["Close"].q.ta_trix(),
+                            lambda df: df.ta.atr(),
+                            lambda df: df["Close"].ta.trix(),
                         ],
-                        lambda df: df.q.ta_rnn(280)
+                        lambda df: df.ta.rnn(28)
                     ),
                     targets=[
                         lambda df: df["Close"]
@@ -269,7 +266,7 @@ class TestModel(TestCase):
                 )
             ),
             RandomSequences(0.1, 0.7, max_folds=None),
-            total_timesteps=10,
+            total_timesteps=128 * 2,
             verbose=1,
             render='system'
         )
@@ -279,10 +276,10 @@ class TestModel(TestCase):
         prediction = df.model.predict(fit.model, tail=3)
         print(prediction[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
-
+        self.assertGreater(len(fit.model.reward_history), 0)
+        self.assertGreater(len(fit.model.reward_history[0]), 1)
+        self.assertGreater(len(fit.model.reward_history[0][1]), 1)
         backtest = df.model.backtest(fit.model).df
         print(backtest[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
-
-        fit.model.plot_loss()
 

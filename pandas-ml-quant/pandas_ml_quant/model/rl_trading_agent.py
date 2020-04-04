@@ -42,13 +42,19 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
         self.current_net = 0
         return super().reset()
 
-    def interpret_action(self, action):
+    def interpret_action(self,
+                         action,
+                         idx: int,
+                         features: np.ndarray,
+                         labels: np.ndarray,
+                         targets: np.ndarray,
+                         weights: np.ndarray) -> float:
         if self.allow_short:
             # 0 - 10  ->  -10 - 10
             action -= int(self.trading_fraction / 2) * 2
 
         # we convert the action in to a target balance we pass to the transaction log
-        balance = action / self.trading_fraction * self.initial_capital
+        balance = action / self.trading_fraction / float(targets) * self.initial_capital
         return balance
 
     def take_action(self,
@@ -90,7 +96,8 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
                          weights: np.ndarray) -> np.ndarray:
         # currently returns only the features, but we also want to return some net worth, history, ...
         # for CNNs input must be [0, 255] and channel last, this means we need to reshape our feature space
-        return features.swapaxes(0, 1).swapaxes(1, 2) * 255
+        # return features.swapaxes(0, 1).swapaxes(1, 2) * 255
+        pass
 
     def render(self, mode='human'):
         if mode == 'system':

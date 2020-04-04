@@ -36,8 +36,8 @@ class Sampler(object):
         return Sampler(self.test, []), self.test[0].index
 
     def sample(self) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
-        train = [t.ml.values if t is not None else None for t in self.train]
-        test = [t.ml.values if t is not None else None for t in self.test]
+        train = [t._.values if t is not None else None for t in self.train]
+        test = [t._.values if t is not None else None for t in self.test]
         cv = self.cross_validation
 
         # add a default fold epoch of 1

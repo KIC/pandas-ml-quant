@@ -9,14 +9,14 @@ class TestFeaturePostProcesor(TestCase):
     def test_feature_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w = df.ml.extract(
+        (f, min), l, t, w = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
-                    lambda df: df["Close"].q.ta_trix(),
+                    lambda df: df["Close"].ta.trix(),
                 ],
                 feature_post_processor=[
-                    lambda df: df.q.ta_rnn(5)
+                    lambda df: df.ta.rnn(5)
                 ],
                 labels=[
                     Constant(0)
@@ -29,26 +29,26 @@ class TestFeaturePostProcesor(TestCase):
 
         self.assertEqual((6674, 10), f.shape)
         self.assertEqual((6674, 1), l.shape)
-        self.assertEqual((6674, 5, 2), f.ml.values.shape)
+        self.assertEqual((6674, 5, 2), f._.values.shape)
 
     def test_feature_and_label_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w = df.ml.extract(
+        (f, min), l, t, w = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
-                    lambda df: df["Close"].q.ta_trix(),
+                    lambda df: df["Close"].ta.trix(),
                 ],
                 feature_post_processor=[
-                    lambda df: df.q.ta_rnn(5),
-                    lambda df: df.q.ta_rnn(3),
+                    lambda df: df.ta.rnn(5),
+                    lambda df: df.ta.rnn(3),
                 ],
                 labels=[
                     Constant(0)
                 ],
                 labels_post_processor=[
-                    lambda df: df.q.ta_rnn(4),
+                    lambda df: df.ta.rnn(4),
                 ],
                 targets=[
                     lambda df: df["Close"]
@@ -58,7 +58,7 @@ class TestFeaturePostProcesor(TestCase):
 
         self.assertEqual((6672, 30), f.shape)
         self.assertEqual((6672, 4), l.shape)
-        # FIXME self.assertEqual((6674, 3, 5, 2), f.ml.values.shape)
+        # FIXME self.assertEqual((6674, 3, 5, 2), f._.values.shape)
 
     def test_post_z_standardisation(self):
         # FIXME implement me ...
