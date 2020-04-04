@@ -103,12 +103,3 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
     return ratio
 
 
-def ta_returns(df: _PANDAS):
-    return _wcs("return", df.pct_change())
-
-
-def ta_log_returns(df: _PANDAS):
-    current = df
-    lagged = df.shift(1)
-
-    return _wcs("log_return", _np.log(current) - _np.log(lagged))

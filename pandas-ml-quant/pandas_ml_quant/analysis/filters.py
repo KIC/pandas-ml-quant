@@ -3,18 +3,11 @@ from typing import Union as _Union
 # create convenient type hint
 import numpy as _np
 import pandas as _pd
-import sys as _sys
 
-from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
-
-
-def ta_ma_ratio(df: Typing.PatchedPandas, period=20, ma='sma', **kwargs):
-    ma = getattr(_sys.modules[__name__], f'ta_{ma}')(df, period=period, **kwargs)
-    return _wcs(f"{ma}({period}) x 1/", df / ma, df)
 
 
 def ta_sma(df: _PANDAS, period=12) -> _PANDAS:
