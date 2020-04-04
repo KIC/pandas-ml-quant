@@ -249,19 +249,15 @@ class TestModel(TestCase):
         fit = df.model.fit(
             ReinforcementModel(
                 lambda: PPO2('MlpLstmPolicy',
-                             DummyVecEnv([lambda: ARGym((280, 9), initial_capital=100000)]),
+                             DummyVecEnv([lambda: ARGym((28, 2), initial_capital=100000)]),
                              nminibatches=1),
                 FeaturesAndLabels(
                     features=extract_with_post_processor(
                         [
-                            lambda df: df["Close"].ta.macd()._[['macd.*', 'signal.*']],
-                            lambda df: df.ta.adx()._[['+DI', '-DM', '+DM']],
-                            lambda df: df["Close"].ta.mom(),
-                            lambda df: df["Close"].ta.apo(),
                             lambda df: df.ta.atr(),
                             lambda df: df["Close"].ta.trix(),
                         ],
-                        lambda df: df.ta.rnn(280)
+                        lambda df: df.ta.rnn(28)
                     ),
                     targets=[
                         lambda df: df["Close"]
@@ -270,7 +266,7 @@ class TestModel(TestCase):
                 )
             ),
             RandomSequences(0.1, 0.7, max_folds=None),
-            total_timesteps=10,
+            total_timesteps=128 * 2,
             verbose=1,
             render='system'
         )
@@ -280,10 +276,10 @@ class TestModel(TestCase):
         prediction = df.model.predict(fit.model, tail=3)
         print(prediction[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
-
+        self.assertGreater(len(fit.model.reward_history), 0)
+        self.assertGreater(len(fit.model.reward_history[0]), 1)
+        self.assertGreater(len(fit.model.reward_history[0][1]), 1)
         backtest = df.model.backtest(fit.model).df
         print(backtest[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
-
-        fit.model.plot_loss()
 
