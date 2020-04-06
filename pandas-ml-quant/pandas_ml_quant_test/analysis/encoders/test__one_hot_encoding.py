@@ -51,8 +51,8 @@ class TestOneHotEncoder(TestCase):
     def test_chained_encoder(self):
         df = DF_TEST.copy()
 
-        discrete = df["Close"].ta.future_bband_quantile(7, period=14).dropna()
-        onehot = df["Close"].ta.future_bband_quantile(7, period=14).ta.one_hot_encode_discrete()
+        discrete = df["Close"].ta.future_bband_quantile(period=14, forecast_period=7, include_mean=False).dropna()
+        onehot = df["Close"].ta.future_bband_quantile(period=14, forecast_period=7, include_mean=False).ta.one_hot_encode_discrete()
 
         self.assertEqual(len(discrete), len(onehot))
         self.assertEqual(1., discrete[-1:].values[0])

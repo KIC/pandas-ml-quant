@@ -3,7 +3,8 @@ from unittest import TestCase
 
 import numpy as np
 from keras import Sequential
-from keras.layers import Dense, Reshape
+from keras.callbacks import EarlyStopping
+from keras.layers import Dense, Reshape, ActivityRegularization
 from keras.optimizers import Adam
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
@@ -11,6 +12,8 @@ from stable_baselines import PPO2
 from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
+from pandas_ml_quant import PostProcessedFeaturesAndLabels
+from pandas_ml_quant.keras.loss import tailed_categorical_crossentropy
 from pandas_ml_quant.model.rl_trading_agent import TradingAgentGym
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel, Constant
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
@@ -239,7 +242,7 @@ class TestModel(TestCase):
                         lambda df: df.ta.rnn(280)
                     ),
                     labels=[
-                        lambda df: df["Close"].ta.future_bband_quantile().ta.one_hot_encode_discrete()
+                        lambda df: df["Close"].ta.future_bband_quantile(include_mean=False).ta.one_hot_encode_discrete()
                     ],
                     targets=[
                         lambda df: df["Close"].ta.bbands()[["lower", "upper"]]
@@ -311,4 +314,5 @@ class TestModel(TestCase):
         backtest = df.model.backtest(fit.model).df
         print(backtest[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
+
 

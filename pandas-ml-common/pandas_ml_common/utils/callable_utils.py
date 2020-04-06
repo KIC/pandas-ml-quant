@@ -39,9 +39,15 @@ def call_callable_dynamic_args(func, *args, **kwargs):
         raise RuntimeError(e, f"error while calling {func}({spec.args}) whith arguments {call_args}, {kwargs}")
 
 
-def suitable_kwargs(func, **kwargs):
+def suitable_kwargs(func, *args, **kwargs):
+    _kwargs = {}
+
+    for arg in args:
+        _kwargs = {**_kwargs, **arg}
+
+    _kwargs = {**_kwargs, **kwargs}
     suitable_args = inspect.getfullargspec(func).args
-    return {arg: kwargs[arg] for arg in kwargs.keys() if arg in suitable_args}
+    return {arg: _kwargs[arg] for arg in _kwargs.keys() if arg in suitable_args}
 
 
 def call_if_not_none(obj, method, *args, **kwargs):

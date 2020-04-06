@@ -11,3 +11,4 @@ _build/
 .scratch.py
 __temp__.*
 *_output.ipynb
+/pandas-ml-1ntegration-test/test/test_4_debug.py

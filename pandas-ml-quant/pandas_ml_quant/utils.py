@@ -5,6 +5,14 @@ from numba import guvectorize, float32, int32, float64, int64
 from pandas_ml_common.utils import has_indexed_columns
 
 
+def returns_to_log_returns(returns):
+    return np.log(1 + returns)
+
+
+def log_returns_to_returns(log_returns):
+    return (np.e ** log_returns) - 1
+
+
 @guvectorize([(float32[:], int32, float32[:]),
               (float64[:], int64, float64[:])], '(n),()->(n)')
 def wilders_smoothing(arr: np.ndarray, period: int, res: np.ndarray):
