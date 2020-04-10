@@ -1,6 +1,6 @@
 import pandas_ml_quant.analysis.normalizer as _norm
 from pandas_ml_quant import Typing, has_indexed_columns
-from arch import arch_model
+from arch import arch_model  # alternatively https://pyflux.readthedocs.io/en/latest/garch.html
 import pandas as pd
 
 

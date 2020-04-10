@@ -1,5 +1,6 @@
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import ipywidgets as wg
 import numpy as np
 import pandas as pd
 from matplotlib import gridspec
@@ -8,6 +9,8 @@ from pandas.plotting import register_matplotlib_converters
 
 from pandas_ml_common.plot import plot_bar, plot_stacked_bar, plot_candlestick, plot_line, plot_matrix
 from pandas_ml_common.plot.animations import plot_animation
+from pandas_ml_common import get_pandas_object
+from pandas_ml_quant.analysis import ta_trend_lines
 
 register_matplotlib_converters()
 
@@ -59,6 +62,24 @@ class TaPlot(object):
 
     def line(self, fields="Close", panel=0, oscillator=False, **kwargs):
         self.axis[panel] = plot_line(self.df, fields, ax=self.axis[panel], **kwargs)
+        return self._return()
+
+    def plot_trend_lines(self,
+                         field,
+                         panel=0,
+                         edge_periods=3,
+                         rescale_digits=4,
+                         degrees=(-180, 180),
+                         angels=60,
+                         rho_digits=2):
+        accumulation, lookup =\
+            ta_trend_lines(get_pandas_object(self.df, field), edge_periods, rescale_digits, degrees, angels, rho_digits)
+
+        # TODO
+        #  add a wg.IntRangeSlider for the time period
+        #  add a wg.IntRangeSlider for the number of touch points
+        #  TODO later add a wg.IntSlider to extend the trend lines from ots last point
+
         return self._return()
 
     def plot_matrix(self, panel, fields, **kwargs):

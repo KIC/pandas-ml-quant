@@ -1,21 +1,26 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
-from pandas_ml_utils import Typing
+from sortedcontainers import SortedKeyList
+
+from pandas_ml_utils import Typing, has_indexed_columns
 
 
 def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
-    current_min_max = (0, 0)
-    most_recent_min_max = (0, 0)
-    count = 0
+    current_min_max = [0, 0]
+    most_recent_min_max = [0, 0]
+    count = [0, 0]
 
     def call_after_reset(func):
         nonlocal most_recent_min_max
         nonlocal current_min_max
         nonlocal count
 
-        current_min_max = (0, 0)
-        most_recent_min_max = (0, 0)
-        count = 0
+        current_min_max = [0, 0]
+        most_recent_min_max = [0, 0]
+        count = [0, 0]
+
         return func()
 
     def fibonacci(col, fact):
@@ -26,17 +31,19 @@ def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
 
         # as long min/max is changing because the window moves we use the currently valid min and max
         # but as soon as min and max stays stable we set this as the new currently valid min and max values
-        if min_max == most_recent_min_max:
-            if count > patience:
-                current_min_max = min_max
-                count = 0
+        for i in range(2):
+            if min_max[i] == most_recent_min_max[i]:
+                if count[i] > patience:
+                    current_min_max[i] = min_max[i]
+                    count[i] = 0
 
-            count += 1
+                count[i] += 1
 
         min_max_range = current_min_max[1] - current_min_max[0]
         most_recent_min_max = min_max
 
-        return (min_max_range * fact + current_min_max[0]) if min_max_range > 0.001 else np.nan
+        valid_min_max_range = min_max_range > 0.001 and current_min_max[0] > 0.001 and current_min_max[1] > 0.001
+        return (min_max_range * fact + current_min_max[0]) if valid_min_max_range else np.nan
 
     retracements = {"fourty":  0.382, "fitfy": 0.5, "sixty": 0.618}
     return pd.DataFrame(
@@ -46,47 +53,115 @@ def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
     )
 
 
-def ta_trend_lines():
+def ta_edge_detect(df: Typing.PatchedSeries, period=3):
+    assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
+    assert period > 2, "minimum period is 3"
+
+    def edge(col):
+        mean = col.mean()
+        if col[0] > mean and col[-1] > mean:
+            return 1
+        elif col[0] < mean and col[-1] < mean:
+            return -1
+        else:
+            return 0
+
+    return df.rolling(period).apply(edge, raw=True)
+
+
+def ta_trend_lines(df: Typing.PatchedSeries,
+                   edge_periods=3,
+                   rescale_digits=4,
+                   degrees=(-180, 180),
+                   angels=60,
+                   rho_digits=2
+                   ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
+
+    # edge detection
+    series = df.ta.rescale((0, 1), digits=rescale_digits)
+    edge_or_not = ta_edge_detect(series, period=edge_periods)
+
+    # set up spaces
+    x = np.linspace(0, 1, len(series))
+    y = series.values.reshape(x.shape)
+    edge_x_index = np.arange(0, len(series))[edge_or_not != 0]
+    edge_x = x[edge_or_not != 0]
+    edge_y = y[edge_or_not != 0]
+    thetas = np.deg2rad(np.linspace(*degrees, len(edge_x) if angels is None else angels))
+
+    # pre compute angeles, calculate rho's
+    cos_theta = np.cos(thetas)
+    sin_theta = np.sin(thetas)
+
+    if angels is None:
+        # this matrix operation might be more optimized
+        rhos = np.outer(cos_theta, edge_x) + np.outer(sin_theta, edge_y)
+    else:
+        rhos = np.vstack([edge_x[i] * cos_theta + edge_y[i] * sin_theta for i in range(len(edge_x))]).T
+
+    # round rhos and construct a lookup table to map back from theta/rho to x/y
+    rhos, time_value_lookup_table = np.around(rhos, rho_digits), {}
+
+    for index, rho in np.ndenumerate(rhos):
+        k = (thetas[index[0]], rho)
+        time = series.index[edge_x_index[index[1]]]
+        value = edge_y[index[1]]
+
+        if k in time_value_lookup_table:
+            time_value_lookup_table[k].add((time, value))
+        else:
+            time_value_lookup_table[k] = SortedKeyList([(time, value)], key=lambda x: x[0])
+
+    # setup the hugh space (plots nice sinusoid's
+    hough_space = pd.DataFrame(rhos, index=thetas)
+
+    # filtering
+    unique_rhos = np.unique(hough_space)
+
+    def accumulator(row):
+        rhos, counts = np.unique(row, return_counts=True)
+        s = pd.Series(0, index=unique_rhos)
+        s[rhos] = counts
+        return s
+
+    # TODO this should be a first result we return
+    accumulated = hough_space.apply(accumulator, axis=1)
+
+    # build lookups for filtering
+    theta_indices, rho_indices = np.unravel_index(np.argsort(accumulated.values, axis=None), accumulated.shape)
+    touches = []
+    distances = []
+    points = []
+
+    for i in range(len(theta_indices)):
+        tp = (thetas[theta_indices[i]], unique_rhos[rho_indices[i]])
+
+        if tp in time_value_lookup_table:
+            p = time_value_lookup_table[tp]
+            if len(p) > 1:
+                touches.append(len(p))
+                distances.append(p[-1][0] - p[0][0] if len(p) > 1 else 0)
+                points.append(p)
+
+    line_lookup_table = pd.DataFrame(
+        {
+            "touch": touches,
+            "distance": distances,
+            "points": points
+        },
+        index=range(len(points), 0, -1)
+    )
+
+    return accumulated, line_lookup_table
+
+def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=None):
     # TODO implement this paper: http://www.meacse.org/ijcar/archives/128.pdf
-    s = None # dataframe ...
-    s1 = s.ta.rnn(3)[-200:].swaplevel(0, 1, axis=1)
-    s2 = s1.ta.rescale((0, 1), digits=4).apply(lambda row: [row.min(), row.max()], raw=False, axis=1,
-                                               result_type='expand')
-    x = np.linspace(0, 1, len(s2))
-    y = s2.values[:, 0]
+    if has_indexed_columns(df):
+        c = df[close]
+        h = df[high] if high is not None else None
+        l = df[low] if low is not None else None
+    else:
+        c, h, l = df, None, None
 
-    # ta = np.around(np.deg2rad(np.linspace(-90.0, 90.0, len(x))), 1)
-    ta = np.deg2rad(np.linspace(-180.0, 180.0, 60))
-
-    cos_ta = np.cos(ta)
-    sin_ta = np.sin(ta)
-
-    foo = np.vstack([x[i] * cos_ta + price * sin_ta for i, price in enumerate(y)]).T
-    # foo = np.outer(cos_ta, x) + np.outer(sin_ta, y) + 1
-
-    print(x.shape, cos_ta.shape, foo.shape)
-    df_ta_rho = pd.DataFrame(foo, index=ta)
-    df_ta_rho.plot(legend=None)
-
-    y_price = s2[0].values
-
-    def max_count(row):
-        nr, cnt = np.unique(np.around(row, 2), return_counts=True)
-        return nr[cnt.argmax()] if cnt.max() > 7 else 0
-
-    max_count(foo[0])
-    brr = df_ta_rho.apply(max_count, axis=1, raw=True)
-
-    d_brr = brr[brr > 0].to_dict()
-
-    s2[0].plot(figsize=(20, 9))
-
-    for t, r in d_brr.items():
-        y_trend = (r - x * np.cos(t)) / np.sin(t)
-        x_near = np.argsort((y_trend - y_price) ** 2)[:8]
-
-        # print(t, x_near)
-        p1 = (x_near.min(), y_price[x_near.min()])
-        p2 = (x_near.max(), y_price[x_near.max()])
-
-        # plt.plot([s2.index[p1[0]], s2.index[p2[0]]], [p1[1], p2[1]], alpha=0.3)
+    # TODO analog ta_trend_lines

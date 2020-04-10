@@ -7,6 +7,7 @@ tensorflow<2.0
 colorama>= 0.3.9
 pywavelets
 cachetools
+ipywidgets
 qpsolvers
 yfinance
 moviepy

@@ -3,8 +3,25 @@ import pandas as pd
 from scipy.stats import norm
 
 from pandas_ml_common import Typing, has_indexed_columns
+from pandas_ml_common.utils import ReScaler
 from pandas_ml_quant.analysis import filters as _f
 from pandas_ml_quant.utils import with_column_suffix as _wcs
+
+
+def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
+    if axis is not None:
+        return df.apply(lambda x: ta_rescale(x, range), raw=False, axis=axis, result_type='broadcast')
+    else:
+        rescaler = ReScaler((df.values.min(), df.values.max()), range)
+        rescaled = rescaler(df)
+
+        if digits is not None:
+            rescaled = np.around(rescaled, digits)
+
+        if len(rescaled.shape) > 1:
+            return pd.DataFrame(rescaled, columns=df.columns, index=df.index)
+        else:
+            return pd.Series(rescaled, name=df.name, index=df.index)
 
 
 def ta_returns(df: Typing.PatchedPandas):
