@@ -64,14 +64,14 @@ class TaPlot(object):
         self.axis[panel] = plot_line(self.df, fields, ax=self.axis[panel], **kwargs)
         return self._return()
 
-    def plot_trend_lines(self,
-                         field,
-                         panel=0,
-                         edge_periods=3,
-                         rescale_digits=4,
-                         degrees=(-180, 180),
-                         angels=60,
-                         rho_digits=2):
+    def trend_lines(self,
+                    field,
+                    panel=0,
+                    edge_periods=3,
+                    rescale_digits=4,
+                    degrees=(-180, 180),
+                    angels=60,
+                    rho_digits=2):
         accumulation, lookup =\
             ta_trend_lines(get_pandas_object(self.df, field), edge_periods, rescale_digits, degrees, angels, rho_digits)
 
@@ -88,7 +88,6 @@ class TaPlot(object):
 
             for i, tl in filtered.iterrows():
                 points = tl["points"][0], tl["points"][-1]
-                # print(f"x={[p[0] for p in points]}, y={[p[1] for p in points]}")
                 ax.plot([p[0] for p in points], [p[1] for p in points], label=".Trend")
 
             return self.fig
@@ -101,7 +100,6 @@ class TaPlot(object):
         touch_silder = wg.IntRangeSlider(value=[max_to, max_to], min=min_to, max=max_to, step=1, description='Touches:')
 
         wg.interact(plot_trend_line, time=time_silder, touches=touch_silder)
-        return self._return()
 
     def plot_matrix(self, panel, fields, **kwargs):
         plot_matrix()
