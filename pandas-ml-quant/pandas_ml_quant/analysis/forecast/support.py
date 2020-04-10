@@ -79,13 +79,13 @@ def ta_trend_lines(df: Typing.PatchedSeries,
     assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
 
     # edge detection
-    series = df.ta.rescale((0, 1), digits=rescale_digits)
-    edge_or_not = ta_edge_detect(series, period=edge_periods)
+    rescaled = df.ta.rescale((0, 1), digits=rescale_digits)
+    edge_or_not = ta_edge_detect(rescaled, period=edge_periods)
 
     # set up spaces
-    x = np.linspace(0, 1, len(series))
-    y = series.values.reshape(x.shape)
-    edge_x_index = np.arange(0, len(series))[edge_or_not != 0]
+    x = np.linspace(0, 1, len(rescaled))
+    y = rescaled.values.reshape(x.shape)
+    edge_x_index = np.arange(0, len(rescaled))[edge_or_not != 0]
     edge_x = x[edge_or_not != 0]
     edge_y = y[edge_or_not != 0]
     thetas = np.deg2rad(np.linspace(*degrees, len(edge_x) if angels is None else angels))
@@ -105,8 +105,8 @@ def ta_trend_lines(df: Typing.PatchedSeries,
 
     for index, rho in np.ndenumerate(rhos):
         k = (thetas[index[0]], rho)
-        time = series.index[edge_x_index[index[1]]]
-        value = edge_y[index[1]]
+        time = df.index[edge_x_index[index[1]]]
+        value = df.iloc[edge_x_index[index[1]]]
 
         if k in time_value_lookup_table:
             time_value_lookup_table[k].add((time, value))

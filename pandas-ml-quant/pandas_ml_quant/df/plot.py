@@ -6,7 +6,7 @@ import pandas as pd
 from matplotlib import gridspec
 from moviepy.video.io.bindings import mplfig_to_npimage
 from pandas.plotting import register_matplotlib_converters
-
+from datetime import timedelta
 from pandas_ml_common.plot import plot_bar, plot_stacked_bar, plot_candlestick, plot_line, plot_matrix
 from pandas_ml_common.plot.animations import plot_animation
 from pandas_ml_common import get_pandas_object
@@ -75,11 +75,32 @@ class TaPlot(object):
         accumulation, lookup =\
             ta_trend_lines(get_pandas_object(self.df, field), edge_periods, rescale_digits, degrees, angels, rho_digits)
 
-        # TODO
-        #  add a wg.IntRangeSlider for the time period
-        #  add a wg.IntRangeSlider for the number of touch points
-        #  TODO later add a wg.IntSlider to extend the trend lines from ots last point
+        def plot_trend_line(time, touches):
+            ax = self.axis[panel]
+            td = timedelta(days=time[0]), timedelta(days=time[1])
 
+            # first remove all previous trend lines
+            ax.lines = [l for l in ax.lines if not l.get_label().startswith(".Trend")]
+
+            # then select the lines from the lookup table
+            filtered = lookup[(lookup["touch"] >= touches[0]) & (lookup["touch"] <= touches[1])]
+            filtered = filtered[(filtered["distance"] >= td[0]) & (filtered["distance"] <= td[1])]
+
+            for i, tl in filtered.iterrows():
+                points = tl["points"][0], tl["points"][-1]
+                # print(f"x={[p[0] for p in points]}, y={[p[1] for p in points]}")
+                ax.plot([p[0] for p in points], [p[1] for p in points], label=".Trend")
+
+            return self.fig
+
+        #  TODO later add a wg.IntSlider to extend the trend lines from ots last point
+        min_ts, max_ts = 2, len(self.df)
+        time_silder = wg.IntRangeSlider(value=[max_ts, max_ts], min=min_ts, max=max_ts, step=1, description='Period:')
+
+        min_to, max_to = 2, lookup["touch"].max()
+        touch_silder = wg.IntRangeSlider(value=[max_to, max_to], min=min_to, max=max_to, step=1, description='Touches:')
+
+        wg.interact(plot_trend_line, time=time_silder, touches=touch_silder)
         return self._return()
 
     def plot_matrix(self, panel, fields, **kwargs):
