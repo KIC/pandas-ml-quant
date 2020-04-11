@@ -32,16 +32,17 @@ class SkModel(Model):
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
                  **kwargs) -> float:
         # shape correction if needed
+        x = SkModel.reshape_rnn_as_ar(x)
         y = y.reshape((len(x), -1)) if len(y.shape) > 1 and y.shape[1] == 1 else y
         self.label_shape = y.shape
 
         # remember fitted model
-        self.skit_model = self.skit_model.fit(SkModel.reshape_rnn_as_ar(x), y)
+        self.skit_model = self.skit_model.fit(x, y)
 
         if getattr(self.skit_model, 'loss_', None):
             return self.skit_model.loss_
         else:
-            prediction = self.predict(x)
+            prediction = self.predict_sample(x)
             if isinstance(self.skit_model, LogisticRegression)\
             or type(self.skit_model).__name__.endswith("Classifier")\
             or type(self.skit_model).__name__.endswith("SVC"):

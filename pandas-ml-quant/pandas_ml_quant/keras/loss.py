@@ -15,6 +15,7 @@ def tailed_categorical_crossentropy(nr_of_categories, alpha=0.1, beta=1e10, delt
     :param nr_of_categories: number of categories aka length of the one hot encoded vectors
     :param alpha: describes the steepness of the parabola
     :param beta: used for the differentiable_argmax
+    :param delta: is used to unevenly skew the loss to the outer bounds. 0 now skew > bigger skew
     :return: returns a keras loss function
     """
 

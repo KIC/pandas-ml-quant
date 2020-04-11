@@ -3,18 +3,22 @@ from unittest import TestCase
 
 import numpy as np
 from keras import Sequential
-from keras.layers import Dense, Reshape
+from keras.callbacks import EarlyStopping
+from keras.layers import Dense, Reshape, ActivityRegularization
 from keras.optimizers import Adam
+from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from stable_baselines import PPO2
 from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
+from pandas_ml_quant import PostProcessedFeaturesAndLabels
+from pandas_ml_quant.keras.loss import tailed_categorical_crossentropy
 from pandas_ml_quant.model.rl_trading_agent import TradingAgentGym
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel, Constant
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
-from pandas_ml_utils.ml.data.splitting import RandomSplits, RandomSequences
+from pandas_ml_utils.ml.data.splitting import RandomSplits, RandomSequences, NaiveSplitter
 from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
@@ -24,6 +28,33 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
 class TestModel(TestCase):
+
+    def test_linear_model(self):
+        df = DF_TEST.copy()
+
+        fit = df.model.fit(
+            SkModel(
+                Lasso(),
+                FeaturesAndLabels(
+                    features=[
+                        lambda df: df["Close"].ta.rsi().ta.rnn(28),
+                        lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(28)
+                    ],
+                    labels=[
+                        lambda df: (df["Close"] / df["Open"] - 1).shift(-1),
+                    ]
+                ),
+                summary_provider=RegressionSummary
+            ),
+            NaiveSplitter()
+        )
+
+        print(fit)
+
+        prediction = df.model.predict(fit.model)
+        print(prediction)
+
+        backtest = df.model.backtest(fit.model)
 
     def test_simple_regression_model(self):
         df = DF_TEST.copy()
@@ -41,7 +72,8 @@ class TestModel(TestCase):
                     ]
                 ),
                 summary_provider=RegressionSummary
-            )
+            ),
+            NaiveSplitter()
         )
 
         print(fit)
@@ -210,7 +242,7 @@ class TestModel(TestCase):
                         lambda df: df.ta.rnn(280)
                     ),
                     labels=[
-                        lambda df: df["Close"].ta.future_bband_quantile().ta.one_hot_encode_discrete()
+                        lambda df: df["Close"].ta.future_bband_quantile(include_mean=False).ta.one_hot_encode_discrete()
                     ],
                     targets=[
                         lambda df: df["Close"].ta.bbands()[["lower", "upper"]]
@@ -282,4 +314,5 @@ class TestModel(TestCase):
         backtest = df.model.backtest(fit.model).df
         print(backtest[PREDICTION_COLUMN_NAME])
         self.assertEqual(3, len(prediction))
+
 

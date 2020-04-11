@@ -3,18 +3,11 @@ from typing import Union as _Union
 # create convenient type hint
 import numpy as _np
 import pandas as _pd
-import sys as _sys
 
-from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
-
-
-def ta_ma_ratio(df: Typing.PatchedPandas, period=20, ma='sma', **kwargs):
-    ma = getattr(_sys.modules[__name__], f'ta_{ma}')(df, period=period, **kwargs)
-    return _wcs(f"{ma}({period}) x 1/", df / ma, df)
 
 
 def ta_sma(df: _PANDAS, period=12) -> _PANDAS:
@@ -41,7 +34,7 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"wilders_{period}", res)
 
 
-def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1) -> _PANDAS:
+def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:
     assert not has_indexed_columns(s)
     mean = s.rolling(period).mean().rename("mean")
     std = s.rolling(period).std(ddof=ddof)
@@ -50,7 +43,8 @@ def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=
     for stddev in reversed(stddevs):
         df[f'lower-{stddev}'] = mean - (std * stddev)
 
-    df["mean"] = mean
+    if include_mean:
+        df["mean"] = mean
 
     for stddev in stddevs:
         df[f'upper-{stddev}'] = mean + (std * stddev)
@@ -58,7 +52,7 @@ def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=
     return df
 
 
-def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1) -> _PANDAS:
+def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1, include_mean=True) -> _PANDAS:
     mean = df.rolling(period).mean()
     std = df.rolling(period).std(ddof=ddof)
     most_recent = df.rolling(period).apply(lambda x: x[-1], raw=True)
@@ -85,10 +79,17 @@ def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1) -> _PANDAS:
         z_score.columns = _pd.MultiIndex.from_product([z_score.columns, ["z"]])
         quantile.columns = _pd.MultiIndex.from_product([z_score.columns, ["quantile"]])
 
-    return _pd.DataFrame(upper) \
-        .join(mean) \
-        .join(lower) \
-        .join(z_score) \
-        .join(quantile) \
-        .sort_index(axis=1)
+    if include_mean:
+        return _pd.DataFrame(upper) \
+            .join(mean) \
+            .join(lower) \
+            .join(z_score) \
+            .join(quantile) \
+            .sort_index(axis=1)
+    else:
+        return _pd.DataFrame(upper) \
+            .join(lower) \
+            .join(z_score) \
+            .join(quantile) \
+            .sort_index(axis=1)
 

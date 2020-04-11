@@ -28,6 +28,7 @@ class KerasModel(Model):
     def __init__(self,
                  keras_compiled_model_provider: Callable[[], KModel],
                  features_and_labels: FeaturesAndLabels,
+                 output_shape: Tuple[int,...] = (-1,),
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  epochs: int = 100,
                  callbacks: List[Callable] = [],
@@ -47,6 +48,7 @@ class KerasModel(Model):
         """
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.keras_model_provider = keras_compiled_model_provider
+        self.output_shape = output_shape
         self.custom_objects = {}
 
         import keras
@@ -90,7 +92,8 @@ class KerasModel(Model):
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
                  **kwargs) -> float:
-        fitter_args = suitable_kwargs(self.keras_model.fit, **self.kwargs)
+        fitter_args = suitable_kwargs(self.keras_model.fit, {"callbacks": []}, self.kwargs, kwargs)
+        fitter_args["callbacks"] = [*fitter_args["callbacks"], *[cb() for cb in self.callbacks]]
 
         if sample_weight_train is not None:
             print(f"using sample weights {sample_weight_train.shape} -> (?, 1)")
@@ -100,11 +103,14 @@ class KerasModel(Model):
             print(f'pass args to fit: {fitter_args}')
 
         fit_history = self._exec_within_session(self.keras_model.fit,
-                                                x, y,
+                                                x,
+                                                y.reshape(y.shape[:1] + self.output_shape),
                                                 sample_weight=sample_weight_train,
                                                 epochs=self.epochs,
-                                                validation_data=(x_val, y_val),
-                                                callbacks=[cb() for cb in self.callbacks],
+                                                validation_data=(
+                                                    x_val,
+                                                    y_val.reshape(y_val.shape[:1] + self.output_shape)
+                                                ),
                                                 **fitter_args)
         if self.history is None:
             self.history = fit_history.history
@@ -199,6 +205,7 @@ class KerasModel(Model):
     def __call__(self, *args, **kwargs):
         new_model = KerasModel(self.keras_model_provider,
                                self.features_and_labels,
+                               self.output_shape,
                                self.summary_provider,
                                self.epochs,
                                deepcopy(self.callbacks),

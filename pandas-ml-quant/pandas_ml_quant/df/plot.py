@@ -1,13 +1,16 @@
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import ipywidgets as wg
 import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 from moviepy.video.io.bindings import mplfig_to_npimage
 from pandas.plotting import register_matplotlib_converters
-
+from datetime import timedelta
 from pandas_ml_common.plot import plot_bar, plot_stacked_bar, plot_candlestick, plot_line, plot_matrix
 from pandas_ml_common.plot.animations import plot_animation
+from pandas_ml_common import get_pandas_object
+from pandas_ml_quant.analysis import ta_trend_lines
 
 register_matplotlib_converters()
 
@@ -79,6 +82,53 @@ class TaPlot(object):
         self.axis[panel].set_ylim(min, max)
         return self._return()
 
+    def with_defaults(self):
+        self.line()
+        self.bar()
+        return self.with_legend()
+
+    def with_trend_lines(self,
+                         field="Close",
+                         panel=0,
+                         edge_periods=3,
+                         rescale_digits=4,
+                         degrees=(-90, 90),
+                         angles=30,
+                         rho_digits=2):
+        plt.close(self.fig)
+        accumulation, lookup =\
+            ta_trend_lines(get_pandas_object(self.df, field), edge_periods, rescale_digits, degrees, angles, rho_digits)
+
+        def plot_trend_line(time, touches):
+            ax = self.axis[panel]
+            td = timedelta(days=time[0]), timedelta(days=time[1])
+
+            # first remove all previous trend lines
+            ax.lines = [l for l in ax.lines if not l.get_label().startswith(".Trend")]
+
+            # then select the lines from the lookup table
+            filtered = lookup[(lookup["touch"] >= touches[0]) & (lookup["touch"] <= touches[1])]
+            filtered = filtered[(filtered["distance"] >= td[0]) & (filtered["distance"] <= td[1])]
+
+            for i, tl in filtered.iterrows():
+                points = tl["points"][0], tl["points"][-1]
+                ax.plot([p[0] for p in points], [p[1] for p in points], label=".Trend")
+
+            return self.fig
+
+        #  TODO later add a wg.IntSlider to extend the trend lines from ots last point
+        min_ts, max_ts = 2, len(self.df)
+        time_silder = wg.IntRangeSlider(value=[max_ts, max_ts], min=min_ts, max=max_ts, step=1,
+                                        continuous_update=False, description='Period:')
+
+        min_to, max_to = 2, lookup["touch"].max()
+        touch_silder = wg.IntRangeSlider(value=[min_to, max_to], min=min_to, max=max_to, step=1,
+                                         continuous_update=False, description='Touches:')
+
+        wg.interact(plot_trend_line, time=time_silder, touches=touch_silder)
+        self.fig.show()
+        return self
+
     def with_symetric_scale(self, *panels):
         for panel in panels:
             yl = np.abs(np.array(list(self.axis[panel].get_ylim()))).max() * 1.1
@@ -115,8 +165,6 @@ class TaPlot(object):
 
     def _return(self):
         self.grid.tight_layout(self.fig)
-
-
 
 
 # %matplotlib

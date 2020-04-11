@@ -1,6 +1,7 @@
 from unittest import TestCase
 from pandas_ml_quant import pd, np
-from pandas_ml_quant.analysis.encoders import ta_rescale, ta_realative_candles
+from pandas_ml_quant.analysis.normalizer import ta_rescale
+from pandas_ml_quant.analysis.encoders import ta_realative_candles
 from pandas_ml_quant_test.config import DF_TEST
 
 

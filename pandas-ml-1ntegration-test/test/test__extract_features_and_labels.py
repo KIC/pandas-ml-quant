@@ -21,7 +21,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
                     lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(280)
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].ta.future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs, include_mean=True)\
+                    lambda df, forecasting_time_steps, stddevs: df["Close"].ta.future_bband_quantile(14, forecasting_time_steps, stddev=stddevs, include_mean=True)\
                                                                            .ta.one_hot_encode_discrete(),
                 ],
                 targets=[
@@ -57,13 +57,13 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
                     lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(280)
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].ta.future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Close"].ta.future_bband_quantile(14, forecasting_time_steps, stddev=stddevs, include_mean=False)\
                                                                            .ta.one_hot_encode_discrete(),
-                    lambda df, forecasting_time_steps, stddevs: df["Open"].ta.future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Open"].ta.future_bband_quantile(14, forecasting_time_steps, stddev=stddevs, include_mean=False)\
                                                                           .ta.one_hot_encode_discrete(),
                 ],
                 targets=[
-                    lambda df, stddevs: df["Close"].ta.bbands(period=14, stddev=stddevs)[["lower", "upper"]],
+                    lambda df, stddevs: df["Close"].ta.bbands(period=14, stddev=stddevs, include_mean=False)[["lower", "upper"]],
                 ]
             ),
             # kwargs of call
@@ -92,13 +92,13 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
                     lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(280)
                 ],
                 labels=[
-                    lambda df, forecasting_time_steps, stddevs: df["Close"].ta.future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Close"].ta.future_bband_quantile(14, forecasting_time_steps, stddev=stddevs, include_mean=False)\
                                                                            .ta.one_hot_encode_discrete(),
-                    lambda df, forecasting_time_steps, stddevs: df["Open"].ta.future_bband_quantile(forecasting_time_steps, period=14, stddev=stddevs)\
+                    lambda df, forecasting_time_steps, stddevs: df["Open"].ta.future_bband_quantile(14, forecasting_time_steps, stddev=stddevs, include_mean=False)\
                                                                           .ta.one_hot_encode_discrete(),
                 ],
                 targets=[
-                    lambda df, stddevs: df["Close"].ta.bbands(period=14, stddev=stddevs)[["lower", "upper"]],
+                    lambda df, stddevs: df["Close"].ta.bbands(period=14, stddev=stddevs, include_mean=False)[["lower", "upper"]],
                 ]
             ),
             file
@@ -116,31 +116,3 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         # we have 2 labels each one hot encoded to 10 values
         self.assertEqual((6463, 2, 3), labels._.values.shape)
-
-
-"""
-    FeaturesAndLabels(
-    features=["rsi", "volume"],
-    labels=["future_bb"],
-    sample_weights="loss_weight",
-    # targets=lambda df, _, stddevs: df["Close"].ta_multi_bbands(period=14, stddevs=stddevs), # TODO rethink targets
-    gross_loss=lambda df: df["gross_loss"],
-    # feature_lags=range(20), # FIXME need to be part of the indicators 
-    pre_processor=lambda df, forecasting_time_steps, stddevs: pmu.LazyDataFrame( # TODO rethink if preprocessor is the right thing to do
-        df,
-        # features
-        rst             = lambda df: df["Close"].ta.rsi(),
-        volume          = lambda df: df["Volume"] / df["Volume"].ta_ema(14) - 1,
-        
-        # lables 
-        future_bb       = lambda df: df["Close"].ta_future_multiband_bucket(forecasting_time_steps, period=14, stddevs=stddevs),
-        
-        # gross loss
-        gross_loss      = lambda df: df["Close"].ta_future_multiband_loss(forecasting_time_steps, period=14, stddevs=stddevs),
-
-        # sample loss (weight)
-        loss_weight     = lambda df: df["gross_loss"].abs() + 1
-    ).to_dataframe()
-)
-
-"""
