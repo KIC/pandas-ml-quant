@@ -64,16 +64,40 @@ class TaPlot(object):
         self.axis[panel] = plot_line(self.df, fields, ax=self.axis[panel], **kwargs)
         return self._return()
 
-    def trend_lines(self,
-                    field,
-                    panel=0,
-                    edge_periods=3,
-                    rescale_digits=4,
-                    degrees=(-180, 180),
-                    angels=60,
-                    rho_digits=2):
+    def plot_matrix(self, panel, fields, **kwargs):
+        plot_matrix()
+
+    def plot_matrix_animation(self, fields, fps=2, **kwargs):
+        def make_frame(index):
+            fig, ax = plt.subplots(figsize=(9, 9))
+            plot_matrix(self.df.loc[[index]], fields, ax=ax, **kwargs)
+            frame = mplfig_to_npimage(fig)
+            plt.close(fig)
+            return frame
+
+        plt.close(self.fig)
+        return plot_animation(self.df.index, make_frame, fps, **kwargs)
+
+    def set_scale(self, panel, min, max):
+        self.axis[panel].set_ylim(min, max)
+        return self._return()
+
+    def with_defaults(self):
+        self.line()
+        self.bar()
+        return self.with_legend()
+
+    def with_trend_lines(self,
+                         field="Close",
+                         panel=0,
+                         edge_periods=3,
+                         rescale_digits=4,
+                         degrees=(-90, 90),
+                         angles=30,
+                         rho_digits=2):
+        plt.close(self.fig)
         accumulation, lookup =\
-            ta_trend_lines(get_pandas_object(self.df, field), edge_periods, rescale_digits, degrees, angels, rho_digits)
+            ta_trend_lines(get_pandas_object(self.df, field), edge_periods, rescale_digits, degrees, angles, rho_digits)
 
         def plot_trend_line(time, touches):
             ax = self.axis[panel]
@@ -94,30 +118,16 @@ class TaPlot(object):
 
         #  TODO later add a wg.IntSlider to extend the trend lines from ots last point
         min_ts, max_ts = 2, len(self.df)
-        time_silder = wg.IntRangeSlider(value=[max_ts, max_ts], min=min_ts, max=max_ts, step=1, description='Period:')
+        time_silder = wg.IntRangeSlider(value=[max_ts, max_ts], min=min_ts, max=max_ts, step=1,
+                                        continuous_update=False, description='Period:')
 
         min_to, max_to = 2, lookup["touch"].max()
-        touch_silder = wg.IntRangeSlider(value=[max_to, max_to], min=min_to, max=max_to, step=1, description='Touches:')
+        touch_silder = wg.IntRangeSlider(value=[min_to, max_to], min=min_to, max=max_to, step=1,
+                                         continuous_update=False, description='Touches:')
 
         wg.interact(plot_trend_line, time=time_silder, touches=touch_silder)
-
-    def plot_matrix(self, panel, fields, **kwargs):
-        plot_matrix()
-
-    def plot_matrix_animation(self, fields, fps=2, **kwargs):
-        def make_frame(index):
-            fig, ax = plt.subplots(figsize=(9, 9))
-            plot_matrix(self.df.loc[[index]], fields, ax=ax, **kwargs)
-            frame = mplfig_to_npimage(fig)
-            plt.close(fig)
-            return frame
-
-        plt.close(self.fig)
-        return plot_animation(self.df.index, make_frame, fps, **kwargs)
-
-    def set_scale(self, panel, min, max):
-        self.axis[panel].set_ylim(min, max)
-        return self._return()
+        self.fig.show()
+        return self
 
     def with_symetric_scale(self, *panels):
         for panel in panels:
@@ -155,8 +165,6 @@ class TaPlot(object):
 
     def _return(self):
         self.grid.tight_layout(self.fig)
-
-
 
 
 # %matplotlib

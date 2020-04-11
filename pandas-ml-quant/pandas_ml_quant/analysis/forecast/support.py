@@ -66,14 +66,14 @@ def ta_edge_detect(df: Typing.PatchedSeries, period=3):
         else:
             return 0
 
-    return df.rolling(period).apply(edge, raw=True)
+    return df.rolling(period, center=True).apply(edge, raw=True)
 
 
 def ta_trend_lines(df: Typing.PatchedSeries,
                    edge_periods=3,
                    rescale_digits=4,
-                   degrees=(-180, 180),
-                   angels=60,
+                   degrees=(-90, 90),
+                   angles=30,
                    rho_digits=2
                    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
@@ -88,13 +88,13 @@ def ta_trend_lines(df: Typing.PatchedSeries,
     edge_x_index = np.arange(0, len(rescaled))[edge_or_not != 0]
     edge_x = x[edge_or_not != 0]
     edge_y = y[edge_or_not != 0]
-    thetas = np.deg2rad(np.linspace(*degrees, len(edge_x) if angels is None else angels))
+    thetas = np.deg2rad(np.linspace(*degrees, len(edge_x) if angles is None else angles))
 
     # pre compute angeles, calculate rho's
     cos_theta = np.cos(thetas)
     sin_theta = np.sin(thetas)
 
-    if angels is None:
+    if angles is None:
         # this matrix operation might be more optimized
         rhos = np.outer(cos_theta, edge_x) + np.outer(sin_theta, edge_y)
     else:
