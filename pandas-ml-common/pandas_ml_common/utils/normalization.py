@@ -7,10 +7,11 @@ import pandas as _pd
 
 class ReScaler(object):
 
-    def __init__(self, domain: _Tuple[float, float], range: _Tuple[float, float]):
+    def __init__(self, domain: _Tuple[float, float], range: _Tuple[float, float], clip=False):
         self.domain = domain
         self.range = range
         self.rescale = _np.vectorize(self._rescale)
+        self.clip = clip
 
     def _interpolate(self, x: float):
         return self.range[0] * (1 - x) + self.range[1] * x
@@ -23,5 +24,11 @@ class ReScaler(object):
         return self._interpolate(self._uninterpolate(x))
 
     def __call__(self, *args, **kwargs):
-        return self.rescale(args[0])
+        if not self.clip:
+            return self.rescale(args[0])
+        else:
+            if self.range[0] < self.range[1]:
+                return _np.clip(self.rescale(args[0]), self.range[0], self.range[1])
+            else:
+                return _np.clip(self.rescale(args[0]), self.range[1], self.range[0])
 

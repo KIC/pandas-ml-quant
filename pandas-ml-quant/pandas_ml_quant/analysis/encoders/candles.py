@@ -37,3 +37,4 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
         res[volume] = df[volume].pct_change()
 
     return res
+

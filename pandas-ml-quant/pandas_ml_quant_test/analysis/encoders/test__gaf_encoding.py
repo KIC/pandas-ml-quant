@@ -1,6 +1,6 @@
 from unittest import TestCase
 from pandas_ml_quant import np
-from pandas_ml_quant.analysis.encoders import ta_gaf, ta_rnn
+from pandas_ml_quant.analysis.encoders import ta_gaf, ta_rnn, ta_inverse_gasf
 from pandas_ml_quant_test.config import DF_TEST
 
 
@@ -22,3 +22,18 @@ class TestGAF(TestCase):
         gaf = ta_gaf(timesteps)
         shape = gaf._.values.shape
         self.assertEqual((6760, 2, 3, 3), shape)
+
+    def test_gasf_encode_decode(self):
+        s = DF_TEST["Close"]
+        timesteps = ta_rnn(s, [1, 2, 3])
+
+        gasf = ta_gaf(timesteps, type='invertible', rescale=True)
+        shape = gasf._.values.shape
+
+        print(shape)
+        print(gasf.tail())
+
+        # FIXME test inverse s_rec = ta_inverse_gasf(gasf)
+
+        self.assertEqual((6760, 1, 3, 3), shape)
+        # np.testing.assert_array_almost_equal(s, s_rec)

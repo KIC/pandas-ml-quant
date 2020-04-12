@@ -13,7 +13,7 @@ def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
         return df.apply(lambda x: ta_rescale(x, range), raw=False, axis=axis, result_type='broadcast')
     else:
         rescaler = ReScaler((df.values.min(), df.values.max()), range)
-        rescaled = rescaler(df)
+        rescaled = rescaler(df.values)
 
         if digits is not None:
             rescaled = np.around(rescaled, digits)
@@ -35,9 +35,9 @@ def ta_log_returns(df: Typing.PatchedPandas):
     return _wcs("log_return", np.log(current) - np.log(lagged))
 
 
-def ta_ma_ratio(df: Typing.PatchedPandas, period=20, ma='sma', **kwargs):
+def ta_ma_ratio(df: Typing.PatchedPandas, period=20, lag=0, ma='sma', **kwargs):
     mafunc = getattr(_f, f'ta_{ma}')
-    return _wcs(f"{ma}({period}) x 1/", df / mafunc(df, period=period, **kwargs) - 1, df)
+    return _wcs(f"{ma}({period}) x 1/", df / mafunc(df, period=period, **kwargs).shift(lag).values - 1, df)
 
 
 def ta_ncdf_compress(df: Typing.PatchedPandas, period=200, lower_percentile=25, upper_percentile=75) -> Typing.PatchedPandas:
@@ -54,7 +54,7 @@ def ta_ncdf_compress(df: Typing.PatchedPandas, period=200, lower_percentile=25, 
     return pd.Series(norm.cdf(0.5 * (df - f50) / (fup - flo)) - 0.5, index=df.index, name=df.name)
 
 
-def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True):
+def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
     if has_indexed_columns(df):
         return pd.DataFrame(
             {col: ta_z_norm(df[col], period, ddof, demean) for col in df.columns},
@@ -62,7 +62,7 @@ def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True):
         )
 
     # (value - mean) / std
-    s = df.rolling(period).std()
-    a = (df - df.rolling(period).mean()) if demean else df
+    s = df.rolling(period).std(ddof=ddof)
+    a = (df - df.rolling(period).mean().shift(lag)) if demean else df
     return (a / s / 4).rename(df.name)
 
