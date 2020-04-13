@@ -30,7 +30,6 @@ class KerasModel(Model):
                  features_and_labels: FeaturesAndLabels,
                  output_shape: Tuple[int,...] = (-1,),
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 epochs: int = 100,
                  callbacks: List[Callable] = [],
                  **kwargs):
         """
@@ -83,7 +82,6 @@ class KerasModel(Model):
 
         # set all members
         self.keras_model = keras_model
-        self.epochs = epochs
         self.callbacks = callbacks
         self.history = None
 
@@ -106,7 +104,6 @@ class KerasModel(Model):
                                                 x,
                                                 y.reshape(y.shape[:1] + self.output_shape),
                                                 sample_weight=sample_weight_train,
-                                                epochs=self.epochs,
                                                 validation_data=(
                                                     x_val,
                                                     y_val.reshape(y_val.shape[:1] + self.output_shape)
@@ -207,7 +204,6 @@ class KerasModel(Model):
                                self.features_and_labels,
                                self.output_shape,
                                self.summary_provider,
-                               self.epochs,
                                deepcopy(self.callbacks),
                                **merge_kwargs(deepcopy(self.kwargs), kwargs))
 
