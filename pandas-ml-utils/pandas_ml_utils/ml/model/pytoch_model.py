@@ -39,6 +39,7 @@ class PytorchModel(Model):
         self.optimizer_provider = optimizer_provider
         self.callbacks = callbacks
         self.module = None
+        self.history = {}
 
     def fit_fold(self,
                  x: np.ndarray, y: np.ndarray,
@@ -56,8 +57,11 @@ class PytorchModel(Model):
         module = (self.module.cuda() if use_cuda else self.module).train()
         criterion = self.criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
+        epoch_losses = []
+        epoch_val_losses = []
 
         for epoch in range(num_epochs):
+            batch_loss = 0
             for i in range(0, len(x), batch_size):
                 nnx = Variable(t.from_numpy(x[i:i+batch_size])).float()
                 nny = Variable(t.from_numpy(y[i:i+batch_size])).float()
@@ -74,16 +78,35 @@ class PytorchModel(Model):
                 loss.backward()
                 optimizer.step()
 
+                batch_loss += loss.item()
+
             # ===================log========================
-            print('epoch [{}/{}], loss:{:.4f}'
-                  .format(epoch + 1, num_epochs, loss.data))
+            # add loss history
+            epoch_losses.append(batch_loss)
+
+            # add validation loss history
+            if y_val is not None and len(y_val) > 0:
+                with t.no_grad():
+                    nnx_val = Variable(t.from_numpy(x_val)).float()
+                    nny_val = Variable(t.from_numpy(y_val)).float()
+
+                    if use_cuda:
+                        nnx_val, nny_val = nnx_val.cuda(), nny_val.cuda()
+
+                    val_loss = self.criterion_provider()(module(nnx_val), nny_val).item()
+                    epoch_val_losses.append(val_loss)
+
+            # print('epoch [{}/{}], loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data))
             # print(output)
             if epoch % 10 == 0:
                 #pic = to_img(output.cpu().data)
                 #save_image(pic, './mlp_img/image_{}.png'.format(epoch))
                 pass
 
-        return 0 # fixme return loss
+        self.history["loss"] = np.array(epoch_losses)
+        self.history["val_loss"] = np.array(epoch_val_losses)
+
+        return self.history["loss"][-1] if len(epoch_losses) > 0 else 0
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         # import specifics
@@ -99,6 +122,14 @@ class PytorchModel(Model):
                 return self.module.cuda()(Variable(t.from_numpy(x)).float().cuda()).numpy()
             else:
                 return self.module(Variable(t.from_numpy(x)).float()).numpy()
+
+    def plot_loss(self):
+        import matplotlib.pyplot as plt
+
+        # FIXME
+        plt.plot(self.history['val_loss'], label='test')
+        plt.plot(self.history['loss'], label='train')
+        plt.legend(loc='best')
 
     # TODO serialization
     #  def __getstate__(self):
