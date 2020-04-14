@@ -1,33 +1,25 @@
+import os
 from unittest import TestCase
 
-import os
 import torch.nn as nn
-from torch.optim import Adam
-from pandas_ml_common import pd
-from pandas_ml_utils import KerasModel, AutoEncoderModel, FeaturesAndLabels
+from torch.optim import SGD
+
+from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
+from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
-class TestKerasModel(TestCase):
+class TestKerasModel(TestAbstractModel, TestCase):
 
-    def test_classifier(self):
-        # test safe and load
-        pass
-
-    def test_regressor(self):
-        df = pd.DataFrame({
-            "a": [0.2, 0.4, 0.6, 0.8],
-            "b": [0.1, 0.2, 0.3, 0.4]
-        })
+    def provide_regression_model(self):
 
         class RegressionModule(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.regressor = nn.Sequential(
-                    nn.Linear(1, 1),
-                    nn.Linear(1, 1),
+                    nn.Linear(1, 1)
                 )
 
             def forward(self, x):
@@ -38,18 +30,9 @@ class TestKerasModel(TestCase):
             FeaturesAndLabels(features=["a"], labels=["b"]),
             RegressionModule,
             nn.MSELoss,
-            Adam
+            lambda params: SGD(params, lr=0.01, momentum=0.0)
         )
 
-        fit = df.model.fit(model)
-        print(fit.test_summary.df)
-
-        prediction = df.model.predict(fit.model)
-        print(prediction)
-        # TODO test save load model same result
-
-    def test_custom_object(self):
-        # test safe and load
-        pass
+        return model
 
 

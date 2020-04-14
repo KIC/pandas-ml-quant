@@ -37,6 +37,7 @@ class PytorchModel(Model):
         self.module_provider = module_provider
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
+        self.callbacks = callbacks
         self.module = None
 
     def fit_fold(self,
@@ -76,7 +77,7 @@ class PytorchModel(Model):
             # ===================log========================
             print('epoch [{}/{}], loss:{:.4f}'
                   .format(epoch + 1, num_epochs, loss.data))
-
+            # print(output)
             if epoch % 10 == 0:
                 #pic = to_img(output.cpu().data)
                 #save_image(pic, './mlp_img/image_{}.png'.format(epoch))
@@ -99,7 +100,6 @@ class PytorchModel(Model):
             else:
                 return self.module(Variable(t.from_numpy(x)).float()).numpy()
 
-
     # TODO serialization
     #  def __getstate__(self):
     #  def __setstate__(self): use torch.save(model.state_dict(), './sim_autoencoder.pth')
@@ -111,6 +111,7 @@ class PytorchModel(Model):
             self.criterion_provider,
             self.optimizer_provider,
             self.summary_provider,
+            deepcopy(self.callbacks)
         )
 
         pytorch_model.module = self.module_provider()

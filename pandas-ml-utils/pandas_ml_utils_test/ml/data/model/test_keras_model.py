@@ -1,25 +1,35 @@
+import os
 from unittest import TestCase
 
-import os
-from keras.layers import Dense, Input, LSTM, Lambda, Concatenate, Conv2D, Activation, MaxPooling2D, UpSampling2D
-from keras.callbacks import EarlyStopping
-from keras.models import Sequential, Model as KModel
-from keras import backend as K
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.optimizers import SGD
+
 from pandas_ml_common import pd
-from pandas_ml_utils import KerasModel, AutoEncoderModel, FeaturesAndLabels
+from pandas_ml_utils import KerasModel, FeaturesAndLabels
+from pandas_ml_utils.ml.data.splitting import RandomSplits
+from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
-class TestKerasModel(TestCase):
+class TestKerasModel(TestAbstractModel, TestCase):
 
-    def test_classifier(self):
-        # test safe and load
-        pass
+    def provide_regression_model(self):
+        def model_provider():
+            model = Sequential([
+                Dense(units=1, input_shape=(1, ))
+            ])
 
-    def test_regressor(self):
-        # test safe and load
-        pass
+            model.compile(optimizer='sgd', loss='mean_squared_error')
+            return model
+
+        model = KerasModel(
+            model_provider,
+            FeaturesAndLabels(features=["a"], labels=["b"]),
+        )
+
+        return model
 
     def test_custom_object(self):
         # test safe and load
