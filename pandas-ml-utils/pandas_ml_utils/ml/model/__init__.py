@@ -3,3 +3,4 @@ from .sklean_model import SkModel
 from .keras_model import KerasModel
 # from .multi_model import
 from .reinforcement_model import ReinforcementModel
+from .auto_encoder_model import AutoEncoderModel

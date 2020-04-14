@@ -133,6 +133,13 @@ class KerasModel(Model):
         plt.plot(self.history['loss'], label='train')
         plt.legend(loc='best')
 
+    def get_tensor_by_name(self, i):
+        if self.is_tensorflow:
+            with self.graph.as_default():
+                with self.session.as_default():
+                    #return self.graph.get_tensor_by_name(name)
+                    return self.keras_model.get_layer(None, i)
+
     def _exec_within_session(self, func, *args, **kwargs):
         if self.is_tensorflow:
             with self.graph.as_default():
@@ -193,11 +200,14 @@ class KerasModel(Model):
             os.remove(tmp_keras_file)
 
     def __del__(self):
+        import keras.backend as K
+
         if self.is_tensorflow:
             try:
+                K.clear_session()
                 self.session.close()
             except AttributeError:
-                pass
+                _log.warning(f"failed to clear keras session!")
 
     def __call__(self, *args, **kwargs):
         new_model = KerasModel(self.keras_model_provider,
