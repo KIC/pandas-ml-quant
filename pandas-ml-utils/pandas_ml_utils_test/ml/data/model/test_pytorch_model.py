@@ -1,4 +1,3 @@
-import os
 from unittest import TestCase
 
 import torch.nn as nn
@@ -7,8 +6,6 @@ from torch.optim import SGD
 from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 
 class TestKerasModel(TestAbstractModel, TestCase):
