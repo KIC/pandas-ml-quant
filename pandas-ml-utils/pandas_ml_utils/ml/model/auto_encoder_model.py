@@ -68,6 +68,9 @@ class AutoEncoderModel(Model):
         return loss
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        if len(x.shape) > 2 and x.shape[-1] == 1:
+            x = x.reshape(x.shape[:-1])
+
         if self._predictor is None:
             return self._copy_keep_original_model(self.trainable_model.predict_sample,
                                                   self.trainable_model.features_and_labels)\
