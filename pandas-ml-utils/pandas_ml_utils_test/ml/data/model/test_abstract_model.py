@@ -72,8 +72,8 @@ class TestAbstractModel(object):
 
         """and some toy classification data"""
         df = pd.DataFrame({
-            "a": [1, 0, 1, 0, 1, 0, 1, 0, ],
-            "b": [0, 0, 1, 1, 0, 0, 1, 1, ],
+            "a": [1, 0, 1, 0, ],
+            "b": [0, 1, 0, 1, ],
         })
 
         """when we fit the model"""
@@ -83,12 +83,13 @@ class TestAbstractModel(object):
         """then we can encoder"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
-        # TODO Implement working model + assertion np.testing.assert_array_almost_equal(prediction.iloc[:, 0].values, df["b"].values, 1)
 
         """and we can decoder"""
         decoder_features = encoded_prediction.columns.to_list()[0:1]
         decoded_prediction = encoded_prediction.model.predict(fit.model.as_decoder(decoder_features))
         print(decoded_prediction)
+        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5,
+                                             df[["a", "b"]].values)
 
         """and we can encoder and decore after safe and load"""
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))

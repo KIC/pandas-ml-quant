@@ -42,16 +42,16 @@ class AutoEncoderModule(nn.Module):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(2, 2),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(2, 1),
-            nn.ReLU(),
+            nn.Tanh(),
         )
 
         self.decoder = nn.Sequential(
             nn.Linear(1, 2),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(2, 2),
-            nn.ReLU(),
+            nn.Tanh(),
         )
 
     def forward(self, x):
@@ -102,7 +102,7 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                 features_and_labels,
                 AutoEncoderModule,
                 nn.MSELoss,
-                lambda params: SGD(params, lr=0.01, momentum=0.0)
+                lambda params: SGD(params, lr=0.1, momentum=0.9)
             ),
             ["condensed"],
             lambda m: m.module.encode,
