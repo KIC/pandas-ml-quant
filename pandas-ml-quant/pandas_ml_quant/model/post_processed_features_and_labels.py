@@ -5,13 +5,13 @@ from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
 class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
 
     def __init__(self,
-                 features: Typing.MlGetItem,
+                 features: Typing._Selector,
                  feature_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]],
-                 labels: Typing.MlGetItem,
+                 labels: Typing._Selector,
                  labels_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
-                 sample_weights: Typing.MlGetItem = None,
-                 gross_loss: Typing.MlGetItem = None,
-                 targets: Typing.MlGetItem = None,
+                 sample_weights: Typing._Selector = None,
+                 gross_loss: Typing._Selector = None,
+                 targets: Typing._Selector = None,
                  label_type=None,
                  **kwargs):
         super().__init__(

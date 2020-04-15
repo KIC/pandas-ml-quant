@@ -114,9 +114,9 @@ class PytorchModel(Model):
             self.module.eval()
 
             if use_cuda:
-                return self.module.cuda()(Variable(t.from_numpy(x)).float().cuda()).numpy()
+                return self.module.cuda()(t.from_numpy(x).float().cuda()).numpy()
             else:
-                return self.module(Variable(t.from_numpy(x)).float()).numpy()
+                return self.module(t.from_numpy(x).float()).numpy()
 
     def plot_loss(self):
         import matplotlib.pyplot as plt

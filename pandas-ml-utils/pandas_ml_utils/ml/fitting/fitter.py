@@ -93,8 +93,8 @@ def fit(df: pd.DataFrame,
 
     # update model properties and return the fit
     model._validation_indices = test_idx
-    model.features_and_labels._min_required_samples = min_required_samples
-    model.features_and_labels._label_columns = labels[0].columns.tolist()
+    model.features_and_labels.set_min_required_samples(min_required_samples)
+    model.features_and_labels.set_label_columns(labels[0].columns.tolist())
     return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails)
 
 

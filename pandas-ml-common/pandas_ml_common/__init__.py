@@ -32,4 +32,4 @@ class Typing(object):
     Series = pd.Series
     Pandas = Union[DataFrame, Series]
     PdIndex = pd.Index
-    MlGetItem = Union[str, List['MlGetItem'], Callable[[Any], Union[pd.DataFrame, pd.Series]], Constant]
+    _Selector = Union[str, List['MlGetItem'], Callable[[Any], Union[pd.DataFrame, pd.Series]], Constant]

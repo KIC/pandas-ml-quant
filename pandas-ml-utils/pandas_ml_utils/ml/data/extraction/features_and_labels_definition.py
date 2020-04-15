@@ -21,11 +21,11 @@ class FeaturesAndLabels(object):
     """
 
     def __init__(self,
-                 features: Typing.MlGetItem,
-                 labels: Typing.MlGetItem,
-                 sample_weights: Typing.MlGetItem = None,
-                 gross_loss: Typing.MlGetItem = None,
-                 targets: Typing.MlGetItem = None,
+                 features: Typing._Selector,
+                 labels: Typing._Selector,
+                 sample_weights: Typing._Selector = None,
+                 gross_loss: Typing._Selector = None,
+                 targets: Typing._Selector = None,
                  label_type = None,
                  **kwargs):
         """
@@ -66,6 +66,17 @@ class FeaturesAndLabels(object):
         # set after fit
         self._min_required_samples = None
         self._label_columns = None
+
+    def set_min_required_samples(self, min_required: int):
+        self._min_required_samples = min_required
+
+        return self
+
+    def set_label_columns(self, column_names, over_write=False) -> 'FeaturesAndLabels':
+        if not self._label_columns or over_write:
+            self._label_columns = column_names
+
+        return self
 
     @property
     def features(self):

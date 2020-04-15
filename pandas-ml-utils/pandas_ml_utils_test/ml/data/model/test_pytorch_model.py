@@ -4,6 +4,7 @@ import torch as t
 import torch.nn as nn
 from torch.optim import SGD
 
+from pandas_ml_utils import AutoEncoderModel
 from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
@@ -35,6 +36,38 @@ class RegressionModule(nn.Module):
         return x
 
 
+class AutoEncoderModule(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(2, 2),
+            nn.ReLU(),
+            nn.Linear(2, 1),
+            nn.ReLU(),
+        )
+
+        self.decoder = nn.Sequential(
+            nn.Linear(1, 2),
+            nn.ReLU(),
+            nn.Linear(2, 2),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
+
+    def encode(self, x):
+        with t.no_grad():
+            return self.encoder(t.from_numpy(x).float()).numpy()
+
+    def decode(self, x):
+        with t.no_grad():
+            return self.decoder(t.from_numpy(x).float()).numpy()
+
+
 class TestPytorchModel(TestAbstractModel, TestCase):
 
     def provide_classification_model(self, features_and_labels):
@@ -61,4 +94,20 @@ class TestPytorchModel(TestAbstractModel, TestCase):
 
         return model
 
+    def provide_auto_encoder_model(self, features_and_labels):
+        t.manual_seed(12)
+
+        model = AutoEncoderModel(
+            PytorchModel(
+                features_and_labels,
+                AutoEncoderModule,
+                nn.MSELoss,
+                lambda params: SGD(params, lr=0.01, momentum=0.0)
+            ),
+            ["condensed"],
+            lambda m: m.module.encode,
+            lambda m: m.module.decode,
+        )
+
+        return model
 
