@@ -1,5 +1,9 @@
+import os
+import tempfile
+import uuid
+
 from pandas_ml_common import pd, np
-from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels, Model
 from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
 
 
@@ -25,7 +29,13 @@ class TestAbstractModel(object):
         np.testing.assert_array_equal(binary_prediction, np.array([True, False, False, True, True, False, False, True,]))
 
         """and save and load the model"""
-        # FIXME save load test -> same prediction result
+        temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        try:
+            fit.model.save(temp)
+            copy = Model.load(temp)
+            pd.testing.assert_frame_equal(df.model.predict(fit.model), df.model.predict(copy), check_less_precise=True)
+        finally:
+            os.remove(temp)
 
     def test_regressor(self):
         """given some toy regression data"""
@@ -46,10 +56,17 @@ class TestAbstractModel(object):
         np.testing.assert_array_almost_equal(prediction.iloc[:, 0].values, df["b"].values, 1)
 
         """and save and load the model"""
-        # FIXME save load test -> same prediction result
+        temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        try:
+            fit.model.save(temp)
+            copy = Model.load(temp)
+            pd.testing.assert_frame_equal(df.model.predict(fit.model), df.model.predict(copy), check_less_precise=True)
+        finally:
+            os.remove(temp)
 
-    def provide_regression_model(self, features_and_labels):
+    # Abstract methods
+    def provide_regression_model(self, features_and_labels) -> Model:
         pass
 
-    def provide_classification_model(self, features_and_labels):
+    def provide_classification_model(self, features_and_labels) -> Model:
         pass

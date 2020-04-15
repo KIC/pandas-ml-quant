@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import contextlib
 import logging
-import os
-import tempfile
-import uuid
 from copy import deepcopy
-from typing import List, Callable, TYPE_CHECKING, Tuple, Type, Dict
+from typing import List, Callable, TYPE_CHECKING, Type, Dict
 
 import numpy as np
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import merge_kwargs, suitable_kwargs
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
@@ -126,14 +121,36 @@ class PytorchModel(Model):
     def plot_loss(self):
         import matplotlib.pyplot as plt
 
-        # FIXME
         plt.plot(self.history['val_loss'], label='test')
         plt.plot(self.history['loss'], label='train')
         plt.legend(loc='best')
 
-    # TODO serialization
-    #  def __getstate__(self):
-    #  def __setstate__(self): use torch.save(model.state_dict(), './sim_autoencoder.pth')
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains all our instance attributes.
+        # Always use the dict.copy() method to avoid modifying the original state.
+        state = self.__dict__.copy()
+
+        # remove un-pickleable fields
+        del state['module']
+
+        # add torch serialisation
+        state['module_state_dict'] = self.module.state_dict()
+
+        # return altered state
+        return state
+
+    def __setstate__(self, state):
+        # use torch.save(model.state_dict(), './sim_autoencoder.pth')
+        # first remove the special state
+        module_state_dict = state['module_state_dict']
+        del state['module_state_dict']
+
+        # Restore instance attributes
+        self.__dict__.update(state)
+        self.module = self.module_provider()
+
+        # restore special state dict
+        self.module.load_state_dict(module_state_dict)
 
     def __call__(self, *args, **kwargs):
         pytorch_model = PytorchModel(

@@ -8,24 +8,37 @@ from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
 
-class TestKerasModel(TestAbstractModel, TestCase):
+class ClassificationModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.classifier = nn.Sequential(
+            nn.Linear(2, 5),
+            nn.ReLU(),
+            nn.Linear(5, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        x = self.classifier(x)
+        return x
+
+
+class RegressionModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.regressor = nn.Sequential(
+            nn.Linear(1, 1)
+        )
+
+    def forward(self, x):
+        x = self.regressor(x)
+        return x
+
+
+class TestPytorchModel(TestAbstractModel, TestCase):
 
     def provide_classification_model(self, features_and_labels):
         t.manual_seed(42)
-
-        class ClassificationModule(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.classifier = nn.Sequential(
-                    nn.Linear(2, 5),
-                    nn.ReLU(),
-                    nn.Linear(5, 1),
-                    nn.Sigmoid()
-                )
-
-            def forward(self, x):
-                x = self.classifier(x)
-                return x
 
         model = PytorchModel(
             features_and_labels,
@@ -38,17 +51,6 @@ class TestKerasModel(TestAbstractModel, TestCase):
 
     def provide_regression_model(self, features_and_labels):
         t.manual_seed(12)
-
-        class RegressionModule(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.regressor = nn.Sequential(
-                    nn.Linear(1, 1)
-                )
-
-            def forward(self, x):
-                x = self.regressor(x)
-                return x
 
         model = PytorchModel(
             features_and_labels,
