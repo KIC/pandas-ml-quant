@@ -111,3 +111,6 @@ class TestPytorchModel(TestAbstractModel, TestCase):
 
         return model
 
+    def test_callbacks(self):
+        # TODO create a test with a early stopping callback and pass restore_best_weights=True as kwarg
+        pass

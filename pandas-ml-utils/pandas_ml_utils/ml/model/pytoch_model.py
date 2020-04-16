@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from copy import deepcopy
 from typing import List, Callable, TYPE_CHECKING, Type, Dict
 
@@ -45,6 +46,7 @@ class PytorchModel(Model):
         from torch.autograd import Variable
         import torch as t
 
+        restore_best_weights = kwargs["restore_best_weights"] if "restore_best_weights" in kwargs else False
         num_epochs = kwargs["epochs"] if "epochs" in kwargs else 100
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
@@ -52,6 +54,8 @@ class PytorchModel(Model):
         module = (self.module.cuda() if use_cuda else self.module).train()
         criterion = self.criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
+        best_model_wts = deepcopy(module.state_dict())
+        best_loss = sys.float_info.max
         epoch_losses = []
         epoch_val_losses = []
 
@@ -60,13 +64,15 @@ class PytorchModel(Model):
             for i in range(0, len(x), batch_size):
                 nnx = Variable(t.from_numpy(x[i:i+batch_size])).float()
                 nny = Variable(t.from_numpy(y[i:i+batch_size])).float()
+                weights = Variable(t.from_numpy(sample_weight_train[i:i+batch_size])).float() \
+                    if sample_weight_train is not None else t.ones(len(x))
 
                 if use_cuda:
-                    nnx, nny = nnx.cuda(), nny.cuda()
+                    nnx, nny, weights = nnx.cuda(), nny.cuda(), weights.cuda()
 
                 # ===================forward=====================
                 output = module(nnx)
-                loss = criterion(output, nny)
+                loss = (criterion(output, nny).sum() * weights).mean()
 
                 # ===================backward====================
                 optimizer.zero_grad()
@@ -88,8 +94,12 @@ class PytorchModel(Model):
                     if use_cuda:
                         nnx_val, nny_val = nnx_val.cuda(), nny_val.cuda()
 
-                    val_loss = self.criterion_provider()(module(nnx_val), nny_val).item()
+                    val_loss = self.criterion_provider()(module(nnx_val), nny_val).sum().item()
                     epoch_val_losses.append(val_loss)
+
+                    if val_loss < best_loss:
+                        best_loss = val_loss
+                        best_model_wts = deepcopy(module.state_dict())
 
             # print('epoch [{}/{}], loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data))
             # print(output)
@@ -97,6 +107,9 @@ class PytorchModel(Model):
                 #pic = to_img(output.cpu().data)
                 #save_image(pic, './mlp_img/image_{}.png'.format(epoch))
                 pass
+
+        if restore_best_weights:
+            module.load_state_dict(best_model_wts)
 
         self.history["loss"] = np.array(epoch_losses)
         self.history["val_loss"] = np.array(epoch_val_losses)
