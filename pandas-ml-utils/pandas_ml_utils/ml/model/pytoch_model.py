@@ -8,6 +8,7 @@ from typing import List, Callable, TYPE_CHECKING, Type, Dict
 import numpy as np
 
 from pandas_ml_common import Typing
+from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
@@ -46,6 +47,7 @@ class PytorchModel(Model):
         from torch.autograd import Variable
         import torch as t
 
+        on_epoch_callbacks = kwargs["on_epoch"] if "on_epoch" in kwargs else []
         restore_best_weights = kwargs["restore_best_weights"] if "restore_best_weights" in kwargs else False
         num_epochs = kwargs["epochs"] if "epochs" in kwargs else 100
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
@@ -101,12 +103,12 @@ class PytorchModel(Model):
                         best_loss = val_loss
                         best_model_wts = deepcopy(module.state_dict())
 
-            # print('epoch [{}/{}], loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data))
-            # print(output)
-            if epoch % 10 == 0:
-                #pic = to_img(output.cpu().data)
-                #save_image(pic, './mlp_img/image_{}.png'.format(epoch))
-                pass
+            # invoke on epoch end callbacks
+            try:
+                for callback in on_epoch_callbacks:
+                    call_callable_dynamic_args(callback, loss=loss, val_loss=val_loss)
+            except StopIteration:
+                break
 
         if restore_best_weights:
             module.load_state_dict(best_model_wts)
@@ -177,3 +179,24 @@ class PytorchModel(Model):
 
         pytorch_model.module = self.module_provider()
         return pytorch_model
+
+
+class Callbacks(object):
+
+    @staticmethod
+    def early_stopping(patience=1, tolerance=0.001):
+        last_loss = sys.float_info.max
+        counter = 0
+
+        def callback(val_loss):
+            nonlocal last_loss, counter
+            if (val_loss - tolerance) < last_loss:
+                last_loss = val_loss
+                counter = 0
+            else:
+                counter += 1
+                if counter >= patience:
+                    print(f"early stopping {counter}, {val_loss} > {last_loss}")
+                    raise StopIteration("early stopping")
+
+        return callback

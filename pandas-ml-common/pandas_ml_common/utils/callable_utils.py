@@ -5,6 +5,7 @@ import logging
 _log = logging.getLogger(__name__)
 _DEBUG = False
 
+
 def call_callable_dynamic_args(func, *args, **kwargs):
     if not callable(func):
         raise ValueError(f"function {func} is not callable")
@@ -35,8 +36,10 @@ def call_callable_dynamic_args(func, *args, **kwargs):
                 _log.debug(f"call {func}({kwargs})")
 
             return func(*call_args)
+    except StopIteration as s:
+        raise s
     except Exception as e:
-        raise RuntimeError(e, f"error while calling {func}({spec.args}) whith arguments {call_args}, {kwargs}")
+        raise RuntimeError(e, f"error while calling {func}({spec.args})\n{inspect.getsource(func)}\nwith arguments:\n{call_args}, {kwargs}")
 
 
 def suitable_kwargs(func, *args, **kwargs):

@@ -4,8 +4,8 @@ import torch as t
 import torch.nn as nn
 from torch.optim import SGD
 
-from pandas_ml_utils import AutoEncoderModel
-from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
+from pandas_ml_utils import pd, AutoEncoderModel, FeaturesAndLabels
+from pandas_ml_utils.ml.model.pytoch_model import PytorchModel, Callbacks
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
 
@@ -112,5 +112,18 @@ class TestPytorchModel(TestAbstractModel, TestCase):
         return model
 
     def test_callbacks(self):
-        # TODO create a test with a early stopping callback and pass restore_best_weights=True as kwarg
-        pass
+        # a test with a early stopping callback and pass restore_best_weights=True as kwarg
+        df = pd.DataFrame({
+            "a": [1, 0, 1, 0, 1, 0, 1, 0, ],
+            "b": [0, 1, 0, 1, 1, 0, 1, 0, ],
+        })
+
+        model = PytorchModel(
+            FeaturesAndLabels(["a", "b"], ["b"]),
+            ClassificationModule,
+            nn.MSELoss,
+            lambda params: SGD(params, lr=0.1, momentum=0.9)
+        )
+
+        fit = df.model.fit(model, on_epoch=[Callbacks.early_stopping(patience=3, tolerance=-100)], restore_best_weights=True)
+        self.assertEqual(4, len(fit.model.history["loss"]))

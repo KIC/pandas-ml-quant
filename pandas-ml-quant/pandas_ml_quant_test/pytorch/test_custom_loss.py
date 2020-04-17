@@ -42,7 +42,7 @@ class TestCustomLoss(TestCase):
                 hidden_decoder = nn.Parameter(t.zeros(self.num_layers * self.num_directions, batch_size, self.input_size))
 
                 x, _ = self._encoder(x, hidden_encoder)
-                # print(x.shape)
+                x = t.repeat_interleave(x[:,-2:-1], x.shape[1], dim=1)
                 x, hidden = self._decoder(x, hidden_decoder)
                 return x
 
@@ -53,7 +53,9 @@ class TestCustomLoss(TestCase):
                 with t.no_grad():
                     hidden = nn.Parameter(
                         t.zeros(self.num_layers * self.num_directions, batch_size, self.hidden_size))
-                    return self._encoder(t.from_numpy(x).float(), hidden)[0].numpy()
+
+                    # return last element of sequence
+                    return self._encoder(t.from_numpy(x).float(), hidden)[0].numpy()[:,-1]
 
             def decoder(self, x):
                 x = x.reshape(-1, self.seq_size, self.hidden_size)
@@ -72,13 +74,13 @@ class TestCustomLoss(TestCase):
                 SoftDTW,
                 Adam
             ),
-            ["condensed"],
+            ["condensed-a", "condensed-b"],
             lambda m: m.module.encoder,
             lambda m: m.module.decoder,
         )
 
         fit = df.model.fit(model, epochs=100)
-        print(fit)
+        print(fit.test_summary.df)
 
         encoded = df.model.predict(fit.model.as_encoder())
         print(encoded)
