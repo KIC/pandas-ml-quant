@@ -24,6 +24,8 @@ class TestRescaling(TestCase):
     def test_rescale_embedded(self):
         df = DF_TEST[["Close", "High"]][-5:].ta.rnn(3).copy()
         rows = ta_rescale(df, (0, 1), axis=1)
+        print(rows)
+
         self.assertEqual(3, np.argmax(rows.iloc[-1]))
 
     def test_relative_candles(self):

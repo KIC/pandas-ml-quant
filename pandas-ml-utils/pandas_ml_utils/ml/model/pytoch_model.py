@@ -90,13 +90,18 @@ class PytorchModel(Model):
             # add validation loss history
             if y_val is not None and len(y_val) > 0:
                 with t.no_grad():
+                    nnx = Variable(t.from_numpy(x)).float()
+                    nny = Variable(t.from_numpy(y)).float()
                     nnx_val = Variable(t.from_numpy(x_val)).float()
                     nny_val = Variable(t.from_numpy(y_val)).float()
 
                     if use_cuda:
+                        nnx, nny = nnx.cuda(), nny.cuda()
                         nnx_val, nny_val = nnx_val.cuda(), nny_val.cuda()
 
-                    val_loss = self.criterion_provider()(module(nnx_val), nny_val).sum().item()
+                    y_hat = module(nnx)
+                    y_hat_val = module(nnx_val)
+                    val_loss = self.criterion_provider()(y_hat_val, nny_val).sum().item()
                     epoch_val_losses.append(val_loss)
 
                     if val_loss < best_loss:
@@ -106,7 +111,11 @@ class PytorchModel(Model):
             # invoke on epoch end callbacks
             try:
                 for callback in on_epoch_callbacks:
-                    call_callable_dynamic_args(callback, loss=loss, val_loss=val_loss)
+                    call_callable_dynamic_args(callback,
+                                               epoch=epoch,
+                                               x=x, y=y, x_val=x_val, y_val=y_val,
+                                               y_hat=y_hat, y_hat_val=y_hat_val,
+                                               loss=loss, val_loss=val_loss)
             except StopIteration:
                 break
 
@@ -178,6 +187,11 @@ class PytorchModel(Model):
         )
 
         pytorch_model.module = self.module_provider()
+
+        # copy weights of existing models
+        if self.module is not None:
+            pytorch_model.load_state_dict(deepcopy(self.module.state_dict()))
+
         return pytorch_model
 
 

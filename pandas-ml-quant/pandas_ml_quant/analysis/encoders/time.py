@@ -5,7 +5,7 @@ from pandas_ml_common import Typing as _t
 
 
 def ta_decimal_year(df: _t.PatchedPandas):
-    return df.index.strftime("%j").astype(float) - 1 / 366 + df.index.strftime("%Y").astype(float)
+    return (df.index.strftime("%j").astype(float) - 1) / 366 + df.index.strftime("%Y").astype(float)
 
 
 def ta_week_day(po: _t.PatchedPandas):

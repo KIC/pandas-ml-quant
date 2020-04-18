@@ -219,5 +219,6 @@ class KerasModel(Model):
 
         # copy weights before return
         new_model.set_weights(self.get_weights())
+
         return new_model
 
