@@ -66,3 +66,8 @@ def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
     a = (df - df.rolling(period).mean().shift(lag)) if demean else df
     return (a / s / 4).rename(df.name)
 
+
+def ta_performance(df: Typing.PatchedPandas):
+    delta = df.pct_change() + 1
+    return delta.cumprod()
+
