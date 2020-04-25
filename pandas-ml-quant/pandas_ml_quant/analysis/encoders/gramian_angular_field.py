@@ -93,7 +93,7 @@ def ta_inverse_gasf(df: Typing.PatchedPandas):
 
 def np_inverse_gaf(values):
     # values have shape channel, w, h
-    if len(values.shape) == 4:
+    if values.ndim == 4:
         return _np.array([np_inverse_gaf(values[sample]) for sample in range(values.shape[0])])
     else:
         return _np.array([_np.sqrt(((_np.diag(values[channel]) + 1) / 2)) for channel in range(values.shape[0])])

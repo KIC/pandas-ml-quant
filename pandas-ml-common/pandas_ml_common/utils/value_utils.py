@@ -27,7 +27,7 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:
     # if the last dimension is 1 we can remove it
-    if len(arr.shape) > 1 and arr.shape[-1] == 1:
+    if arr.ndim > 1 and arr.shape[-1] == 1:
         arr = arr.reshape(arr.shape[:-1])
 
     # if we have one column and a 1D vector just return a new series

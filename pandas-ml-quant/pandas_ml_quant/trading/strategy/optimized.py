@@ -62,7 +62,7 @@ def ta_markowitz(df: Typing.PatchedDataFrame,
         if last_solution is not None and last_solution.sum() > 0.99:
             # so we had at least one valid solution in the past
             # we can early exit if we do not have any signal or or no signal for any currently hold asset
-            if len(t.shape) > 1 and t.shape[1] == nr_of_assets:
+            if t.ndim > 1 and t.shape[1] == nr_of_assets:
                 if t[:, last_solution >= 0.01].sum().any() < 1:
                     return keep_solution
             else:

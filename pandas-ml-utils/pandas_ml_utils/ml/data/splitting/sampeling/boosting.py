@@ -13,7 +13,7 @@ class KFoldBoostRareEvents(KFold):
         indices = np.arange(n_samples)
 
         # all events which are true are considered to be rare
-        rare_event_indices = indices[np.sum(y, axis=tuple(range(1, len(y.shape)))) >= 0.999]
+        rare_event_indices = indices[np.sum(y, axis=tuple(range(1, y.ndim))) >= 0.999]
 
         for f, (train_idx, test_idx) in enumerate(super().split(X, y, groups)):
             yield np.hstack([train_idx, rare_event_indices]), np.hstack([test_idx, rare_event_indices])

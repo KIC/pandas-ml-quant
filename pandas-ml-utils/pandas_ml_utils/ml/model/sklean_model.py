@@ -91,7 +91,7 @@ class SkModel(Model):
 
     @staticmethod
     def reshape_rnn_as_ar(arr3d):
-        if len(arr3d.shape) < 3:
+        if arr3d.ndim < 3:
             print("Data was not in RNN shape")
             return arr3d
         else:

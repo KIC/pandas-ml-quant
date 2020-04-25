@@ -68,7 +68,7 @@ class AutoEncoderModel(Model):
         return loss
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        if len(x.shape) > 2 and x.shape[-1] == 1:
+        if x.ndim > 2 and x.shape[-1] == 1:
             x = x.reshape(x.shape[:-1])
 
         if self._predictor is None:

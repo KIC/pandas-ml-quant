@@ -46,7 +46,7 @@ class ClassificationSummary(Summary):
         tpr = dict()
         roc_auc = dict()
 
-        if len(truth.shape) > 1:
+        if truth.ndim > 1:
             for i in range(truth.shape[1]):
                 fpr[i], tpr[i], _ = roc_curve(truth[:, i], prediction[:, i])
                 roc_auc[i] = auc(fpr[i], tpr[i])
@@ -81,12 +81,12 @@ class ClassificationSummary(Summary):
     def _fix_label_prediction_representation(self):
         true_values = self.df[self.true_columns]._.values
 
-        if len(true_values.shape) > 1:
+        if true_values.ndim > 1:
             true_values = true_values.reshape((len(true_values), -1))
 
         pred_values = self.df[self.pred_columns]._.values.reshape(true_values.shape)
 
-        if len(true_values.shape) > 2 and true_values.shape[1] > 2:
+        if true_values.ndim > 2 and true_values.shape[1] > 2:
             # get class of multi class probabilities
             true_values = np.apply_along_axis(np.argmax, 1, true_values)
             pred_values = np.apply_along_axis(np.argmax, 1, pred_values)

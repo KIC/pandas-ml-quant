@@ -18,7 +18,7 @@ def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
         if digits is not None:
             rescaled = np.around(rescaled, digits)
 
-        if len(rescaled.shape) > 1:
+        if rescaled.ndim > 1:
             return pd.DataFrame(rescaled, columns=df.columns, index=df.index)
         else:
             return pd.Series(rescaled, name=df.name, index=df.index)
