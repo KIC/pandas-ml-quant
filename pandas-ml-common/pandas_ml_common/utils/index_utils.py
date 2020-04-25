@@ -66,7 +66,7 @@ def loc_if_not_none(df, value):
 
 def get_pandas_object(po: PandasObject, item, **kwargs):
     if item is None:
-        _log.warning("passed item was None")
+        _log.info("passed item was None")
         return None
     elif isinstance(item, Constant):
         return pd.Series(np.full(len(po), item.value), name=f"{item.value}", index=po.index)

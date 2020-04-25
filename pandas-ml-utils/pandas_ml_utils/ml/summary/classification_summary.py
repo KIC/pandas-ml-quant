@@ -34,8 +34,6 @@ class ClassificationSummary(Summary):
         if prediction.shape[-1] == 1:
             prediction = np.hstack([prediction, 1 - prediction])
 
-        print(prediction.shape, truth.shape)
-
         # calculate legends
         legend = [(col[1] if isinstance(col, tuple) else col) for col in self.df[self.true_columns].columns.tolist()]
         if truth.shape[1] > len(legend):
