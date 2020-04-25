@@ -39,6 +39,13 @@ def invertible_gaf_encoder(time_steps, **kwargs):
 
 # technical analysis function
 def ta_gaf(df: Typing.PatchedPandas, columm_index_level=1, type='pyts', **kwargs):
+    """
+    :param df:
+    :param columm_index_level:
+    :param type:
+    :param kwargs:
+    :return: channel first 2D convolution GAF encoded matrix
+    """
 
     if isinstance(df.columns, _pd.MultiIndex):
         # for each n'd level column create a dict like {Close: [(1, Close), (2, Close), ...]}
@@ -82,3 +89,11 @@ def ta_inverse_gasf(df: Typing.PatchedPandas):
         return _np.sqrt(((_np.diag(values) + 1) / 2)).tolist()
 
     return df.to_frame().apply(gaf_decode, axis=1, result_type='expand')
+
+
+def np_inverse_gaf(values):
+    # values have shape channel, w, h
+    if len(values.shape) == 4:
+        return _np.array([np_inverse_gaf(values[sample]) for sample in range(values.shape[0])])
+    else:
+        return _np.array([_np.sqrt(((_np.diag(values[channel]) + 1) / 2)) for channel in range(values.shape[0])])

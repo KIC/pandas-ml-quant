@@ -5,14 +5,16 @@ from copy import deepcopy
 from typing import Callable
 
 import numpy as np
-from pandas_ml_common import Typing
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 
+from pandas_ml_common import Typing
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
 
 _log = logging.getLogger(__name__)
+ConvergenceWarning('ignore')
 
 
 class SkModel(Model):
@@ -33,7 +35,8 @@ class SkModel(Model):
                  **kwargs) -> float:
         # shape correction if needed
         x = SkModel.reshape_rnn_as_ar(x)
-        y = y.reshape((len(x), -1)) if len(y.shape) > 1 and y.shape[1] == 1 else y
+        y = y.reshape((len(x), -1)) if y.ndim > 1 and y.shape[1] == 1 else y
+        y = y.reshape(len(x)) if y.ndim == 2 and y.shape[1] == 1 else y
         self.label_shape = y.shape
 
         # remember fitted model

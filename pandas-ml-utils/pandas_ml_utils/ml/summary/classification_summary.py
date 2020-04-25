@@ -27,6 +27,15 @@ class ClassificationSummary(Summary):
         truth = self.df[self.true_columns]._.values.reshape((len(self.df), -1))
         prediction = self.df[self.pred_columns]._.values.reshape(truth.shape)
 
+        # fix binary classification case
+        if truth.shape[-1] == 1:
+            truth = np.hstack([truth, 1 - truth])
+
+        if prediction.shape[-1] == 1:
+            prediction = np.hstack([prediction, 1 - prediction])
+
+        print(prediction.shape, truth.shape)
+
         # calculate legends
         legend = [(col[1] if isinstance(col, tuple) else col) for col in self.df[self.true_columns].columns.tolist()]
         if truth.shape[1] > len(legend):
@@ -64,26 +73,34 @@ class ClassificationSummary(Summary):
         from mlxtend.plotting import plot_confusion_matrix
 
         truth, prediction = self._fix_label_prediction_representation()
-
         distinct_values = {*truth.reshape((-1,))}
+
         cm = confusion_matrix(truth, prediction, binary=len(distinct_values) <= 2)
         return plot_confusion_matrix(cm, figsize=figsize)
 
     def _fix_label_prediction_representation(self):
         true_values = self.df[self.true_columns]._.values
+
         if len(true_values.shape) > 1:
             true_values = true_values.reshape((len(true_values), -1))
 
         pred_values = self.df[self.pred_columns]._.values.reshape(true_values.shape)
 
-        if len(true_values.shape) > 1 and true_values.shape[1] > 1:
+        if len(true_values.shape) > 2 and true_values.shape[1] > 2:
+            # get class of multi class probabilities
             true_values = np.apply_along_axis(np.argmax, 1, true_values)
             pred_values = np.apply_along_axis(np.argmax, 1, pred_values)
+        elif pred_values.shape[1] == 1:
+            # fix for binary classification case
+            pred_values = pred_values > 0.5
 
         return true_values.reshape((-1, 1)), pred_values.reshape((-1, 1))
 
     def __str__(self):
-        cmx = sk_confusion_matrix(*self._fix_label_prediction_representation())
+        truth, prediction = self._fix_label_prediction_representation()
+        distinct_values = {*truth.reshape((-1,))}
+
+        cmx = confusion_matrix(truth, prediction, binary=len(distinct_values) <= 2)
         return f"{cmx}"
 
     def _repr_html_(self):

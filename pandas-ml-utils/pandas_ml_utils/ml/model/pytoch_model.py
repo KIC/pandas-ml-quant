@@ -63,6 +63,7 @@ class PytorchModel(Model):
 
         for epoch in range(num_epochs):
             batch_loss = 0
+
             for i in range(0, len(x), batch_size):
                 nnx = Variable(t.from_numpy(x[i:i+batch_size])).float()
                 nny = Variable(t.from_numpy(y[i:i+batch_size])).float()

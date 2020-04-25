@@ -42,7 +42,7 @@ class KEquallyWeightEvents(object):
             sample_indices_per_label[l] = np.hstack([b, np.random.choice(b, required_samples - len(b), replace=replace)])
 
         # resample all events
-        resampled_indices = np.hstack(sample_indices_per_label.values())
+        resampled_indices = np.hstack(list(sample_indices_per_label.values()))
         resampled_labels = np.hstack([[l] * len(b) for l, b in sample_indices_per_label.items()])
 
         # to avoid sorted labels we need to shuffle again
