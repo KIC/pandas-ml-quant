@@ -27,7 +27,7 @@ class RandomSplits(Splitter):
 
         super().__init__()
         self.test_size = test_size
-        self.youngest_size = youngest_size
+        self.youngest_size = test_size * youngest_size if youngest_size is not None else None
         self._cross_validation = cross_validation
         self.seed = test_validate_split_seed
 
