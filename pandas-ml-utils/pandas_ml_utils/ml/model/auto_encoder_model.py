@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-import contextlib
 import logging
-import os
-import tempfile
-import uuid
 from copy import deepcopy
-from typing import List, Callable, TYPE_CHECKING, Tuple
+from typing import List, Callable
 
 import numpy as np
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import merge_kwargs, suitable_kwargs
-from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
 
@@ -39,6 +33,10 @@ class AutoEncoderModel(Model):
     @property
     def features_and_labels(self):
         return self._features_and_labels
+
+    def as_trainable(self) -> Model:
+        return self._copy_keep_original_model(self.trainable_model.predict_sample,
+                                              self.trainable_model.features_and_labels)
 
     def as_encoder(self) -> Model:
         fnl_copy = deepcopy(self.trainable_model.features_and_labels)
@@ -92,12 +90,6 @@ class AutoEncoderModel(Model):
         copy._features_and_labels = new_features_and_labels
 
         return copy
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state['_features_and_labels']
-        del state['_predictor']
-        return state
 
     def __call__(self, *args, **kwargs):
         return AutoEncoderModel(

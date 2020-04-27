@@ -4,8 +4,11 @@ from typing import Union as _Union
 import numpy as _np
 import pandas as _pd
 
+from pandas_ml_common import Typing as _t
 from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
+from pandas_ml_utils import Model
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
@@ -93,3 +96,15 @@ def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1, include_mean=True) -> _
             .join(quantile) \
             .sort_index(axis=1)
 
+
+def ta_model(df: _t.PatchedDataFrame, model: _Union[Model, str], post_processors=[]) -> _t.PatchedDataFrame:
+    if isinstance(model, str):
+        model = Model.load(model)
+
+    p = df.model.predict(model)[PREDICTION_COLUMN_NAME]
+
+    # apply post processors
+    for pc in post_processors:
+        p = pc(p)
+
+    return p

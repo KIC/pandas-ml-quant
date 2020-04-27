@@ -84,7 +84,7 @@ class ClassificationSummary(Summary):
 
         pred_values = self.df[self.pred_columns]._.values.reshape(true_values.shape)
 
-        if true_values.ndim > 2 and true_values.shape[1] > 2:
+        if true_values.ndim > 1 and true_values.shape[1] > 2:
             # get class of multi class probabilities
             true_values = np.apply_along_axis(np.argmax, 1, true_values)
             pred_values = np.apply_along_axis(np.argmax, 1, pred_values)
