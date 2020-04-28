@@ -274,7 +274,7 @@ class TestModel(TestCase):
             def calculate_trade_reward(self, portfolio_performance_log):
                 return portfolio_performance_log["net"].iloc[-1]
 
-            def next_observation(self, idx, features, labels, targets, weights):
+            def next_observation(self, idx, features, labels, targets, weights=None, gross_loss=None):
                 return features
 
         # when we fit the agent

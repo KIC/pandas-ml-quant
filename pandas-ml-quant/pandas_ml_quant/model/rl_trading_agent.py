@@ -48,7 +48,8 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
                          features: np.ndarray,
                          labels: np.ndarray,
                          targets: np.ndarray,
-                         weights: np.ndarray) -> float:
+                         weights: np.ndarray = None,
+                         gross_loss: np.ndarray = None) -> float:
         if self.allow_short:
             # 0 - 10  ->  -10 - 10
             action -= int(self.trading_fraction / 2) * 2
@@ -63,7 +64,8 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
                     features: np.ndarray,
                     labels: np.ndarray,
                     targets: np.ndarray,
-                    weights: np.ndarray) -> float:
+                    weights: np.ndarray = None,
+                    gross_loss: np.ndarray = None) -> float:
 
         # skip the very first bar
         if idx <= 0:
@@ -93,7 +95,8 @@ class TradingAgentGym(ReinforcementModel.DataFrameGym):
                          features: np.ndarray,
                          labels: np.ndarray,
                          targets: np.ndarray,
-                         weights: np.ndarray) -> np.ndarray:
+                         weights: np.ndarray = None,
+                         gross_loss: np.ndarray = None) -> np.ndarray:
         # currently returns only the features, but we also want to return some net worth, history, ...
         # for CNNs input must be [0, 255] and channel last, this means we need to reshape our feature space
         # return features.swapaxes(0, 1).swapaxes(1, 2) * 255

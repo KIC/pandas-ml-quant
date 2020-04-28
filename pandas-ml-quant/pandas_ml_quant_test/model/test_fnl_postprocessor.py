@@ -9,7 +9,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_feature_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w = df._.extract(
+        (f, min), l, t, w, gl = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
@@ -34,7 +34,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_feature_and_label_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w = df._.extract(
+        (f, min), l, t, w, gl = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",

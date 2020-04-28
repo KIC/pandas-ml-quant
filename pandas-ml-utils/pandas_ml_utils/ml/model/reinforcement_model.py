@@ -96,7 +96,8 @@ class ReinforcementModel(Model):
                         features: np.ndarray,
                         labels: np.ndarray,
                         targets: np.ndarray,
-                        weights: np.ndarray) -> float:
+                        weights: np.ndarray = None,
+                        gross_loss: np.ndarray = None) -> float:
             return action
 
         def take_action(self,
@@ -105,7 +106,8 @@ class ReinforcementModel(Model):
                         features: np.ndarray,
                         labels: np.ndarray,
                         targets: np.ndarray,
-                        weights: np.ndarray) -> float:
+                        weights: np.ndarray = None,
+                        gross_loss: np.ndarray = None) -> float:
             pass
 
         def next_observation(self,
@@ -113,7 +115,8 @@ class ReinforcementModel(Model):
                              features: np.ndarray,
                              labels: np.ndarray,
                              targets: np.ndarray,
-                             weights: np.ndarray) -> np.ndarray:
+                             weights: np.ndarray = None,
+                             gross_loss: np.ndarray = None) -> np.ndarray:
             pass
 
         def set_data_generator(self, sampler: Sampler, reward_history_collector, **kwargs):

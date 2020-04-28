@@ -10,11 +10,12 @@ from pandas_ml_common.utils.callable_utils import call_if_not_none
 def extract_feature_labels_weights(
         df: pd.DataFrame,
         features_and_labels,
-        **kwargs) -> Tuple[Tuple[pd.DataFrame, int], pd.DataFrame, pd.DataFrame, pd.Series]:
+        **kwargs) -> Tuple[Tuple[pd.DataFrame, int], pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
     labels = get_pandas_object(df, features_and_labels.labels, **kwargs).dropna()
     targets = call_if_not_none(get_pandas_object(df, features_and_labels.targets, **kwargs), 'dropna')
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
+    gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
     common_index = intersection_of_index(features, labels, targets, sample_weights)
 
     if features_and_labels.label_type is not None:
@@ -24,7 +25,8 @@ def extract_feature_labels_weights(
         (features.loc[common_index], len(df) - len(features) + 1),
         labels.loc[common_index],
         loc_if_not_none(targets, common_index),
-        loc_if_not_none(sample_weights, common_index)
+        loc_if_not_none(sample_weights, common_index),
+        loc_if_not_none(gross_loss, common_index)
     )
 
 

@@ -14,17 +14,17 @@ from pandas_ml_utils.ml.summary import Summary
 _log = logging.getLogger(__name__)
 
 
-# FIXME this need to be a specialized summary and moved over to the qunat library!!
-class BinaryClassificationSummary(Summary):
+# FIXME this need to be a specialized summary
+class BinaryWeightedClassificationSummary(Summary):
 
     def __init__(self, df: Typing.PatchedDataFrame, **kwargs):
         super().__init__(df)
         self.probability_cutoff = 0.5
-        self.confusions = BinaryClassificationSummary._calculate_confusions(df, self.probability_cutoff)
+        self.confusions = BinaryWeightedClassificationSummary._calculate_confusions(df, self.probability_cutoff)
 
     def set_probability_cutoff(self, probability_cutoff: float):
         self.probability_cutoff = probability_cutoff
-        self.confusions = BinaryClassificationSummary._calculate_confusions(self.df, probability_cutoff)
+        self.confusions = BinaryWeightedClassificationSummary._calculate_confusions(self.df, probability_cutoff)
 
     def get_confusion_matrix(self, total=True):
         confusion_mx = np.array([[[len(c) for c in r] for r in cm] for cm in self.confusions])
@@ -109,7 +109,7 @@ class BinaryClassificationSummary(Summary):
     def _calculate_confusions(df, probability_cutoff):
         if df.columns.nlevels == 3:
             # multiple targets
-            return [BinaryClassificationSummary._calculate_confusions(df[target], probability_cutoff)[0]
+            return [BinaryWeightedClassificationSummary._calculate_confusions(df[target], probability_cutoff)[0]
                     for target in unique_level_columns(df)]
         else:
             pc = probability_cutoff
@@ -121,5 +121,11 @@ class BinaryClassificationSummary(Summary):
             return [[[tp, fp],
                      [fn, tn]]]
 
-    def _html_template_file(self):
-        return f"{os.path.abspath(__file__)}.html"
+    def _repr_html_(self):
+        from mako.template import Template
+
+        file = os.path.abspath(__file__)
+        path = os.path.join(os.path.dirname(file), 'html')
+        file = os.path.basename(file).repace('.py', '.html')
+        template = Template(filename=os.path.join(path, file))
+        return template.render(summary=self)
