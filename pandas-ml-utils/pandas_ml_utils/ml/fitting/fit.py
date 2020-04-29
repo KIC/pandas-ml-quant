@@ -18,7 +18,7 @@ class Fit(object):
                  model: Model,
                  training_summary: Summary,
                  test_summary: Summary,
-                 trails: Any):
+                 trails: Any = None):
         self.model = model
         self.training_summary = training_summary
         self.test_summary = test_summary

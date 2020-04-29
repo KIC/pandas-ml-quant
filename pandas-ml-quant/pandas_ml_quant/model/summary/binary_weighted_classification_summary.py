@@ -1,12 +1,15 @@
 import logging
 import os
-from typing import Dict
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
+from matplotlib.axis import Axis
+from matplotlib.figure import Figure
 from sklearn.metrics import f1_score
 
 from pandas_ml_common import Typing
+from pandas_ml_common.serialization_utils import plot_to_html_img
 from pandas_ml_common.utils import unique_level_columns
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import Summary
@@ -58,52 +61,55 @@ class BinaryWeightedClassificationSummary(Summary):
         cm = self.get_confusion_matrix()
         return cm[0, 1] / cm[0, 0], cm[1, 0] / cm[0, 0]
 
-    def plot_classification(self, figsize=(16, 9)) -> Dict:
+    def plot_classification(self, figsize=(16, 9)) -> Figure:
         import seaborn as sns
         import matplotlib.pyplot as plt
-        from matplotlib import gridspec
         from pandas.plotting import register_matplotlib_converters
 
         # get rid of deprecation warning
         register_matplotlib_converters()
-
-        probability_cutoff = self.probability_cutoff
         pc = self.probability_cutoff
-        plots = {}
+        df = self.df
 
-        for target in unique_level_columns(self.df) if self.df.columns.nlevels == 3 else [None]:
-            # get target and frame
-            df = self.df[target] if target is not None else self.df
+        # define grid
+        fig, ax1 = plt.subplots(1, 1, figsize=figsize)
 
-            # define grid
-            fig = plt.figure(figsize=figsize)
-            gs = gridspec.GridSpec(2, 1, height_ratios=[1, 3])
-            ax0 = plt.subplot(gs[0])
-            ax1 = plt.subplot(gs[1])
+        x = np.arange(len(df))
+        yp = df[PREDICTION_COLUMN_NAME].iloc[:, 0]
+        yl = df[GROSS_LOSS_COLUMN_NAME].iloc[:, 0]
 
-            # plot probability
-            bar = sns.lineplot(x=range(len(df)), y=df[PREDICTION_COLUMN_NAME].iloc[:, 0], ax=ax0)
-            ax0.hlines(probability_cutoff, 0, len(df), color=sns.xkcd_rgb['silver'])
+        pos = ((df[PREDICTION_COLUMN_NAME].iloc[:, 0] <  pc) & (df[LABEL_COLUMN_NAME].iloc[:, 0] < pc)) |\
+              ((df[PREDICTION_COLUMN_NAME].iloc[:, 0] >  pc) & (df[LABEL_COLUMN_NAME].iloc[:, 0] > pc))
 
-            # plot loss
-            color = pd.Series(0, index=df.index)
-            color.loc[(df[PREDICTION_COLUMN_NAME].iloc[:, 0] >  pc) & df[LABEL_COLUMN_NAME].iloc[:, 0] > pc] = 1
-            color.loc[(df[PREDICTION_COLUMN_NAME].iloc[:, 0] <= pc) & df[LABEL_COLUMN_NAME].iloc[:, 0] > pc] = 2
+        neg = ((df[PREDICTION_COLUMN_NAME].iloc[:, 0] >= pc) & (df[LABEL_COLUMN_NAME].iloc[:, 0] < pc)) |\
+              ((df[PREDICTION_COLUMN_NAME].iloc[:, 0] <  pc) & (df[LABEL_COLUMN_NAME].iloc[:, 0] > pc))
 
-            colors = {0: sns.xkcd_rgb['white'], 1: sns.xkcd_rgb['pale green'], 2: sns.xkcd_rgb['cerise']}
-            palette = [colors[color_index] for color_index in np.sort(color.unique())]
+        # plot true positives/negatives
+        sns.scatterplot(ax=ax1,
+                        x=x[pos],
+                        y=yl[pos],
+                        size=np.abs(yp[pos].values - 0.5),
+                        size_norm=(0, 1),
+                        color=sns.xkcd_rgb['pale green'],
+        )
 
-            sns.scatterplot(ax=ax1,
-                            x=range(len(df)),
-                            y=df[GROSS_LOSS_COLUMN_NAME].iloc[:, 0].clip(upper=0),
-                            size=df[GROSS_LOSS_COLUMN_NAME].iloc[:, 0] * -1,
-                            hue=color,
-                            palette=palette)
+        # plot false positives/negatives
+        sns.scatterplot(ax=ax1,
+                        x=x[neg],
+                        y=yl[neg],
+                        size=np.abs(yp[neg].values - 0.5),
+                        size_norm=(0, 0.5),
+                        color=sns.xkcd_rgb['cerise'],
+        )
 
-            plt.close()
-            plots[target] = fig
+        # make y symmetric
+        maax = np.abs(yl.dropna().values).max()
+        ax1.set_ylim((-maax, maax))
 
-        return plots
+        # add mean line
+        ax1.hlines(0, 0, len(df), color=sns.xkcd_rgb['silver'])
+
+        return fig
 
     @staticmethod
     def _calculate_confusions(df, probability_cutoff):
@@ -126,6 +132,10 @@ class BinaryWeightedClassificationSummary(Summary):
 
         file = os.path.abspath(__file__)
         path = os.path.join(os.path.dirname(file), 'html')
-        file = os.path.basename(file).repace('.py', '.html')
+        file = os.path.basename(file).replace('.py', '.html')
         template = Template(filename=os.path.join(path, file))
-        return template.render(summary=self)
+
+        return template.render(
+            summary=self,
+            gross_loss_plot=plot_to_html_img(self.plot_classification),
+        )

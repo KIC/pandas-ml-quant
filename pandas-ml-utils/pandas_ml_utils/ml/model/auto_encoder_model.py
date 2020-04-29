@@ -28,33 +28,35 @@ class AutoEncoderModel(Model):
         self.encoded_column_names = encoded_column_names
         self.encoder_provider = encoder_provider
         self.decoder_provider = decoder_provider
-        self._predictor = None
+        self.mode = 'train'
 
     @property
     def features_and_labels(self):
         return self._features_and_labels
 
     def as_trainable(self) -> Model:
-        return self._copy_keep_original_model(self.trainable_model.predict_sample,
-                                              self.trainable_model.features_and_labels)
+        copy = self()
+        copy.mode = 'train'
+        copy._features_and_labels = deepcopy(self.trainable_model.features_and_labels)
+        return copy
 
     def as_encoder(self) -> Model:
         fnl_copy = deepcopy(self.trainable_model.features_and_labels)
         fnl_copy.set_label_columns(self.encoded_column_names, True)
 
-        return self._copy_keep_original_model(
-            self.encoder_provider(self.trainable_model),
-            fnl_copy
-        )
+        copy = self()
+        copy.mode = 'encode'
+        copy._features_and_labels = fnl_copy
+        return copy
 
     def as_decoder(self, decoder_features: List[Typing._Selector]) -> Model:
         fnl_copy = deepcopy(self.trainable_model.features_and_labels)
         fnl_copy._features = decoder_features
 
-        return self._copy_keep_original_model(
-            self.decoder_provider(self.trainable_model),
-            fnl_copy
-        )
+        copy = self()
+        copy.mode = 'decode'
+        copy._features_and_labels = fnl_copy
+        return copy
 
     def fit_fold(self,
                  x: np.ndarray, y: np.ndarray,
@@ -62,37 +64,21 @@ class AutoEncoderModel(Model):
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
                  **kwargs) -> float:
         loss = self.trainable_model.fit_fold(x, y,x_val, y_val, sample_weight_train, sample_weight_test, **kwargs)
-        self._predictor = self.trainable_model.predict_sample
         return loss
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if x.ndim > 2 and x.shape[-1] == 1:
             x = x.reshape(x.shape[:-1])
 
-        if self._predictor is None:
-            return self._copy_keep_original_model(self.trainable_model.predict_sample,
-                                                  self.trainable_model.features_and_labels)\
-                       ._predictor(x, **kwargs)
-        else:
-            return self._predictor(x, **kwargs)
-
-    def _copy_keep_original_model(self, new_predictior, new_features_and_labels):
-        copy = AutoEncoderModel(
-            self.trainable_model,
-            self.encoded_column_names,
-            self.encoder_provider,
-            self.decoder_provider,
-            self.summary_provider,
-            **self.kwargs
-        )
-
-        copy._predictor = new_predictior
-        copy._features_and_labels = new_features_and_labels
-
-        return copy
+        if self.mode == 'train':
+            return self.trainable_model.predict_sample(x, **kwargs)
+        elif self.mode == 'encode':
+            return self.encoder_provider(self.trainable_model)(x, **kwargs)
+        elif self.mode == 'decode':
+            return self.decoder_provider(self.trainable_model)(x, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        return AutoEncoderModel(
+        copy = AutoEncoderModel(
             self.trainable_model(*args, **kwargs),
             self.encoded_column_names,
             self.encoder_provider,
@@ -100,3 +86,6 @@ class AutoEncoderModel(Model):
             self.summary_provider,
             **self.kwargs
         )
+
+        copy.mode = self.mode
+        return copy

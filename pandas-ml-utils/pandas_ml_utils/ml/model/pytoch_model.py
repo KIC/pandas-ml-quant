@@ -191,7 +191,7 @@ class PytorchModel(Model):
 
         # copy weights of existing models
         if self.module is not None:
-            pytorch_model.load_state_dict(deepcopy(self.module.state_dict()))
+            pytorch_model.module.load_state_dict(deepcopy(self.module.state_dict()))
 
         return pytorch_model
 
