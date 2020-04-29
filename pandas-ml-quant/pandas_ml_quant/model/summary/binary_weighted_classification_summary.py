@@ -1,10 +1,7 @@
 import logging
 import os
-from typing import Dict, Tuple
 
 import numpy as np
-import pandas as pd
-from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 from sklearn.metrics import f1_score
 
@@ -12,13 +9,12 @@ from pandas_ml_common import Typing
 from pandas_ml_common.serialization_utils import plot_to_html_img
 from pandas_ml_common.utils import unique_level_columns
 from pandas_ml_utils.constants import *
-from pandas_ml_utils.ml.summary import Summary
+from pandas_ml_utils.ml.summary import ClassificationSummary
 
 _log = logging.getLogger(__name__)
 
 
-# FIXME this need to be a specialized summary
-class BinaryWeightedClassificationSummary(Summary):
+class BinaryWeightedClassificationSummary(ClassificationSummary):
 
     def __init__(self, df: Typing.PatchedDataFrame, **kwargs):
         super().__init__(df)
@@ -137,5 +133,7 @@ class BinaryWeightedClassificationSummary(Summary):
 
         return template.render(
             summary=self,
+            roc_plot=plot_to_html_img(self.plot_ROC),
+            cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
             gross_loss_plot=plot_to_html_img(self.plot_classification),
         )
