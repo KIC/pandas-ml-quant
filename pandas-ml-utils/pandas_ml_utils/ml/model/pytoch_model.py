@@ -41,7 +41,7 @@ class PytorchModel(Model):
     def fit_fold(self,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
+                 sample_weight: np.ndarray, sample_weight_val: np.ndarray,
                  **kwargs) -> float:
         # import specifics
         from torch.autograd import Variable
@@ -62,47 +62,48 @@ class PytorchModel(Model):
         epoch_val_losses = []
 
         for epoch in range(num_epochs):
-            batch_loss = 0
-
             for i in range(0, len(x), batch_size):
                 nnx = Variable(t.from_numpy(x[i:i+batch_size])).float()
                 nny = Variable(t.from_numpy(y[i:i+batch_size])).float()
-                weights = Variable(t.from_numpy(sample_weight_train[i:i+batch_size])).float() \
-                    if sample_weight_train is not None else t.ones(len(x))
+                weights = Variable(t.from_numpy(sample_weight[i:i + batch_size])).float() \
+                    if sample_weight is not None else t.ones(nny.shape[0])
 
                 if use_cuda:
                     nnx, nny, weights = nnx.cuda(), nny.cuda(), weights.cuda()
 
                 # ===================forward=====================
                 output = module(nnx)
-                loss = (criterion(output, nny).sum() * weights).mean()
+                loss = self._calc_weighted_loss(criterion, output, nny, weights)
 
                 # ===================backward====================
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
-                batch_loss += loss.item()
-
             # ===================log========================
-            # add loss history
-            epoch_losses.append(batch_loss)
-
             # add validation loss history
             if y_val is not None and len(y_val) > 0:
                 with t.no_grad():
-                    nnx = Variable(t.from_numpy(x)).float()
-                    nny = Variable(t.from_numpy(y)).float()
-                    nnx_val = Variable(t.from_numpy(x_val)).float()
-                    nny_val = Variable(t.from_numpy(y_val)).float()
+                    nnx = t.from_numpy(x).float()
+                    nny = t.from_numpy(y).float()
+                    weights = t.from_numpy(sample_weight).float() \
+                        if sample_weight is not None else t.ones(nny.shape[0])
+                    nnx_val = t.from_numpy(x_val).float()
+                    nny_val = t.from_numpy(y_val).float()
+                    weights_val = t.from_numpy(sample_weight_val).float() \
+                        if sample_weight_val is not None else t.ones(nny_val.shape[0])
 
                     if use_cuda:
                         nnx, nny = nnx.cuda(), nny.cuda()
                         nnx_val, nny_val = nnx_val.cuda(), nny_val.cuda()
+                        weights, weights_val = weights.cuda(), weights_val.cuda()
 
                     y_hat = module(nnx)
+                    loss = self._calc_weighted_loss(self.criterion_provider(), y_hat, nny, weights).item()
+                    epoch_losses.append(loss)
+
                     y_hat_val = module(nnx_val)
-                    val_loss = self.criterion_provider()(y_hat_val, nny_val).sum().item()
+                    val_loss = self._calc_weighted_loss(self.criterion_provider(), y_hat_val, nny_val, weights_val).item()
                     epoch_val_losses.append(val_loss)
 
                     if val_loss < best_loss:
@@ -116,7 +117,7 @@ class PytorchModel(Model):
                                                epoch=epoch,
                                                x=x, y=y, x_val=x_val, y_val=y_val,
                                                y_hat=y_hat, y_hat_val=y_hat_val,
-                                               loss=loss, val_loss=val_loss)
+                                               loss=loss, val_loss=val_loss, best_loss=best_loss)
             except StopIteration:
                 break
 
@@ -128,9 +129,16 @@ class PytorchModel(Model):
 
         return self.history["loss"][-1] if len(epoch_losses) > 0 else 0
 
+    def _calc_weighted_loss(self, criterion, y_hat, y, weights):
+        loss = criterion(y_hat, y)
+
+        if loss.ndim > 0:
+            loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
+
+        return loss
+
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         # import specifics
-        from torch.autograd import Variable
         import torch as t
 
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
@@ -195,23 +203,23 @@ class PytorchModel(Model):
 
         return pytorch_model
 
+    # Add some useful callbacks directly to the pytorch model
+    class Callbacks(object):
 
-class Callbacks(object):
+        @staticmethod
+        def early_stopping(patience=1, tolerance=0.001):
+            last_loss = sys.float_info.max
+            counter = 0
 
-    @staticmethod
-    def early_stopping(patience=1, tolerance=0.001):
-        last_loss = sys.float_info.max
-        counter = 0
+            def callback(val_loss):
+                nonlocal last_loss, counter
+                if (val_loss - tolerance) < last_loss:
+                    last_loss = val_loss
+                    counter = 0
+                else:
+                    counter += 1
+                    if counter >= patience:
+                        print(f"early stopping {counter}, {val_loss} > {last_loss}")
+                        raise StopIteration("early stopping")
 
-        def callback(val_loss):
-            nonlocal last_loss, counter
-            if (val_loss - tolerance) < last_loss:
-                last_loss = val_loss
-                counter = 0
-            else:
-                counter += 1
-                if counter >= patience:
-                    print(f"early stopping {counter}, {val_loss} > {last_loss}")
-                    raise StopIteration("early stopping")
-
-        return callback
+            return callback

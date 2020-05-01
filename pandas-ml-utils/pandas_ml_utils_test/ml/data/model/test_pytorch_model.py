@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.optim import SGD
 
 from pandas_ml_utils import pd, AutoEncoderModel, FeaturesAndLabels
-from pandas_ml_utils.ml.model.pytoch_model import PytorchModel, Callbacks
+from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
 
@@ -149,5 +149,5 @@ class TestPytorchModel(TestAbstractModel, TestCase):
             lambda params: SGD(params, lr=0.1, momentum=0.9)
         )
 
-        fit = df.model.fit(model, on_epoch=[Callbacks.early_stopping(patience=3, tolerance=-100)], restore_best_weights=True)
+        fit = df.model.fit(model, on_epoch=[PytorchModel.Callbacks.early_stopping(patience=3, tolerance=-100)], restore_best_weights=True)
         self.assertEqual(4, len(fit.model.history["loss"]))
