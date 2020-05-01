@@ -100,4 +100,4 @@ def ta_candle_category(df: _pd.DataFrame, open="Open", high="High", low="Low", c
                 return rank[4] * gap
 
     ranks = df.apply(map, raw=False, axis=1)
-    return ranks
+    return ranks.rename("candle_type")
