@@ -1,0 +1,13 @@
+<div style="width:100%; float: left; margin: 0px; padding: 0px;">
+    <div style="width:50%; float: left;">
+        % for cmx_plot in cmx_plots:
+            <img src="${cmx_plot}" style="float: left; width: 50%; margin-top: 0px; "/>
+        % endfor
+    </div>
+    <div style="width:50%; float: left;">
+        % for roc_plot in roc_plots:
+            <img src="${roc_plot}" style="float: left; width: 50%; margin-top: 0px; "/>
+        % endfor
+    </div>
+</div>
+

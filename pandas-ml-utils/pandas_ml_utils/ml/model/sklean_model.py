@@ -29,6 +29,7 @@ class SkModel(Model):
         self.label_shape = None
 
     def fit_fold(self,
+                 fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,

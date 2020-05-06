@@ -74,7 +74,10 @@ class ClassificationSummary(Summary):
         distinct_values = {*truth.reshape((-1,))}
 
         cm = confusion_matrix(truth, prediction, binary=len(distinct_values) <= 2)
-        return plot_confusion_matrix(cm, figsize=figsize)
+        fig, ax = plot_confusion_matrix(cm, figsize=figsize)
+        # ax.set_title('Confusion Matrix', fontsize=1)
+
+        return fig, ax
 
     def _fix_label_prediction_representation(self):
         true_values = self.df[self.true_columns]._.values

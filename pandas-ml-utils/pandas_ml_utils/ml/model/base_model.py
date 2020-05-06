@@ -107,16 +107,19 @@ class Model(object):
         """
 
         # sample: train[features, labels, target, weights], test[features, labels, target, weights]
-        losses = [self.fit_fold(s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs) for s in sampler.sample()]
+        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
+                  for i, s in enumerate(sampler.sample())]
         return np.array(losses).mean()
 
     def fit_fold(self,
+                 fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
                  **kwargs) -> float:
         """
         function called to fit the model to one fold of the data generator (i.e. k-folds)
+        :param fold_nr: number of fold in case of cross validation is used
         :param x: x
         :param y: y
         :param x_val: x validation

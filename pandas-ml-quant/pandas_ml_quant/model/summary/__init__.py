@@ -1,2 +1,2 @@
 from .backtest_summary import BacktestSummary
-from .binary_weighted_classification_summary import BinaryWeightedClassificationSummary
+from .binary_weighted_classification_summary import BinaryWeightedClassificationSummary, MultipleBinaryWeightedClassificationSummary

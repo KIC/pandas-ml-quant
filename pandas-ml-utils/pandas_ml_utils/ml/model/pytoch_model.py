@@ -39,6 +39,7 @@ class PytorchModel(Model):
         self.history = {}
 
     def fit_fold(self,
+                 fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight: np.ndarray, sample_weight_val: np.ndarray,
@@ -53,6 +54,8 @@ class PytorchModel(Model):
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
 
+        # FIXME we should not re-initialize model, critereon and optimizer once we have it already
+        #  TODO we might re-initialize the optimizer with a fold id
         module = (self.module.cuda() if use_cuda else self.module).train()
         criterion = self.criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
@@ -133,7 +136,10 @@ class PytorchModel(Model):
         loss = criterion(y_hat, y)
 
         if loss.ndim > 0:
-            loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
+            if loss.ndim == weights.ndim:
+                loss = (loss * weights).mean()
+            else:
+                loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
 
         return loss
 
@@ -205,6 +211,14 @@ class PytorchModel(Model):
 
     # Add some useful callbacks directly to the pytorch model
     class Callbacks(object):
+
+        @staticmethod
+        def print_loss(mod=10):
+            def printer(epoch, loss, val_loss):
+                if epoch % mod == 0:
+                    print(f"{epoch}: {loss}\t {val_loss}")
+
+            return printer
 
         @staticmethod
         def early_stopping(patience=1, tolerance=0.001):

@@ -59,11 +59,12 @@ class AutoEncoderModel(Model):
         return copy
 
     def fit_fold(self,
+                 fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
                  **kwargs) -> float:
-        loss = self.trainable_model.fit_fold(x, y,x_val, y_val, sample_weight_train, sample_weight_test, **kwargs)
+        loss = self.trainable_model.fit_fold(fold_nr, x, y,x_val, y_val, sample_weight_train, sample_weight_test, **kwargs)
         return loss
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
@@ -76,6 +77,9 @@ class AutoEncoderModel(Model):
             return self.encoder_provider(self.trainable_model)(x, **kwargs)
         elif self.mode == 'decode':
             return self.decoder_provider(self.trainable_model)(x, **kwargs)
+
+    def plot_loss(self):
+        return self.trainable_model.plot_loss()
 
     def __call__(self, *args, **kwargs):
         copy = AutoEncoderModel(

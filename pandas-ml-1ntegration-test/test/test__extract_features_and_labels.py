@@ -118,3 +118,4 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         # we have 2 labels each one hot encoded to 10 values
         self.assertEqual((6463, 2, 3), labels._.values.shape)
+

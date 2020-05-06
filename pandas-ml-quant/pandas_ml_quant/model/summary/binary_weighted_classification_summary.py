@@ -29,7 +29,7 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
         self.neg_idx = self.false_pos | self.false_neg
 
     def set_probability_cutoff(self, probability_cutoff: float):
-        return BinaryWeightedClassificationSummary(self.df, probability_cutoff)
+        return BinaryWeightedClassificationSummary(self.df, probability_cutoff, **self.kwargs)
 
     def gross_confusion(self):
         return (
@@ -85,10 +85,9 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
     def _repr_html_(self):
         from mako.template import Template
 
-        file = os.path.abspath(__file__)
-        path = os.path.join(os.path.dirname(file), 'html')
-        file = os.path.basename(file).replace('.py', '.html')
-        template = Template(filename=os.path.join(path, file))
+        path = os.path.dirname(os.path.abspath(__file__))
+        file = os.path.join(path, 'html', 'binary_weighted_classification_summary.html')
+        template = Template(filename=file)
 
         return template.render(
             summary=self,
@@ -97,3 +96,34 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
             cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
             gross_loss_plot=plot_to_html_img(self.plot_classification),
         )
+
+
+class MultipleBinaryWeightedClassificationSummary(ClassificationSummary):
+
+    def __init__(self, df: Typing.PatchedDataFrame, probability_cutoff=0.5, **kwargs):
+        super().__init__(df)
+        df = df[[LABEL_COLUMN_NAME, PREDICTION_COLUMN_NAME, GROSS_LOSS_COLUMN_NAME]]
+        nr_columns = len(df.columns) // 3
+
+        self.binary_summaries =\
+            [BinaryWeightedClassificationSummary(df.iloc[:,[i, i+nr_columns, i+nr_columns*2]], probability_cutoff, **kwargs)
+             for i in range(nr_columns)]
+
+    def set_probability_cutoff(self, probability_cutoff: float):
+        return MultipleBinaryWeightedClassificationSummary(self.df, probability_cutoff, **self.kwargs)
+
+    def _repr_html_(self):
+        from mako.template import Template
+
+        path = os.path.dirname(os.path.abspath(__file__))
+        file = os.path.join(path, 'html', 'multi_binary_weighted_classification_summary.html')
+        template = Template(filename=file)
+
+        return template.render(
+            summary=self,
+            gross_confusions=[bs.gross_confusion() for bs in self.binary_summaries],
+            roc_plots=[plot_to_html_img(bs.plot_ROC) for bs in self.binary_summaries],
+            cmx_plots=[plot_to_html_img(bs.plot_confusion_matrix) for bs in self.binary_summaries],
+            # gross_loss_plot=[plot_to_html_img(bs.plot_classification) for bs in self.binary_summaries],
+        )
+
