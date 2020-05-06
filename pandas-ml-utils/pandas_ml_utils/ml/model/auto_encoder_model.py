@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from copy import deepcopy
 from typing import List, Callable
@@ -9,6 +7,7 @@ import numpy as np
 from pandas_ml_common import Typing
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
+from ..data.splitting.sampeling import Sampler
 
 _log = logging.getLogger(__name__)
 
@@ -58,14 +57,8 @@ class AutoEncoderModel(Model):
         copy._features_and_labels = fnl_copy
         return copy
 
-    def fit_fold(self,
-                 fold_nr: int,
-                 x: np.ndarray, y: np.ndarray,
-                 x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> float:
-        loss = self.trainable_model.fit_fold(fold_nr, x, y,x_val, y_val, sample_weight_train, sample_weight_test, **kwargs)
-        return loss
+    def fit(self, sampler: Sampler, **kwargs) -> float:
+        return self.trainable_model.fit(sampler, **kwargs)
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if x.ndim > 2 and x.shape[-1] == 1:

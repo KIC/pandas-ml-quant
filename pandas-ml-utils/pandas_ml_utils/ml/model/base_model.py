@@ -91,13 +91,6 @@ class Model(object):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def plot_loss(self):
-        """
-        implement this function to plot a diagram of the training and validation losses
-        :return:
-        """
-        pass
-
     def fit(self, sampler: Sampler, **kwargs) -> float:
         """
         draws folds from the data generator as long as it yields new data and fits the model to one fold
@@ -110,6 +103,16 @@ class Model(object):
         losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
                   for i, s in enumerate(sampler.sample())]
         return np.array(losses).mean()
+
+    def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
+        """
+        predict as many samples as we can sample from the sampler
+
+        :param sampler:
+        :return:
+        """
+        # make shape (rows, samples, ...)
+        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
 
     def fit_fold(self,
                  fold_nr: int,
@@ -130,16 +133,6 @@ class Model(object):
         """
         pass
 
-    def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
-        """
-        predict as many samples as we can sample from the sampler
-
-        :param sampler:
-        :return:
-        """
-        # make shape (rows, samples, ...)
-        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
-
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """
         prediction of the model for each sample and target
@@ -148,6 +141,13 @@ class Model(object):
         :return: prediction of the model for each target
         """
 
+        pass
+
+    def plot_loss(self):
+        """
+        implement this function to plot a diagram of the training and validation losses
+        :return:
+        """
         pass
 
     def __call__(self, *args, **kwargs):
