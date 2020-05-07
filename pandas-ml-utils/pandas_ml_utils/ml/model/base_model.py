@@ -54,6 +54,7 @@ class Model(object):
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
         self._validation_indices = []
+        self._history = []
         self.kwargs = kwargs
 
     @property
@@ -102,7 +103,25 @@ class Model(object):
         # sample: train[features, labels, target, weights], test[features, labels, target, weights]
         losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
                   for i, s in enumerate(sampler.sample())]
-        return 0 # FIXME np.array(losses).mean()
+
+        self._history = losses
+        return np.array([fold_loss[0].mean() for fold_loss in losses]).mean()
+
+    def plot_loss(self, figsize=(8, 6)):
+        """
+        plot a diagram of the training and validation losses per fold
+        :return: figure and axis
+        """
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
+
+        for fold_nr, fold_loss in enumerate(self._history):
+            p = ax.plot(fold_loss[0], '-', label=f'{fold_nr}: loss')
+            ax.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{fold_nr}: val loss')
+
+        plt.legend(loc='upper right')
+        return fig, ax
 
     def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
         """
@@ -141,13 +160,6 @@ class Model(object):
         :return: prediction of the model for each target
         """
 
-        pass
-
-    def plot_loss(self):
-        """
-        implement this function to plot a diagram of the training and validation losses
-        :return:
-        """
         pass
 
     def __call__(self, *args, **kwargs):

@@ -58,7 +58,9 @@ class AutoEncoderModel(Model):
         return copy
 
     def fit(self, sampler: Sampler, **kwargs) -> float:
-        return self.trainable_model.fit(sampler, **kwargs)
+        loss = self.trainable_model.fit(sampler, **kwargs)
+        self._history = self.trainable_model._history
+        return loss
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if x.ndim > 2 and x.shape[-1] == 1:

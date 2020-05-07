@@ -37,12 +37,6 @@ class PytorchModel(Model):
         self.optimizer_provider = optimizer_provider
         self.callbacks = callbacks
         self.module = None
-        self.history = {}
-
-    def fit(self, sampler: Sampler, **kwargs) -> float:
-        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
-                  for i, s in enumerate(sampler.sample())]
-        return np.array(losses).mean()
 
     def fit_fold(self,
                  fold_nr: int,
@@ -60,8 +54,8 @@ class PytorchModel(Model):
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
 
-        # FIXME we should not re-initialize model, critereon and optimizer once we have it already
-        #  TODO we might re-initialize the optimizer with a fold id
+        # TODO we should not re-initialize model, critereon and optimizer once we have it already
+        #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
         module = (self.module.cuda() if use_cuda else self.module).train()
         criterion = self.criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
@@ -133,9 +127,6 @@ class PytorchModel(Model):
         if restore_best_weights:
             module.load_state_dict(best_model_wts)
 
-        self.history["loss"] = np.array(epoch_losses)
-        self.history["val_loss"] = np.array(epoch_val_losses)
-
         return np.array(epoch_losses), np.array(epoch_val_losses)
 
     def _calc_weighted_loss(self, criterion, y_hat, y, weights):
@@ -162,13 +153,6 @@ class PytorchModel(Model):
                 return self.module.cuda()(t.from_numpy(x).float().cuda()).numpy()
             else:
                 return self.module(t.from_numpy(x).float()).numpy()
-
-    def plot_loss(self):
-        import matplotlib.pyplot as plt
-
-        plt.plot(self.history['val_loss'], label='test')
-        plt.plot(self.history['loss'], label='train')
-        plt.legend(loc='best')
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.

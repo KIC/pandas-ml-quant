@@ -127,13 +127,6 @@ class KerasModel(Model):
     def set_weights(self, weights):
         self._exec_within_session(self.keras_model.set_weights, weights)
 
-    def plot_loss(self):
-        import matplotlib.pyplot as plt
-
-        plt.plot(self.history['val_loss'], label='test')
-        plt.plot(self.history['loss'], label='train')
-        plt.legend(loc='best')
-
     def get_tensor_by_name(self, i):
         if self.is_tensorflow:
             with self.graph.as_default():

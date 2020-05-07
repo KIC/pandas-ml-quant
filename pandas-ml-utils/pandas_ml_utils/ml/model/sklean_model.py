@@ -71,15 +71,6 @@ class SkModel(Model):
         else:
             return self.skit_model.predict(SkModel.reshape_rnn_as_ar(x))
 
-    def plot_loss(self):
-        loss_curve = getattr(self.skit_model, 'loss_curve_', None)
-
-        if loss_curve is not None:
-            import matplotlib.pyplot as plt
-            plt.plot(loss_curve)
-        else:
-            print("no loss curve found")
-
     def __str__(self):
         return f'{__name__}({repr(self.skit_model)}, {self.features_and_labels})'
 
