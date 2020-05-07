@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 from copy import deepcopy
-from typing import List, Callable, TYPE_CHECKING, Type, Dict
+from typing import List, Callable, TYPE_CHECKING, Type, Dict, Tuple
 
 import numpy as np
 
@@ -12,6 +12,7 @@ from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
+from ..data.splitting.sampeling import Sampler
 
 _log = logging.getLogger(__name__)
 
@@ -38,12 +39,17 @@ class PytorchModel(Model):
         self.module = None
         self.history = {}
 
+    def fit(self, sampler: Sampler, **kwargs) -> float:
+        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
+                  for i, s in enumerate(sampler.sample())]
+        return np.array(losses).mean()
+
     def fit_fold(self,
                  fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight: np.ndarray, sample_weight_val: np.ndarray,
-                 **kwargs) -> float:
+                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         # import specifics
         from torch.autograd import Variable
         import torch as t
@@ -130,7 +136,7 @@ class PytorchModel(Model):
         self.history["loss"] = np.array(epoch_losses)
         self.history["val_loss"] = np.array(epoch_val_losses)
 
-        return self.history["loss"][-1] if len(epoch_losses) > 0 else 0
+        return np.array(epoch_losses), np.array(epoch_val_losses)
 
     def _calc_weighted_loss(self, criterion, y_hat, y, weights):
         loss = criterion(y_hat, y)

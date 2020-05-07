@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
-from typing import Callable
+from typing import Callable, Tuple
 
 import numpy as np
 from sklearn.exceptions import ConvergenceWarning
@@ -33,7 +33,7 @@ class SkModel(Model):
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> float:
+                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         # shape correction if needed
         x = SkModel.reshape_rnn_as_ar(x)
         y = y.reshape((len(x), -1)) if y.ndim > 1 and y.shape[1] == 1 else y
@@ -44,7 +44,8 @@ class SkModel(Model):
         self.skit_model = self.skit_model.fit(x, y)
 
         if getattr(self.skit_model, 'loss_', None):
-            return self.skit_model.loss_
+            loss_curve = getattr(self.skit_model, 'loss_curve_', [])
+            return np.array(loss_curve), np.array([])
         else:
             prediction = self.predict_sample(x)
             if isinstance(self.skit_model, LogisticRegression)\
@@ -52,15 +53,15 @@ class SkModel(Model):
             or type(self.skit_model).__name__.endswith("SVC"):
                 from sklearn.metrics import log_loss
                 try:
-                    return log_loss(prediction > 0.5, y).mean()
+                    return np.array(log_loss(prediction > 0.5, y).mean()), np.array([])
                 except ValueError as e:
                     if "contains only one label" in str(e):
-                        return -100
+                        return np.array([-100]), np.array([])
                     else:
                         raise e
             else:
                 from sklearn.metrics import mean_squared_error
-                return mean_squared_error(prediction, y).mean()
+                return np.array(mean_squared_error(prediction, y).mean()), np.array([])
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):

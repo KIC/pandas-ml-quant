@@ -90,7 +90,7 @@ class KerasModel(Model):
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> float:
+                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         fitter_args = suitable_kwargs(self.keras_model.fit, {"callbacks": []}, self.kwargs, kwargs)
         fitter_args["callbacks"] = [*fitter_args["callbacks"], *[cb() for cb in self.callbacks]]
 
@@ -116,7 +116,7 @@ class KerasModel(Model):
             for metric, _ in self.history.items():
                 self.history[metric] = self.history[metric] + fit_history.history[metric]
 
-        return min(fit_history.history['loss'])
+        return np.array(fit_history.history['loss']), np.array(fit_history.history['val_loss'])
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         return self._exec_within_session(self.keras_model.predict, x)
