@@ -105,7 +105,9 @@ class Model(object):
                   for i, s in enumerate(sampler.sample())]
 
         self._history = losses
-        return np.array([fold_loss[0].mean() for fold_loss in losses]).mean()
+
+        # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
+        return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
 
     def plot_loss(self, figsize=(8, 6)):
         """
