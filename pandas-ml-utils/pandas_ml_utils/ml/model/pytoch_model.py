@@ -117,6 +117,7 @@ class PytorchModel(Model):
             try:
                 for callback in on_epoch_callbacks:
                     call_callable_dynamic_args(callback,
+                                               fold=fold_nr,
                                                epoch=epoch,
                                                x=x, y=y, x_val=x_val, y_val=y_val,
                                                y_hat=y_hat, y_hat_val=y_hat_val,
@@ -163,7 +164,7 @@ class PytorchModel(Model):
         del state['module']
 
         # add torch serialisation
-        state['module_state_dict'] = self.module.state_dict()
+        state['module_state_dict'] = self.module.state_dict() if self.module is not None else None
 
         # return altered state
         return state
@@ -179,7 +180,8 @@ class PytorchModel(Model):
         self.module = self.module_provider()
 
         # restore special state dict
-        self.module.load_state_dict(module_state_dict)
+        if module_state_dict is not None:
+            self.module.load_state_dict(module_state_dict)
 
     def __call__(self, *args, **kwargs):
         pytorch_model = PytorchModel(
@@ -204,9 +206,9 @@ class PytorchModel(Model):
 
         @staticmethod
         def print_loss(mod=10):
-            def printer(epoch, loss, val_loss):
+            def printer(fold, epoch, loss, val_loss):
                 if epoch % mod == 0:
-                    print(f"{epoch}: {loss}\t {val_loss}")
+                    print(f"{fold}: {epoch}: {loss}\t {val_loss}")
 
             return printer
 

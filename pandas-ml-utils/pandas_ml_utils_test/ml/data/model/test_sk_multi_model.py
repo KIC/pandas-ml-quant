@@ -1,12 +1,11 @@
 from unittest import TestCase
 
-from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.neural_network import MLPClassifier
 
 from pandas_ml_common import np, pd
+from pandas_ml_utils import SkModel, FeaturesAndLabels, MultiModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.splitting import NaiveSplitter
-from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils import SkModel, FeaturesAndLabels, MultiModel
 
 
 class TestSkMultiModel(TestCase):

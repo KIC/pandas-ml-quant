@@ -1,4 +1,5 @@
 import logging
+import math
 from copy import deepcopy
 from typing import List, Callable, Generator, Tuple
 
@@ -38,32 +39,32 @@ class MultiModel(Model):
     def fit(self, sampler: Sampler, **kwargs) -> float:
         sub_model_losses = []
 
-        for i, s in enumerate(sampler.sample()):
+        for i_sample, s in enumerate(sampler.sample()):
             x, y, x_val, y_val, t, t_val, w, w_val = s[0][0], s[0][1], s[1][0], s[1][1], s[0][2], s[1][2], s[0][3], s[1][3]
             nr_labels = y.shape[1] // self.nr_models
 
             def cut(arr, i):
                 return arr[:, (nr_labels * i):(nr_labels * (i + 1))]
 
-            for i in range(self.nr_models):
-                _y, _y_val = cut(y, i), cut(y_val, i)
+            for i_model in range(self.nr_models):
+                _y, _y_val = cut(y, i_model), cut(y_val, i_model)
                 _w, _w_val = None, None
                 _t, _t_val = t, t_val
 
                 if w is not None:
                     if w.ndim > 1:
                         if w.shape[1] > 1:
-                            _w = cut(w, i)
-                            _w_val = cut(w_val, i)
+                            _w = cut(w, i_model)
+                            _w_val = cut(w_val, i_model)
                         else:
-                            _w = w[i]
-                            _w_val = w_val[i]
+                            _w = w[i_model]
+                            _w_val = w_val[i_model]
                     else:
                         _w = w
                         _w_val = w_val
 
                 # now call sub_model.fit() with new a new sampler for each label
-                loss = self.sub_models[i].fit(_Sampler([x, _y, _t, _w], [x_val, _y_val, _t_val, _w_val]))
+                loss = self.sub_models[i_model].fit(_Sampler([x, _y, _t, _w], [x_val, _y_val, _t_val, _w_val]), **kwargs)
                 sub_model_losses.append(loss)
 
         self._history = [sm._history for sm in self.sub_models]
@@ -76,12 +77,18 @@ class MultiModel(Model):
         # and then concatenate the arrays back into one prediction
         return np.stack(predictions, 1)
 
-    def plot_loss(self, figsize=(8, 6)):
+    def plot_loss(self, figsize=(8, 6), columns=None):
         # override the plot function and plot the loss per model and fold
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
+
+        columns = self.nr_models if columns is None else int(columns)
+        rows = math.ceil(self.nr_models / columns)
+        fig, axes = plt.subplots(rows, columns, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
+        axes = axes.flatten()
 
         for m_nr, m_hist in enumerate(self._history):
+            ax = axes[m_nr]
+
             for fold_nr, fold_loss in enumerate(m_hist):
                 p = ax.plot(fold_loss[0], '-', label=f'{m_nr}: {fold_nr}: loss')
                 ax.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{m_nr}: {fold_nr}: val loss')
