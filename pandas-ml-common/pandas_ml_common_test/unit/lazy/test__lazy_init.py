@@ -4,7 +4,7 @@ from unittest import TestCase
 from keras import backend as K
 
 from pandas_ml_common import LazyInit
-from pandas_ml_common.serialization_utils import serialize, deserialize
+from pandas_ml_common.utils.serialization_utils import serialize, deserialize
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 

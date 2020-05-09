@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import pandas_ml_quant
-from pandas_ml_common.serialization_utils import serialize, deserialize
+from pandas_ml_common.utils.serialization_utils import serialize, deserialize
 from pandas_ml_utils import FeaturesAndLabels
 from test.config import DF_TEST
 

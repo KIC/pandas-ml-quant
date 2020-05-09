@@ -4,10 +4,10 @@ import numpy as np
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 from mlxtend.evaluate import confusion_matrix
-from sklearn.metrics import roc_curve, auc, confusion_matrix as sk_confusion_matrix
+from sklearn.metrics import roc_curve, auc
 
 from pandas_ml_common import Typing
-from pandas_ml_common.serialization_utils import plot_to_html_img
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import Summary

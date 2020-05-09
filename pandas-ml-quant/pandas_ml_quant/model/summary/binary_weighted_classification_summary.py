@@ -3,11 +3,9 @@ import os
 
 import numpy as np
 from matplotlib.figure import Figure
-from sklearn.metrics import f1_score
 
 from pandas_ml_common import Typing
-from pandas_ml_common.serialization_utils import plot_to_html_img
-from pandas_ml_common.utils import unique_level_columns
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import ClassificationSummary
 

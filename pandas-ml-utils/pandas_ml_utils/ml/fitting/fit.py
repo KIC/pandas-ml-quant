@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 
 import pandas_ml_utils.html as html
-from pandas_ml_common.serialization_utils import plot_to_html_img
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
 

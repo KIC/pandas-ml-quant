@@ -13,7 +13,7 @@ def serialize(obj, filename):
     print(f"saved model to: {os.path.abspath(filename)}")
 
 
-def deserialize(filename, type):
+def deserialize(filename, type=None):
     with open(filename, 'rb') as file:
         obj = pickle.load(file)
 
