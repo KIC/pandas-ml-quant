@@ -1,7 +1,7 @@
 import logging
 import math
 from copy import deepcopy
-from typing import List, Callable, Generator, Tuple
+from typing import List, Callable
 
 import numpy as np
 
@@ -9,19 +9,9 @@ from pandas_ml_common import Typing
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
 from ..data.splitting.sampeling import Sampler
+from ..data.splitting.sampeling.extract_multi_model_label import ExtractMultiMultiModelSampler
 
 _log = logging.getLogger(__name__)
-
-
-# we need to create a fake sampler to make this thing work
-class _Sampler(object):
-
-    def __init__(self, train: List[np.ndarray], test: List[np.ndarray]):
-        self.train = train
-        self.test = test
-
-    def sample(self) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
-        yield self.train, self.test
 
 
 class MultiModel(Model):
@@ -39,33 +29,16 @@ class MultiModel(Model):
     def fit(self, sampler: Sampler, **kwargs) -> float:
         sub_model_losses = []
 
-        for i_sample, s in enumerate(sampler.sample()):
-            x, y, x_val, y_val, t, t_val, w, w_val = s[0][0], s[0][1], s[1][0], s[1][1], s[0][2], s[1][2], s[0][3], s[1][3]
-            nr_labels = y.shape[1] // self.nr_models
+        # copy sampler and add a new cross validator extracting the model
+        for i_model in range(self.nr_models):
+            if "verbose" in kwargs and kwargs["verbose"]:
+                print(f"fit model {i_model + 1} / {self.nr_models}")
+            else:
+                _log.info(f"fit model {i_model + 1} / {self.nr_models}")
 
-            def cut(arr, i):
-                return arr[:, (nr_labels * i):(nr_labels * (i + 1))]
-
-            for i_model in range(self.nr_models):
-                _y, _y_val = cut(y, i_model), cut(y_val, i_model)
-                _w, _w_val = None, None
-                _t, _t_val = t, t_val
-
-                if w is not None:
-                    if w.ndim > 1:
-                        if w.shape[1] > 1:
-                            _w = cut(w, i_model)
-                            _w_val = cut(w_val, i_model)
-                        else:
-                            _w = w[i_model]
-                            _w_val = w_val[i_model]
-                    else:
-                        _w = w
-                        _w_val = w_val
-
-                # now call sub_model.fit() with new a new sampler for each label
-                loss = self.sub_models[i_model].fit(_Sampler([x, _y, _t, _w], [x_val, _y_val, _t_val, _w_val]), **kwargs)
-                sub_model_losses.append(loss)
+            sm_loss = self.sub_models[i_model]\
+                .fit(ExtractMultiMultiModelSampler(i_model, self.nr_models, sampler), **kwargs)
+            sub_model_losses.append(sm_loss)
 
         self._history = [sm._history for sm in self.sub_models]
         return np.array(sub_model_losses).mean()

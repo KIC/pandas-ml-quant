@@ -28,7 +28,7 @@ class TestSkMultiModel(TestCase):
             2
         )
 
-        fit = df.model.fit(model, NaiveSplitter(0.49), verbose=0, epochs=1500)
+        fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)
         print(fit.training_summary.df)
 
         self.assertEqual(4, len(fit.training_summary.df[PREDICTION_COLUMN_NAME, "c"]))

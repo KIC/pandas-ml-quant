@@ -96,7 +96,7 @@ def fit(df: pd.DataFrame,
     model._validation_indices = test_idx
     model.features_and_labels.set_min_required_samples(min_required_samples)
     model.features_and_labels.set_label_columns(labels[0].columns.tolist())
-    return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails)
+    return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails, **kwargs)
 
 
 def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:

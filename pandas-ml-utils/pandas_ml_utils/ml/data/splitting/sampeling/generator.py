@@ -15,9 +15,11 @@ class Sampler(object):
                  train: List[Typing.PatchedDataFrame],
                  test: List[Typing.PatchedDataFrame],
                  cross_validation: Tuple[int, Callable] = None):
-        self.cross_validation = cross_validation
         self.train = train
         self.test = test
+
+        # add a default fold epoch of 1
+        self._cross_validation = (1, cross_validation) if callable(cross_validation) else cross_validation
 
     def __getitem__(self, item) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         return self.train[item], self.test[item]
@@ -38,11 +40,7 @@ class Sampler(object):
     def sample(self) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
         train = [t._.values if t is not None else None for t in self.train]
         test = [t._.values if t is not None else None for t in self.test]
-        cv = self.cross_validation
-
-        # add a default fold epoch of 1
-        if callable(cv):
-            cv = (1, cv)
+        cv = self._cross_validation
 
         # loop through folds and yield data until done then raise StopIteration
         if cv is not None and isinstance(cv, Tuple) and callable(cv[1]):

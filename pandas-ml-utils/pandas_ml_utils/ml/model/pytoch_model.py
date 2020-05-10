@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import sys
 from copy import deepcopy
 from typing import List, Callable, TYPE_CHECKING, Type, Dict, Tuple
@@ -48,13 +49,14 @@ class PytorchModel(Model):
         from torch.autograd import Variable
         import torch as t
 
+        is_verbose = kwargs["verbose"] if "verbose" in kwargs else False
         on_epoch_callbacks = kwargs["on_epoch"] if "on_epoch" in kwargs else []
         restore_best_weights = kwargs["restore_best_weights"] if "restore_best_weights" in kwargs else False
         num_epochs = kwargs["epochs"] if "epochs" in kwargs else 100
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
 
-        # TODO we should not re-initialize model, critereon and optimizer once we have it already
+        # TODO we should not re-initialize model, criterion and optimizer once we have it already
         #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
         module = (self.module.cuda() if use_cuda else self.module).train()
         criterion = self.criterion_provider()
@@ -63,6 +65,12 @@ class PytorchModel(Model):
         best_loss = sys.float_info.max
         epoch_losses = []
         epoch_val_losses = []
+
+        if hasattr(module, 'callback'):
+            on_epoch_callbacks += [module.callback]
+
+        if is_verbose:
+            print(f"fit fold {fold_nr} with {len(x)} samples in {math.ceil(len(x) / batch_size)} batches ... ")
 
         for epoch in range(num_epochs):
             for i in range(0, len(x), batch_size):
@@ -82,6 +90,9 @@ class PytorchModel(Model):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+
+                if is_verbose > 1:
+                    print(f"{epoch}:{i}\t{loss}\t")
 
             # ===================log========================
             # add validation loss history
@@ -112,6 +123,9 @@ class PytorchModel(Model):
                     if val_loss < best_loss:
                         best_loss = val_loss
                         best_model_wts = deepcopy(module.state_dict())
+
+            if is_verbose:
+                print(f"{epoch}\t{loss}\t{val_loss}")
 
             # invoke on epoch end callbacks
             try:
