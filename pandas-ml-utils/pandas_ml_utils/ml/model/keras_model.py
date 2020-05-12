@@ -86,10 +86,11 @@ class KerasModel(Model):
         self.history = None
 
     def fit_fold(self,
+                 fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
                  sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> float:
+                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         fitter_args = suitable_kwargs(self.keras_model.fit, {"callbacks": []}, self.kwargs, kwargs)
         fitter_args["callbacks"] = [*fitter_args["callbacks"], *[cb() for cb in self.callbacks]]
 
@@ -115,7 +116,7 @@ class KerasModel(Model):
             for metric, _ in self.history.items():
                 self.history[metric] = self.history[metric] + fit_history.history[metric]
 
-        return min(fit_history.history['loss'])
+        return np.array(fit_history.history['loss']), np.array(fit_history.history['val_loss'])
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         return self._exec_within_session(self.keras_model.predict, x)
@@ -125,13 +126,6 @@ class KerasModel(Model):
 
     def set_weights(self, weights):
         self._exec_within_session(self.keras_model.set_weights, weights)
-
-    def plot_loss(self):
-        import matplotlib.pyplot as plt
-
-        plt.plot(self.history['val_loss'], label='test')
-        plt.plot(self.history['loss'], label='train')
-        plt.legend(loc='best')
 
     def get_tensor_by_name(self, i):
         if self.is_tensorflow:

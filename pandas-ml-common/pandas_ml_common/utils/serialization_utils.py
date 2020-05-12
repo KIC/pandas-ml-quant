@@ -1,6 +1,7 @@
 import base64
 import os
 import io
+import traceback
 from collections import Callable
 
 import dill as pickle
@@ -13,7 +14,7 @@ def serialize(obj, filename):
     print(f"saved model to: {os.path.abspath(filename)}")
 
 
-def deserialize(filename, type):
+def deserialize(filename, type=None):
     with open(filename, 'rb') as file:
         obj = pickle.load(file)
 
@@ -26,14 +27,19 @@ def deserialize(filename, type):
             raise ValueError("Deserialized pickle was not a Model!")
 
 
-def plot_to_html_img(plotter: Callable):
+def plot_to_html_img(plotter: Callable, **kwargs):
     import matplotlib.pyplot as plt
     with io.BytesIO() as f:
-        plotter()
-        fig = plt.gcf()
-        fig.savefig(f, format="png", bbox_inches='tight')
-        image = base64.encodebytes(f.getvalue()).decode("utf-8")
-        plt.close(fig)
+        try:
+            from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
+            call_callable_dynamic_args(plotter, **kwargs)
+            fig = plt.gcf()
+            fig.savefig(f, format="png", bbox_inches='tight')
+            image = base64.encodebytes(f.getvalue()).decode("utf-8")
+            plt.close(fig)
 
-        return f'data:image/png;base64, {image}'
+            return f'data:image/png;base64, {image}'
+        except TypeError:
+            return traceback.print_exc()
+
 

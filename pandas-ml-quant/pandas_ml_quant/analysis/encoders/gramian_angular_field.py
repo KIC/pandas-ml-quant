@@ -80,15 +80,22 @@ def ta_gaf(df: Typing.PatchedPandas, columm_index_level=1, type='pyts', **kwargs
 
 def ta_inverse_gasf(df: Typing.PatchedPandas):
     if has_indexed_columns(df):
-        # todo implement recursion
-        pass
+        res = _pd.DataFrame({}, index=df.index)
+        for col in df.columns:
+            sdf = ta_inverse_gasf(df[col])
+            sdf.columns = _pd.MultiIndex.from_product([[col], sdf.columns])
+            res = res.join(sdf)
 
-    def gaf_decode(x):
-        values = x._.values
-        values = values.reshape(values.shape[1:])
-        return _np.sqrt(((_np.diag(values) + 1) / 2)).tolist()
+        return res
 
-    return df.to_frame().apply(gaf_decode, axis=1, result_type='expand')
+    inv = np_inverse_gaf(df._.values)
+    if inv.ndim == 2:
+        return _pd.DataFrame(inv, index=df.index)
+    else:
+        if inv.shape[1] == 1:
+            return _pd.DataFrame(inv[:,0,:], index=df.index)
+        else:
+            raise ValueError("should never et here ..")
 
 
 def np_inverse_gaf(values):

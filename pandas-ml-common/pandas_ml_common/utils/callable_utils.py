@@ -1,9 +1,27 @@
 import inspect
-from typing import Dict
 import logging
+from typing import Dict, Callable
 
 _log = logging.getLogger(__name__)
 _DEBUG = False
+
+
+def kwpartial(func: Callable, **kwargs) -> Callable:
+    """
+    implements a partial function using kw arguments such that we can parse them back
+    via the dependency injection: call_callable_dynamic_args
+
+    :param func: a callable with keyword arguments only
+    :param kwargs: key word arguments which get pre-assigned to the callable
+    :return: a callable with named arguments except the once passed in and assigned by the kwargs argument
+    """
+    sa = suitable_kwargs(func, **kwargs)
+    rest = inspect.getfullargspec(func).args
+    rest = set(rest) - set(sa.keys())
+
+    f = eval(f"lambda {','.join(rest)}: __func(**__suitable_kwargs, {','.join(['%s=%s' % (x, x) for x in rest])})",
+             {"__func": func, "__suitable_kwargs": sa, **globals()})
+    return f
 
 
 def call_callable_dynamic_args(func, *args, **kwargs):
@@ -39,7 +57,12 @@ def call_callable_dynamic_args(func, *args, **kwargs):
     except StopIteration as s:
         raise s
     except Exception as e:
-        raise RuntimeError(e, f"error while calling {func}({spec.args})\n{inspect.getsource(func)}\nwith arguments:\n{call_args}, {kwargs}")
+        try:
+            source = inspect.getsource(func)
+        except OSError:
+            source = "eval"
+
+        raise RuntimeError(e, f"error while calling {func}({spec.args})\n{source}\nwith arguments:\n{call_args}, {kwargs}")
 
 
 def suitable_kwargs(func, *args, **kwargs):

@@ -44,7 +44,7 @@ def fit(df: pd.DataFrame,
     trails = None
     model = model_provider()
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, min_required_samples), labels, targets, weights = \
+    (features, min_required_samples), labels, targets, weights, gross_loss = \
         extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     start_performance_count = perf_counter()
@@ -76,7 +76,7 @@ def fit(df: pd.DataFrame,
     #                                test)
 
     # finally train the model with eventually tuned hyper parameters
-    sampler = DataGenerator(training_data_splitter, features, labels, targets, weights).train_test_sampler()
+    sampler = DataGenerator(training_data_splitter, features, labels, targets, weights, gross_loss).train_test_sampler()
     model.fit(sampler, **kwargs)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
@@ -86,16 +86,17 @@ def fit(df: pd.DataFrame,
     prediction = (to_pandas(model.predict(train_sampler, **kwargs), train_idx, labels.columns),
                   to_pandas(model.predict(test_sampler, **kwargs), test_idx, labels.columns))
 
-    features, labels, targets = sampler[0], sampler[1], sampler[2]
+    # get training and test data tuples of the provided frames
+    features, labels, targets, weights, gross_loss = sampler[0], sampler[1], sampler[2], sampler[3], sampler[4]
     df_train, df_test = [
-        _assemble_result_frame(targets[i], prediction[i], labels[i], None, None, features[i])  # FIXME add loss and weights
+        _assemble_result_frame(targets[i], prediction[i], labels[i], gross_loss[i], weights[i], features[i])
         for i in range(2)]
 
     # update model properties and return the fit
     model._validation_indices = test_idx
     model.features_and_labels.set_min_required_samples(min_required_samples)
     model.features_and_labels.set_label_columns(labels[0].columns.tolist())
-    return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails)
+    return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails, **kwargs)
 
 
 def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:
@@ -123,13 +124,14 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
 
 def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, _), labels, targets, _ = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+    (features, _), labels, targets, weights, gross_loss =\
+        extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     sampler = DataGenerator(DummySplitter(1), features, labels, targets, None).complete_samples()
     predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)
-    df_backtest = _assemble_result_frame(targets, y_hat, labels, None, None, features)  # FIXME add loss and weights
+    df_backtest = _assemble_result_frame(targets, y_hat, labels, gross_loss, weights, features)
     return (summary_provider or model.summary_provider)(df_backtest, **kwargs)
 
 

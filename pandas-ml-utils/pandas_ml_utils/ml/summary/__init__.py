@@ -1,4 +1,3 @@
 from .base_summary import Summary
-from .binary_classification_summary import BinaryClassificationSummary
 from .classification_summary import ClassificationSummary
 from .regression_summary import RegressionSummary

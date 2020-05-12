@@ -1,10 +1,9 @@
 from unittest import TestCase
 
-from pandas_ml_common.serialization_utils import serialize, deserialize
+import pandas_ml_quant
+from pandas_ml_common.utils.serialization_utils import serialize, deserialize
 from pandas_ml_utils import FeaturesAndLabels
 from test.config import DF_TEST
-import pandas_ml_quant
-
 
 print(pandas_ml_quant.__version__)
 
@@ -14,7 +13,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape(self):
         df = DF_TEST.copy()
 
-        (features, _), labels, targets, weights = df._.extract(
+        (features, _), labels, targets, weights, gross_loss = df._.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi().ta.rnn(280),
@@ -26,14 +25,15 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
                 ],
                 targets=[
                     lambda df, stddevs: df["Close"].ta.bbands(period=14, stddev=stddevs)[["lower", "mean", "upper"]],
-                ]
+                ],
+                gross_loss=lambda df: 1
             ),
             # kwargs of call
             forecasting_time_steps=7,
             stddevs=1.5
         )
 
-        print(features, labels, weights)
+        print(features, labels, weights, targets, gross_loss)
         print(features._.values.shape, labels._.values.shape)
         print(len(df))
 
@@ -47,10 +47,12 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         self.assertEqual(len(features), len(labels))
         self.assertLess(len(features), len(df))
 
+        self.assertEqual(gross_loss.values.sum(), len(features))
+
     def test_extract_in_rnn_shape_two_labels(self):
         df = DF_TEST.copy()
 
-        (features, min_samples), labels, targets, weights = df._.extract(
+        (features, min_samples), labels, targets, weights, gross_loss = df._.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi().ta.rnn(280),
@@ -104,7 +106,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             file
         )
 
-        (features, _), labels, targets, weights = df._.extract(
+        (features, _), labels, targets, weights, gross_loss = df._.extract(
             deserialize(file, FeaturesAndLabels),
             # kwargs of call
             forecasting_time_steps=7,
@@ -116,3 +118,4 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         # we have 2 labels each one hot encoded to 10 values
         self.assertEqual((6463, 2, 3), labels._.values.shape)
+

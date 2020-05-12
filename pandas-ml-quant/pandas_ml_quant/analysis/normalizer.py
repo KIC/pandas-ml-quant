@@ -71,3 +71,7 @@ def ta_performance(df: Typing.PatchedPandas):
     delta = df.pct_change() + 1
     return delta.cumprod()
 
+
+def _ta_adaptive_normalisation():
+    # TODO implement .papers/Adaptive Normalization.pdf
+    pass

@@ -37,5 +37,7 @@ class TestGAF(TestCase):
         print(timesteps._.values[-2:])
         print(np_inverse_gaf(gasf._.values[-2:]))
 
+        df = ta_inverse_gasf(gasf)
+        print(df.tail())
         self.assertEqual((6760, 1, 3, 3), shape)
         # np.testing.assert_array_almost_equal(s, s_rec)

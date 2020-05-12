@@ -1,6 +1,6 @@
 import os
 from copy import deepcopy
-from typing import Callable
+from typing import Callable, Tuple
 
 import dill as pickle
 import numpy as np
@@ -54,6 +54,7 @@ class Model(object):
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
         self._validation_indices = []
+        self._history = []
         self.kwargs = kwargs
 
     @property
@@ -91,13 +92,6 @@ class Model(object):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def plot_loss(self):
-        """
-        implement this function to plot a diagram of the training and validation losses
-        :return:
-        """
-        pass
-
     def fit(self, sampler: Sampler, **kwargs) -> float:
         """
         draws folds from the data generator as long as it yields new data and fits the model to one fold
@@ -107,25 +101,29 @@ class Model(object):
         """
 
         # sample: train[features, labels, target, weights], test[features, labels, target, weights]
-        losses = [self.fit_fold(s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs) for s in sampler.sample()]
-        return np.array(losses).mean()
+        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
+                  for i, s in enumerate(sampler.sample())]
 
-    def fit_fold(self,
-                 x: np.ndarray, y: np.ndarray,
-                 x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> float:
+        self._history = losses
+
+        # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
+        return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
+
+    def plot_loss(self, figsize=(8, 6)):
         """
-        function called to fit the model to one fold of the data generator (i.e. k-folds)
-        :param x: x
-        :param y: y
-        :param x_val: x validation
-        :param y_val: y validation
-        :param sample_weight_train: sample weights for loss penalisation (default np.ones)
-        :param sample_weight_test: sample weights for loss penalisation (default np.ones)
-        :return: loss of the fit
+        plot a diagram of the training and validation losses per fold
+        :return: figure and axis
         """
-        pass
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
+
+        for fold_nr, fold_loss in enumerate(self._history):
+            p = ax.plot(fold_loss[0], '-', label=f'{fold_nr}: loss')
+            ax.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{fold_nr}: val loss')
+
+        plt.legend(loc='upper right')
+        return fig, ax
 
     def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
         """
@@ -136,6 +134,25 @@ class Model(object):
         """
         # make shape (rows, samples, ...)
         return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
+
+    def fit_fold(self,
+                 fold_nr: int,
+                 x: np.ndarray, y: np.ndarray,
+                 x_val: np.ndarray, y_val: np.ndarray,
+                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
+                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        function called to fit the model to one fold of the data generator (i.e. k-folds)
+        :param fold_nr: number of fold in case of cross validation is used
+        :param x: x
+        :param y: y
+        :param x_val: x validation
+        :param y_val: y validation
+        :param sample_weight_train: sample weights for loss penalisation (default np.ones)
+        :param sample_weight_test: sample weights for loss penalisation (default np.ones)
+        :return: loss of the fit
+        """
+        pass
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         """

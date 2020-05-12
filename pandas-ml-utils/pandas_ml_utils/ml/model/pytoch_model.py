@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+import math
 import sys
 from copy import deepcopy
-from typing import List, Callable, TYPE_CHECKING, Type, Dict
+from typing import List, Callable, TYPE_CHECKING, Type, Dict, Tuple
 
 import numpy as np
 
@@ -12,6 +13,7 @@ from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
+from ..data.splitting.sampeling import Sampler
 
 _log = logging.getLogger(__name__)
 
@@ -36,23 +38,26 @@ class PytorchModel(Model):
         self.optimizer_provider = optimizer_provider
         self.callbacks = callbacks
         self.module = None
-        self.history = {}
 
     def fit_fold(self,
+                 fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> float:
+                 sample_weight: np.ndarray, sample_weight_val: np.ndarray,
+                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         # import specifics
         from torch.autograd import Variable
         import torch as t
 
+        is_verbose = kwargs["verbose"] if "verbose" in kwargs else False
         on_epoch_callbacks = kwargs["on_epoch"] if "on_epoch" in kwargs else []
         restore_best_weights = kwargs["restore_best_weights"] if "restore_best_weights" in kwargs else False
         num_epochs = kwargs["epochs"] if "epochs" in kwargs else 100
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
 
+        # TODO we should not re-initialize model, criterion and optimizer once we have it already
+        #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
         module = (self.module.cuda() if use_cuda else self.module).train()
         criterion = self.criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
@@ -61,76 +66,97 @@ class PytorchModel(Model):
         epoch_losses = []
         epoch_val_losses = []
 
-        for epoch in range(num_epochs):
-            batch_loss = 0
+        if hasattr(module, 'callback'):
+            on_epoch_callbacks += [module.callback]
 
+        if is_verbose:
+            print(f"fit fold {fold_nr} with {len(x)} samples in {math.ceil(len(x) / batch_size)} batches ... ")
+
+        for epoch in range(num_epochs):
             for i in range(0, len(x), batch_size):
                 nnx = Variable(t.from_numpy(x[i:i+batch_size])).float()
                 nny = Variable(t.from_numpy(y[i:i+batch_size])).float()
-                weights = Variable(t.from_numpy(sample_weight_train[i:i+batch_size])).float() \
-                    if sample_weight_train is not None else t.ones(len(x))
+                weights = Variable(t.from_numpy(sample_weight[i:i + batch_size])).float() \
+                    if sample_weight is not None else t.ones(nny.shape[0])
 
                 if use_cuda:
                     nnx, nny, weights = nnx.cuda(), nny.cuda(), weights.cuda()
 
                 # ===================forward=====================
                 output = module(nnx)
-                loss = (criterion(output, nny).sum() * weights).mean()
+                loss = self._calc_weighted_loss(criterion, output, nny, weights)
 
                 # ===================backward====================
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
-                batch_loss += loss.item()
+                if is_verbose > 1:
+                    print(f"{epoch}:{i}\t{loss}\t")
 
             # ===================log========================
-            # add loss history
-            epoch_losses.append(batch_loss)
-
             # add validation loss history
             if y_val is not None and len(y_val) > 0:
                 with t.no_grad():
-                    nnx = Variable(t.from_numpy(x)).float()
-                    nny = Variable(t.from_numpy(y)).float()
-                    nnx_val = Variable(t.from_numpy(x_val)).float()
-                    nny_val = Variable(t.from_numpy(y_val)).float()
+                    nnx = t.from_numpy(x).float()
+                    nny = t.from_numpy(y).float()
+                    weights = t.from_numpy(sample_weight).float() \
+                        if sample_weight is not None else t.ones(nny.shape[0])
+                    nnx_val = t.from_numpy(x_val).float()
+                    nny_val = t.from_numpy(y_val).float()
+                    weights_val = t.from_numpy(sample_weight_val).float() \
+                        if sample_weight_val is not None else t.ones(nny_val.shape[0])
 
                     if use_cuda:
                         nnx, nny = nnx.cuda(), nny.cuda()
                         nnx_val, nny_val = nnx_val.cuda(), nny_val.cuda()
+                        weights, weights_val = weights.cuda(), weights_val.cuda()
 
                     y_hat = module(nnx)
+                    loss = self._calc_weighted_loss(self.criterion_provider(), y_hat, nny, weights).item()
+                    epoch_losses.append(loss)
+
                     y_hat_val = module(nnx_val)
-                    val_loss = self.criterion_provider()(y_hat_val, nny_val).sum().item()
+                    val_loss = self._calc_weighted_loss(self.criterion_provider(), y_hat_val, nny_val, weights_val).item()
                     epoch_val_losses.append(val_loss)
 
                     if val_loss < best_loss:
                         best_loss = val_loss
                         best_model_wts = deepcopy(module.state_dict())
 
+            if is_verbose:
+                print(f"{epoch}\t{loss}\t{val_loss}")
+
             # invoke on epoch end callbacks
             try:
                 for callback in on_epoch_callbacks:
                     call_callable_dynamic_args(callback,
+                                               fold=fold_nr,
                                                epoch=epoch,
                                                x=x, y=y, x_val=x_val, y_val=y_val,
                                                y_hat=y_hat, y_hat_val=y_hat_val,
-                                               loss=loss, val_loss=val_loss)
+                                               loss=loss, val_loss=val_loss, best_loss=best_loss)
             except StopIteration:
                 break
 
         if restore_best_weights:
             module.load_state_dict(best_model_wts)
 
-        self.history["loss"] = np.array(epoch_losses)
-        self.history["val_loss"] = np.array(epoch_val_losses)
+        return np.array(epoch_losses), np.array(epoch_val_losses)
 
-        return self.history["loss"][-1] if len(epoch_losses) > 0 else 0
+    def _calc_weighted_loss(self, criterion, y_hat, y, weights):
+        loss = criterion(y_hat, y)
+
+        if loss.ndim > 0:
+            if loss.ndim == weights.ndim:
+                loss = (loss * weights).mean()
+            else:
+                loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
+
+        return loss
 
     def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
         # import specifics
-        from torch.autograd import Variable
         import torch as t
 
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
@@ -143,13 +169,6 @@ class PytorchModel(Model):
             else:
                 return self.module(t.from_numpy(x).float()).numpy()
 
-    def plot_loss(self):
-        import matplotlib.pyplot as plt
-
-        plt.plot(self.history['val_loss'], label='test')
-        plt.plot(self.history['loss'], label='train')
-        plt.legend(loc='best')
-
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.
         # Always use the dict.copy() method to avoid modifying the original state.
@@ -159,7 +178,7 @@ class PytorchModel(Model):
         del state['module']
 
         # add torch serialisation
-        state['module_state_dict'] = self.module.state_dict()
+        state['module_state_dict'] = self.module.state_dict() if self.module is not None else None
 
         # return altered state
         return state
@@ -175,7 +194,8 @@ class PytorchModel(Model):
         self.module = self.module_provider()
 
         # restore special state dict
-        self.module.load_state_dict(module_state_dict)
+        if module_state_dict is not None:
+            self.module.load_state_dict(module_state_dict)
 
     def __call__(self, *args, **kwargs):
         pytorch_model = PytorchModel(
@@ -191,27 +211,35 @@ class PytorchModel(Model):
 
         # copy weights of existing models
         if self.module is not None:
-            pytorch_model.load_state_dict(deepcopy(self.module.state_dict()))
+            pytorch_model.module.load_state_dict(deepcopy(self.module.state_dict()))
 
         return pytorch_model
 
+    # Add some useful callbacks directly to the pytorch model
+    class Callbacks(object):
 
-class Callbacks(object):
+        @staticmethod
+        def print_loss(mod=10):
+            def printer(fold, epoch, loss, val_loss):
+                if epoch % mod == 0:
+                    print(f"{fold}: {epoch}: {loss}\t {val_loss}")
 
-    @staticmethod
-    def early_stopping(patience=1, tolerance=0.001):
-        last_loss = sys.float_info.max
-        counter = 0
+            return printer
 
-        def callback(val_loss):
-            nonlocal last_loss, counter
-            if (val_loss - tolerance) < last_loss:
-                last_loss = val_loss
-                counter = 0
-            else:
-                counter += 1
-                if counter >= patience:
-                    print(f"early stopping {counter}, {val_loss} > {last_loss}")
-                    raise StopIteration("early stopping")
+        @staticmethod
+        def early_stopping(patience=1, tolerance=0.001):
+            last_loss = sys.float_info.max
+            counter = 0
 
-        return callback
+            def callback(val_loss):
+                nonlocal last_loss, counter
+                if (val_loss - tolerance) < last_loss:
+                    last_loss = val_loss
+                    counter = 0
+                else:
+                    counter += 1
+                    if counter >= patience:
+                        print(f"early stopping {counter}, {val_loss} > {last_loss}")
+                        raise StopIteration("early stopping")
+
+            return callback

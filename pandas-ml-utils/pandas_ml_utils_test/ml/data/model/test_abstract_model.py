@@ -109,6 +109,13 @@ class TestAbstractModel(object):
         finally:
             os.remove(temp)
 
+        # try to save only as encoder model
+        try:
+            fit.model.as_encoder().save(temp)
+            copy = Model.load(temp)
+        finally:
+            os.remove(temp)
+
     # Abstract methods
     def provide_regression_model(self, features_and_labels) -> Model:
         pass

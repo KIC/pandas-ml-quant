@@ -1,3 +1,4 @@
+import inspect
 from copy import deepcopy
 from typing import List, Callable, Tuple, Union, Any, TypeVar
 
@@ -148,5 +149,19 @@ class FeaturesAndLabels(object):
         return self.__id__() == other.__id__() if isinstance(other, FeaturesAndLabels) else False
 
     def __repr__(self):
-        return f'FeaturesAndLabels({self.features}, {self.labels}, {self.sample_weights}, {self.targets})'
+        def source(params):
+            if params is None:
+                return None
+            else:
+                return [inspect.getsource(p) if callable(p) else p if isinstance(p, (bool, int, float, str)) else repr(p) for p in params]
+
+        return f'FeaturesAndLabels(' \
+               f'\t{source(self.features)}, ' \
+               f'\t{source(self.labels)}, ' \
+               f'\t{source(self.sample_weights)}, ' \
+               f'\t{source(self.gross_loss)}, ' \
+               f'\t{source(self.targets)}, ' \
+               f'\t{self.label_type}, ' \
+               f'\t{self.kwargs}' \
+               f')'
 

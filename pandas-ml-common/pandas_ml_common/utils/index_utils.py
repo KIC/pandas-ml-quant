@@ -76,8 +76,10 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
         if isinstance(item, Callable):
             # also allow callables where we pass kwargs and such ...
             res = call_callable_dynamic_args(item, po, **kwargs)
-            assert isinstance(res, PandasObject), "callable needs to return a pandas object (series or dataframe)"
-            return res
+            if isinstance(res, PandasObject):
+                return res
+            else:
+                return pd.Series(res, index=po.index)
         if isinstance(item, List):
             res = None
             for sub_item in item:

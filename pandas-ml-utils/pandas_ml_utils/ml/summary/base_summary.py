@@ -20,9 +20,6 @@ class Summary(object):
     def df(self):
         return self._df
 
-    def _html_template_file(self):
-        return f"{os.path.abspath(__file__)}.html"
-
     def _repr_html_(self):
         from mako.template import Template
         from mako.lookup import TemplateLookup

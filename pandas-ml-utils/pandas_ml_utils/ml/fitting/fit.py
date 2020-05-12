@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 
 import pandas_ml_utils.html as html
-from pandas_ml_common.serialization_utils import plot_to_html_img
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
 
@@ -18,11 +18,13 @@ class Fit(object):
                  model: Model,
                  training_summary: Summary,
                  test_summary: Summary,
-                 trails: Any):
+                 trails: Any = None,
+                 **kwargs):
         self.model = model
         self.training_summary = training_summary
         self.test_summary = test_summary
         self._trails = trails
+        self._kwargs = kwargs
 
     def values(self):
         """
@@ -64,4 +66,4 @@ class Fit(object):
         from mako.lookup import TemplateLookup
 
         template = Template(filename=html.FIT_TEMPLATE, lookup=TemplateLookup(directories=['/']))
-        return template.render(fit=self, loss_plot=plot_to_html_img(self.model.plot_loss))
+        return template.render(fit=self, loss_plot=plot_to_html_img(self.model.plot_loss, **self._kwargs))

@@ -4,10 +4,10 @@ import numpy as np
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 from mlxtend.evaluate import confusion_matrix
-from sklearn.metrics import roc_curve, auc, confusion_matrix as sk_confusion_matrix
+from sklearn.metrics import roc_curve, auc
 
 from pandas_ml_common import Typing
-from pandas_ml_common.serialization_utils import plot_to_html_img
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import Summary
@@ -74,7 +74,10 @@ class ClassificationSummary(Summary):
         distinct_values = {*truth.reshape((-1,))}
 
         cm = confusion_matrix(truth, prediction, binary=len(distinct_values) <= 2)
-        return plot_confusion_matrix(cm, figsize=figsize)
+        fig, ax = plot_confusion_matrix(cm, figsize=figsize)
+        # ax.set_title('Confusion Matrix', fontsize=1)
+
+        return fig, ax
 
     def _fix_label_prediction_representation(self):
         true_values = self.df[self.true_columns]._.values
@@ -84,7 +87,7 @@ class ClassificationSummary(Summary):
 
         pred_values = self.df[self.pred_columns]._.values.reshape(true_values.shape)
 
-        if true_values.ndim > 2 and true_values.shape[1] > 2:
+        if true_values.ndim > 1 and true_values.shape[1] > 2:
             # get class of multi class probabilities
             true_values = np.apply_along_axis(np.argmax, 1, true_values)
             pred_values = np.apply_along_axis(np.argmax, 1, pred_values)
