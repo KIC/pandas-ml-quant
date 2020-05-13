@@ -73,8 +73,8 @@ class AutoEncoderModel(Model):
         elif self.mode == 'decode':
             return self.decoder_provider(self.trainable_model)(x, **kwargs)
 
-    def plot_loss(self):
-        return self.trainable_model.plot_loss()
+    def plot_loss(self, **kwargs):
+        return self.trainable_model.plot_loss(**kwargs)
 
     def __call__(self, *args, **kwargs):
         copy = AutoEncoderModel(
