@@ -10,7 +10,7 @@ from pandas_ml_quant_test.config import DF_TEST
 
 class TestTime2Vec(TestCase):
 
-    def _test_time2vec(self):
+    def test_time2vec(self):
         df = DF_TEST.copy()
 
         x = df["Volume"].pct_change().ta.rnn(range(5))._.values[:-2]

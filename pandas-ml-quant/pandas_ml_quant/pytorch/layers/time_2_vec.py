@@ -1,3 +1,5 @@
+from typing import Tuple, Union
+
 import torch as t
 import torch.nn as nn
 from torch.nn import init
@@ -9,15 +11,16 @@ class Time2Vec(nn.Module):
     and:    https://arxiv.org/pdf/1907.05321.pdf
     """
 
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, in_dim: Union[Tuple[int, int], int], out_dim: int):
         super().__init__()
-        self.output_dim = output_dim
+        if not isinstance(in_dim, tuple):
+            in_dim = (in_dim, 1)
 
-        self.W = nn.Parameter(t.Tensor(output_dim, output_dim))
-        self.B = nn.Parameter(t.Tensor(input_dim, output_dim))
+        self.output_dim = out_dim
         self.w = nn.Parameter(t.Tensor(1, 1))
-        self.b = nn.Parameter(t.Tensor(input_dim, 1))
-        self.reset_parameters()
+        self.b = nn.Parameter(t.Tensor(in_dim[0], 1))
+        self.W = nn.Parameter(t.Tensor(out_dim * in_dim[1], out_dim * in_dim[1]))
+        self.B = nn.Parameter(t.Tensor(in_dim[0], out_dim * in_dim[1]))
 
     def reset_parameters(self):
         init.uniform_(self.W, 0, 1)
@@ -25,8 +28,11 @@ class Time2Vec(nn.Module):
         init.uniform_(self.w, 0, 1)
 
     def forward(self, x):
+        if x.ndim < 3:
+            x = x.view(*x.shape, 1)
+
         original = self.w * x + self.b
         x = t.repeat_interleave(x, self.output_dim, dim=-1)
-        sin_trans = t.sin(t.dot(x, self.W) + self.B)
+        sin_trans = t.sin((x @ self.W) + self.B)
         return t.cat([sin_trans, original], -1)
 
