@@ -1,6 +1,7 @@
 from unittest import TestCase
 from pandas_ml_quant import pd
-from pandas_ml_quant.analysis.labels import ta_opening_gap, ta_future_bband_quantile, ta_future_multi_bband_quantile
+from pandas_ml_quant.analysis.labels import ta_opening_gap, ta_future_bband_quantile, ta_future_multi_bband_quantile,\
+    ta_opening_gap_closed
 from pandas_ml_quant_test.config import DF_TEST
 
 
@@ -31,4 +32,10 @@ class TestDescreteLabels(TestCase):
         self.assertEqual(0.0, label.values.min())
         self.assertEqual(8.0, label.values.max())
 
+    def test_ta_opening_gap_closed(self):
+        df = DF_TEST.copy()
+
+        df["label"] = ta_opening_gap_closed(df)
+
+        df.to_pickle('/tmp/df.pickle')
 

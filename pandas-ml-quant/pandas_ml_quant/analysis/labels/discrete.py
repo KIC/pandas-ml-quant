@@ -84,8 +84,32 @@ def ta_future_multi_bband_quantile(df: _pd.Series, period=5, forecast_period=5, 
         .rename(f"{df.name}_quantile")
 
 
-def ta_opening_gap(df: _pd.DataFrame, offset=0.005, open="Open", close="Close"):
-    gap = (df["Open"].shift(-1) / df["Close"]) - 1
+def ta_opening_gap(df: _pd.DataFrame, forecast_period=1, offset=0.005, open="Open", close="Close"):
+    gap = (df[open].shift(-forecast_period) / df[close]) - 1
     return gap.apply(lambda row: _np.nan if _np.isnan(row) or _np.isinf(row) else \
                                  2 if row > offset else 1 if row < -offset else 0)\
               .rename("opening_gap")
+
+
+def ta_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, open="Open", high="High", low="Low", close="Close"):
+    gap = "$gap$"
+    yesterday_close = "$close-1$"
+    df = df[[open, high, low, close]].copy()
+    df[yesterday_close] = df[close].shift(1)
+    df[gap] = (df[open] / df[close].shift(1)) - 1
+
+    # if open > close-1 we need to check if low <= close-1
+    # if open < close-1 we need to check if high >= close-1
+
+    def gap_category(row):
+        if row[gap] < threshold:
+            return -1
+        else:
+            if row[open] > row[yesterday_close]:
+                return row[low] <= row[yesterday_close]
+            elif row[open] < row[yesterday_close]:
+                return row[high] >= row[yesterday_close]
+            else:
+                return -1
+
+    return df.apply(gap_category, raw=False, axis=1).rename("closing_gap")

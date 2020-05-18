@@ -23,9 +23,10 @@ class Time2Vec(nn.Module):
         self.B = nn.Parameter(t.Tensor(in_dim[0], out_dim * in_dim[1]))
 
     def reset_parameters(self):
-        init.uniform_(self.W, 0, 1)
-        init.uniform_(self.B, 0, 1)
-        init.uniform_(self.w, 0, 1)
+        init.uniform_(self.W, 1e-6, 1)
+        init.uniform_(self.B, 1e-6, 1)
+        init.uniform_(self.w, 1e-6, 1)
+        init.uniform_(self.b, 1e-6, 1)
 
     def forward(self, x):
         if x.ndim < 3:
