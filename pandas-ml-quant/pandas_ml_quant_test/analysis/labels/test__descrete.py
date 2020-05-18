@@ -33,9 +33,12 @@ class TestDescreteLabels(TestCase):
         self.assertEqual(8.0, label.values.max())
 
     def test_ta_opening_gap_closed(self):
-        df = DF_TEST.copy()
+        df = DF_TEST[-30:].copy()
 
         df["label"] = ta_opening_gap_closed(df)
 
-        df.to_pickle('/tmp/df.pickle')
+        self.assertListEqual(
+            df["label"].values.tolist(),
+            [-1, -1, False, -1, -1, -1, False, False, -1, -1, False, -1, -1, True, -1, -1, False, -1, True, -1, -1, True, False, -1, False, -1, -1, -1, False, True]
+        )
 
