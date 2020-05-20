@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from pandas_ml_quant import pd
+from pandas_ml_quant_data_provider import pd
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

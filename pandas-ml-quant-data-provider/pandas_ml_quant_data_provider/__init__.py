@@ -8,6 +8,7 @@ from .fetch import fetch_timeseries
 from .provider import *
 
 setattr(pd, "fetch_timeseries", fetch_timeseries)
+setattr(pd, "read_ts_csv", data_fetchers.read_ts_csv)
 
 # add data fetcher functions
 for fetcher_functions in [data_fetchers]:

@@ -5,7 +5,10 @@ import pandas as pd
 from pandas_ml_common.utils import call_callable_dynamic_args, add_multi_index, inner_join
 
 
-def fetch_timeseries(providers: Dict[Callable[[Any], pd.DataFrame], List[str]], multi_index: bool = None, **kwargs):
+def fetch_timeseries(providers: Dict[Callable[[Any], pd.DataFrame], List[str]],
+                     multi_index: bool = None,
+                     ffill: bool = False,
+                     **kwargs):
     symbol_type = (List, Tuple, Iterable)
     expected_frames = sum(len(s) if isinstance(s, symbol_type) else 1 for s in providers.values())
     df = None
@@ -29,7 +32,7 @@ def fetch_timeseries(providers: Dict[Callable[[Any], pd.DataFrame], List[str]], 
             if df is None:
                 df = _df
             else:
-                df = inner_join(df, _df, force_multi_index=multi_index)
+                df = inner_join(df, _df, force_multi_index=multi_index, ffill=ffill)
 
     return df
 

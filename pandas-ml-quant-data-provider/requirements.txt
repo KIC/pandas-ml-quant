@@ -2,5 +2,6 @@ sortedcontainers
 cachetools
 investpy
 yfinance
+fredapi
 pandas
 numpy

@@ -1,11 +1,9 @@
 """Augment pandas DataFrame with methods for quant analysis"""
 __version__ = '0.1.7'
 
+import importlib
 import sys as _sys
 
-import pandas
-import importlib
-import pandas_ml_quant.data.datafetching as data_fetchers
 from pandas_ml_common import *
 from pandas_ml_quant.df.technical_analysis import TechnicalAnalysis as _TA
 from pandas_ml_quant.model import *
@@ -28,15 +26,4 @@ if 'pandas_ml_quant_data_provider' in _sys.modules:
     _log.warning(f"automatically imported pandas_ml_quant_data_provider {pandas_ml_quant_data_provider.__version__}")
 else:
     _log.warning("pandas_ml_quant_data_provider module not avialable!")
-
-
-# add read_csv short cut
-setattr(pandas, "read_ts_csv", data_fetchers.read_ts_csv)
-
-# add data fetcher functions
-for fetcher_functions in [data_fetchers]:
-    for fetcher_function in dir(fetcher_functions):
-        if fetcher_function.startswith("fetch_"):
-            setattr(pandas, fetcher_function, getattr(fetcher_functions, fetcher_function))
-
 

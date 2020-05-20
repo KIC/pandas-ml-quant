@@ -1,5 +1,3 @@
-import cachetools.func
-
 import logging
 
 import cachetools.func

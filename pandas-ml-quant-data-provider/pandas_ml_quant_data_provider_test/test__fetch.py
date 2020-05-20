@@ -1,6 +1,7 @@
+import os
 from unittest import TestCase
 
-from pandas_ml_quant_data_provider import fetch_timeseries, YAHOO, INVESTING, CRYPTO_COMPARE, pd
+from pandas_ml_quant_data_provider import fetch_timeseries, YAHOO, INVESTING, CRYPTO_COMPARE, FRED, pd
 
 
 class TestFetch(TestCase):
@@ -9,7 +10,7 @@ class TestFetch(TestCase):
         df = fetch_timeseries({
             YAHOO: ["SPY", "DIA"],
             INVESTING: ["index::NYSE Tick Index::united states", "bond::U.S. 30Y::united states"],
-            CRYPTO_COMPARE: ["BTC"]
+            CRYPTO_COMPARE: ["BTC"],
         })
 
         print(df.columns.to_list())
@@ -26,6 +27,21 @@ class TestFetch(TestCase):
         )
 
         self.assertGreaterEqual(len(df), 2400)
+
+    def test__fred(self):
+
+        if "FRED_API_KEY" not in os.environ:
+            print("skipping FRED due to missing FRED_API_KEY key")
+            return
+
+        df = fetch_timeseries({FRED: ["GDP", "WALCL"]}, ffill=True)
+
+        print(df.columns.to_list())
+        print(df.head())
+        print(len(df))
+
+        self.assertListEqual(df.columns.to_list(), [('FRED', 'GDP'), ('FRED', 'WALCL')])
+        self.assertGreaterEqual(len(df), 968)
 
     def test__monkey_patch(self):
         self.assertIsNotNone(pd.fetch_timeseries)
