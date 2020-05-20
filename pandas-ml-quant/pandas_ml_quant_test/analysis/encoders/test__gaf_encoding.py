@@ -1,7 +1,8 @@
 from unittest import TestCase
 from pandas_ml_quant import np
 from pandas_ml_quant.analysis.encoders import ta_gaf, ta_rnn, ta_inverse_gasf, np_inverse_gaf
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_quant_test.config import DF_TEST, DF_INVERSE_GAF
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 
 
 class TestGAF(TestCase):
@@ -33,7 +34,6 @@ class TestGAF(TestCase):
         print(shape)
         print(gasf.tail())
 
-        # FIXME test inverse s_rec = ta_inverse_gasf(gasf)
         print(timesteps._.values[-2:])
         print(np_inverse_gaf(gasf._.values[-2:]))
 
@@ -41,3 +41,9 @@ class TestGAF(TestCase):
         print(df.tail())
         self.assertEqual((6760, 1, 3, 3), shape)
         # np.testing.assert_array_almost_equal(s, s_rec)
+
+    def test_inverse_gaf(self):
+        df = DF_INVERSE_GAF
+        inv = ta_inverse_gasf(df[PREDICTION_COLUMN_NAME])
+
+        print(inv)

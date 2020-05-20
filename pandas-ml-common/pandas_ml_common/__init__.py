@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 import logging
 from typing import Union, List, Callable, Any
@@ -10,12 +10,13 @@ from pandas.core.base import PandasObject
 
 from pandas_ml_common.df.ml import ML
 from pandas_ml_common.lazy import LazyInit
-from pandas_ml_common.utils import get_pandas_object, Constant, inner_join, has_indexed_columns
+from pandas_ml_common.utils import get_pandas_object, Constant, inner_join, has_indexed_columns, nans
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")
 _log.debug(f"pandas version {pd.__version__}")
 
+np.nans = nans
 setattr(PandasObject, "_", property(lambda self: ML(self)))
 setattr(PandasObject, "inner_join", inner_join)
 setattr(pd.DataFrame, "to_frame", lambda self: self)

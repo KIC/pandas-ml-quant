@@ -109,7 +109,7 @@ class Model(object):
         # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
         return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
 
-    def plot_loss(self, figsize=(8, 6)):
+    def plot_loss(self, figsize=(8, 6), secondary_y=False, **kwargs):
         """
         plot a diagram of the training and validation losses per fold
         :return: figure and axis
@@ -120,7 +120,8 @@ class Model(object):
 
         for fold_nr, fold_loss in enumerate(self._history):
             p = ax.plot(fold_loss[0], '-', label=f'{fold_nr}: loss')
-            ax.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{fold_nr}: val loss')
+            ax2 = ax.twinx() if secondary_y else ax
+            ax2.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{fold_nr}: val loss')
 
         plt.legend(loc='upper right')
         return fig, ax

@@ -17,13 +17,26 @@ def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
 
 
-def inner_join(df, join: pd.DataFrame, prefix: str = ''):
+def add_multi_index(df, head):
+    df = df.copy()
+    df.columns = pd.MultiIndex.from_product([[head], df.columns.tolist()])
+    return df
+
+
+def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_multi_index=False):
+    if force_multi_index:
+        if not isinstance(df.columns, pd.MultiIndex):
+            if len(prefix_left) <= 0:
+                raise ValueError("You need to provide a prefix_left")
+            else:
+                df = add_multi_index(df, prefix_left)
+
     if isinstance(df.columns, pd.MultiIndex) and not isinstance(join.columns, pd.MultiIndex):
         b = join.copy()
         b.columns = pd.MultiIndex.from_product([[prefix], b.columns])
         return pd.merge(df, b, left_index=True, right_index=True, how='inner', sort=True)
     else:
-        return pd.merge(df, join.add_prefix(prefix), left_index=True, right_index=True, how='inner', sort=True)
+        return pd.merge(df.add_prefix(prefix_left), join.add_prefix(prefix), left_index=True, right_index=True, how='inner', sort=True)
 
 
 def unique_level_columns(df: pd.DataFrame, level=0):

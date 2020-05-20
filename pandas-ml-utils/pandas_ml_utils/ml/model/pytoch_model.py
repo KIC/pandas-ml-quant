@@ -13,7 +13,6 @@ from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
-from ..data.splitting.sampeling import Sampler
 
 _log = logging.getLogger(__name__)
 
@@ -68,6 +67,9 @@ class PytorchModel(Model):
 
         if hasattr(module, 'callback'):
             on_epoch_callbacks += [module.callback]
+
+        if hasattr(criterion, 'callback'):
+            on_epoch_callbacks += [criterion.callback]
 
         if is_verbose:
             print(f"fit fold {fold_nr} with {len(x)} samples in {math.ceil(len(x) / batch_size)} batches ... ")
