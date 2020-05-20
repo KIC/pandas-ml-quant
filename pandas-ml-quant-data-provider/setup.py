@@ -1,17 +1,20 @@
-from setuptools import setup, find_packages
-import pandas_ml_quant_data_provider
+"""Augment pandas DataFrame with methods to fetch time series data for quant finance"""
+__version__ = '0.1.7'
 
+import os
+
+from setuptools import setup, find_packages
 
 setup(
-   name=pandas_ml_quant_data_provider.__name__.replace("_", "-"),
-   version=pandas_ml_quant_data_provider.__version__,
+   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   version=__version__,
    author='KIC',
    author_email='',
    packages=find_packages(),
    scripts=[],
    url='https://github.com/KIC/pandas-ml-quant',
    license='MIT',
-   description=pandas_ml_quant_data_provider.__doc__,
+   description=__doc__,
    long_description=open('Readme.md').read(),
    long_description_content_type='text/markdown',
    install_requires=["pandas-ml-common", *open("requirements.txt").read().splitlines()],
@@ -28,5 +31,5 @@ setup(
       'Programming Language :: Python :: 3',
       'Programming Language :: Python :: 3.7',
    ],
-   keywords = ['pandas', 'ml', 'util', 'quant', 'data', 'timeseries'],
+   keywords=['pandas', 'ml', 'util', 'quant', 'data', 'timeseries'],
 )
