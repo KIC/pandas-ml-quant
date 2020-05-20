@@ -35,7 +35,7 @@ class TestDescreteLabels(TestCase):
     def test_ta_opening_gap_closed(self):
         df = DF_TEST[-30:].copy()
 
-        df["label"] = ta_opening_gap_closed(df)
+        df["label"] = ta_opening_gap_closed(df, no_gap=-1)
 
         self.assertListEqual(
             df["label"].values.tolist(),

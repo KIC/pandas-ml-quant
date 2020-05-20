@@ -48,7 +48,10 @@ class AutoEncoderModel(Model):
         copy._features_and_labels = fnl_copy
         return copy
 
-    def as_decoder(self, decoder_features: List[Typing._Selector]) -> Model:
+    def as_decoder(self, decoder_features: List[Typing._Selector] = None) -> Model:
+        if "bottleneck" in self.trainable_model.features_and_labels.kwargs and decoder_features is None:
+            decoder_features = self.trainable_model.features_and_labels.kwargs["bottleneck"]
+
         fnl_copy = deepcopy(self.trainable_model.features_and_labels)
         fnl_copy._features = decoder_features
 

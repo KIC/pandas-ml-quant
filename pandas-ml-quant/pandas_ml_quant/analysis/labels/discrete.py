@@ -91,7 +91,7 @@ def ta_opening_gap(df: _pd.DataFrame, forecast_period=1, offset=0.005, open="Ope
               .rename("opening_gap")
 
 
-def ta_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, open="Open", high="High", low="Low", close="Close"):
+def ta_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, no_gap=_np.nan, open="Open", high="High", low="Low", close="Close"):
     gap = "$gap$"
     yesterday_close = "$close-1$"
     df = df[[open, high, low, close]].copy()
@@ -103,13 +103,13 @@ def ta_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, open="Open", high=
 
     def gap_category(row):
         if row[gap] < threshold:
-            return -1
+            return no_gap
         else:
             if row[open] > row[yesterday_close]:
                 return row[low] <= row[yesterday_close]
             elif row[open] < row[yesterday_close]:
                 return row[high] >= row[yesterday_close]
             else:
-                return -1
+                return no_gap
 
     return df.apply(gap_category, raw=False, axis=1).rename("closing_gap")
