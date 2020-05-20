@@ -1,0 +1,6 @@
+sortedcontainers
+cachetools
+investpy
+yfinance
+pandas
+numpy

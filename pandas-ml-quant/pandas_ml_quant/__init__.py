@@ -4,7 +4,7 @@ __version__ = '0.1.7'
 import sys as _sys
 
 import pandas
-
+import importlib
 import pandas_ml_quant.data.datafetching as data_fetchers
 from pandas_ml_common import *
 from pandas_ml_quant.df.technical_analysis import TechnicalAnalysis as _TA
@@ -17,10 +17,17 @@ _log.debug(f"pandas version {pd.__version__}")
 
 setattr(PandasObject, "ta", property(lambda self: _TA(self)))
 
-
+# auto import pandas ml utils
 if 'pandas_ml_utils' in _sys.modules:
-    import pandas_ml_utils
+    pandas_ml_utils = importlib.import_module("pandas_ml_utils")
     _log.warning(f"automatically imported pandas_ml_utils {pandas_ml_utils.__version__}")
+
+# auto import pandas ml quant data prviders
+if 'pandas_ml_quant_data_provider' in _sys.modules:
+    pandas_ml_quant_data_provider = importlib.import_module("pandas_ml_quant_data_provider")
+    _log.warning(f"automatically imported pandas_ml_quant_data_provider {pandas_ml_quant_data_provider.__version__}")
+else:
+    _log.warning("pandas_ml_quant_data_provider module not avialable!")
 
 
 # add read_csv short cut
