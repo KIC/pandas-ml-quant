@@ -43,6 +43,12 @@ class TestFetch(TestCase):
         self.assertListEqual(df.columns.to_list(), [('FRED', 'GDP'), ('FRED', 'WALCL')])
         self.assertGreaterEqual(len(df), 968)
 
+    def test__cryptocompare(self):
+        df = fetch_timeseries({"cryptocompare_hourly": "BTC"}, force_lower_case=True)
+        print(df.tail())
+
+        self.assertGreaterEqual(len(df), 1440)
+
     def test__monkey_patch(self):
         self.assertIsNotNone(pd.fetch_timeseries)
         self.assertIsNotNone(pd.fetch_yahoo)

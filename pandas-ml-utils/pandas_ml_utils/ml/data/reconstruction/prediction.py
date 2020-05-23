@@ -49,7 +49,7 @@ def map_prediction_to_target(df, prediction, targets):
         index = [(date, target) for date in df.index for target in
                  build_tuples(dft.loc[date]._.values.tolist())]
     else:
-        raise ValueError(f"unable to match {len(p.shape[1])} predictions to {t.shape[1]} +/-1 targets")
+        raise ValueError(f"unable to match {p.shape[1]} predictions to {t.shape[1]} +/-1 targets")
 
     return pd.DataFrame({"prediction": p.reshape((-1,))},
                         index=pd.MultiIndex.from_tuples(index))

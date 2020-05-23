@@ -1,6 +1,6 @@
 import base64
-import os
 import io
+import os
 import traceback
 from collections import Callable
 
@@ -11,7 +11,7 @@ def serialize(obj, filename):
     with open(filename, 'wb') as file:
         pickle.dump(obj, file)
 
-    print(f"saved model to: {os.path.abspath(filename)}")
+    print(f"saved {type(obj)} to: {os.path.abspath(filename)}")
 
 
 def deserialize(filename, type=None):
@@ -24,7 +24,7 @@ def deserialize(filename, type=None):
         if isinstance(obj, type):
             return obj
         else:
-            raise ValueError("Deserialized pickle was not a Model!")
+            raise ValueError(f"Deserialized pickle was {type(obj)} but expected {type}!")
 
 
 def plot_to_html_img(plotter: Callable, **kwargs):

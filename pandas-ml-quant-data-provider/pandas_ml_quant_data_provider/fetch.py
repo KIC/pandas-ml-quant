@@ -1,4 +1,4 @@
-from typing import List, Callable, Dict, Any, Tuple, Iterable
+from typing import List, Callable, Dict, Any, Tuple, Set
 
 import pandas as pd
 
@@ -7,10 +7,12 @@ from pandas_ml_quant_data_provider.provider import PROVIDER_MAP
 
 
 def fetch_timeseries(providers: Dict[Callable[[Any], pd.DataFrame], List[str]],
+                     start_date: str = None,
+                     force_lower_case: bool = False,
                      multi_index: bool = None,
                      ffill: bool = False,
                      **kwargs):
-    symbol_type = (List, Tuple, Iterable)
+    symbol_type = (List, Tuple, Set)
     expected_frames = sum(len(s) if isinstance(s, symbol_type) else 1 for s in providers.values())
     df = None
 
@@ -33,13 +35,23 @@ def fetch_timeseries(providers: Dict[Callable[[Any], pd.DataFrame], List[str]],
             if _df is None:
                 continue
 
-            if multi_index and not isinstance(_df.columns, pd.MultiIndex):
-                _df = add_multi_index(_df, symbol, True)
+            if multi_index:
+                if not isinstance(_df.columns, pd.MultiIndex):
+                    _df = add_multi_index(_df, symbol, True)
+
+                if force_lower_case:
+                    _df.columns = pd.MultiIndex.from_tuples([(h.lower(), c.lower()) for h, c in _df.columns.to_list()])
+            else:
+                if isinstance(_df.columns, pd.MultiIndex):
+                    _df.columns = [t[-1]for t in _df.columns.to_list()]
+
+                if force_lower_case:
+                    _df.columns = [c.lower() for c in _df.columns.to_list()]
 
             if df is None:
                 df = _df
             else:
                 df = inner_join(df, _df, force_multi_index=multi_index, ffill=ffill)
 
-    return df
+    return df if start_date is None else df[start_date:]
 
