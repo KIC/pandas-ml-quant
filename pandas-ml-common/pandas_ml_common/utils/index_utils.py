@@ -17,13 +17,13 @@ def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
 
 
-def add_multi_index(df, head):
-    df = df.copy()
+def add_multi_index(df, head, inplace=False):
+    df = df if inplace else df.copy()
     df.columns = pd.MultiIndex.from_product([[head], df.columns.tolist()])
     return df
 
 
-def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_multi_index=False):
+def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_multi_index=False, ffill=False):
     if force_multi_index:
         if not isinstance(df.columns, pd.MultiIndex):
             if len(prefix_left) <= 0:
@@ -34,9 +34,21 @@ def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_m
     if isinstance(df.columns, pd.MultiIndex) and not isinstance(join.columns, pd.MultiIndex):
         b = join.copy()
         b.columns = pd.MultiIndex.from_product([[prefix], b.columns])
-        return pd.merge(df, b, left_index=True, right_index=True, how='inner', sort=True)
+        if ffill:
+            return pd\
+                .merge(df, b, left_index=True, right_index=True, how='outer', sort=True)\
+                .fillna(method='ffill')\
+                .dropna()
+        else:
+            return pd.merge(df, b, left_index=True, right_index=True, how='inner', sort=True)
     else:
-        return pd.merge(df.add_prefix(prefix_left), join.add_prefix(prefix), left_index=True, right_index=True, how='inner', sort=True)
+        if ffill:
+            return pd\
+                .merge(df.add_prefix(prefix_left), join.add_prefix(prefix), left_index=True, right_index=True, how='outer', sort=True)\
+                .fillna(method='ffill')\
+                .dropna()
+        else:
+            return pd.merge(df.add_prefix(prefix_left), join.add_prefix(prefix), left_index=True, right_index=True, how='inner', sort=True)
 
 
 def unique_level_columns(df: pd.DataFrame, level=0):

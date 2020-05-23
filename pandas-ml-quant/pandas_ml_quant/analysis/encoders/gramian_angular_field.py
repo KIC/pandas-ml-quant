@@ -103,4 +103,8 @@ def np_inverse_gaf(values):
     if values.ndim == 4:
         return _np.array([np_inverse_gaf(values[sample]) for sample in range(values.shape[0])])
     else:
-        return _np.array([_np.sqrt(((_np.diag(values[channel]) + 1) / 2)) for channel in range(values.shape[0])])
+        return _np.array([_inverse_gaf(values[channel]) for channel in range(values.shape[0])])
+
+
+def _inverse_gaf(values):
+    return _np.sqrt(((_np.diag(values) + 1) / 2))

@@ -1,8 +1,8 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 
 import sys as _sys
-
+import importlib
 from pandas_ml_common import *
 from pandas_ml_utils.ml.data import *
 from pandas_ml_utils.df.model import Model as DfModelExtension
@@ -18,5 +18,5 @@ setattr(PandasObject, "model", property(lambda self: DfModelExtension(self)))
 
 
 if 'pandas_ml_quant' in _sys.modules:
-    import pandas_ml_quant
+    pandas_ml_quant = importlib.import_module("pandas_ml_quant")
     _log.warning(f"automatically imported pandas_ml_quant {pandas_ml_quant.__version__}")
