@@ -50,7 +50,12 @@ class TestSkMultiModel(TestCase):
             SkModel(
                 MLPClassifier(activation='logistic', max_iter=1000, hidden_layer_sizes=(3,), alpha=0.001,
                               solver='lbfgs', random_state=42),
-                FeaturesAndLabels(features=["a", "b"], labels=[lambda df, index: df["c"].rename(index)], label_type=int),
+                FeaturesAndLabels(
+                    features=["a", "b"],
+                    labels=[lambda df, index: df["c"].rename(index)],
+                    label_type=int,
+                    index=["z"]
+                ),
             ),
             ["c1", "c2"],
             model_index_variable="index"
