@@ -25,7 +25,8 @@ class TestSkMultiModel(TestCase):
                               solver='lbfgs', random_state=42),
                 FeaturesAndLabels(features=["a", "b"], labels=["c", "d"], label_type=int),
             ),
-            2
+            2,
+            True,
         )
 
         fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)

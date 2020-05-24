@@ -19,11 +19,13 @@ class MultiModel(Model):
     def __init__(self,
                  basis_model: Model,
                  nr_models: int,
+                 slice_original_labels: bool,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         super().__init__(basis_model.features_and_labels, summary_provider, **kwargs)
         self.basis_model = basis_model
         self.nr_models = nr_models
+        self.slice_original_labels = slice_original_labels
         self.sub_models: List[Model] = []
 
     def fit(self, sampler: Sampler, **kwargs) -> float:
@@ -74,16 +76,28 @@ class MultiModel(Model):
         nr_models = self.nr_models
         
         def create_sub_model(i):
+            # get the labels and sample weights from the basis model
             l = self.features_and_labels.labels
             w = self.features_and_labels.sample_weights
 
+            # copy the FeaturesAndLabels object from the basis model
             fl = deepcopy(self.features_and_labels)
-            fl._labels = [l[i*nr_models:(i+1)*nr_models]]
-            fl._sample_weights = [w[i*nr_models:(i+1)*nr_models]] if w is not None else None
 
+            # replace labels with one slice per model
+            if self.slice_original_labels:
+                fl._labels = [l[i*nr_models:(i+1)*nr_models]]
+                fl._sample_weights = [w[i*nr_models:(i+1)*nr_models]] if w is not None else None
+
+            # replace kwargs
+            for k, v in self.kwargs.items():
+                if k in fl.kwargs:
+                    fl[k] = v
+
+            # create a new model from the basis model and replace the FeaturesAndLabels object
             sm = self.basis_model(*args, **kwargs)
             sm._features_and_labels = fl
             return sm
 
+        # initialize all sub models and use the mutated FeaturesAndLabels objects we prepared for each model
         copy.sub_models = [create_sub_model(i) for i in range(self.nr_models)]
         return copy
