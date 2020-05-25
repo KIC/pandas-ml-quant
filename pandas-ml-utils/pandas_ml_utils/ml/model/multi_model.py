@@ -21,7 +21,7 @@ class MultiModel(Model):
 
     def __init__(self,
                  basis_model: Model,
-                 nr_models: Union[int, List[int], Tuple[int]],
+                 nr_models: Union[int, List, Tuple],
                  model_index_variable: str = "i",
                  features_and_labels: FeaturesAndLabels = None,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
