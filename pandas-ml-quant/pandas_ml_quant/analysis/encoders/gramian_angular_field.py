@@ -95,7 +95,7 @@ def ta_inverse_gasf(df: Typing.PatchedPandas):
         if inv.shape[1] == 1:
             return _pd.DataFrame(inv[:,0,:], index=df.index)
         else:
-            raise ValueError("should never et here ..")
+            raise ValueError("should never get here ..")
 
 
 def np_inverse_gaf(values):

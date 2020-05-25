@@ -167,9 +167,11 @@ class PytorchModel(Model):
             self.module.eval()
 
             if use_cuda:
-                return self.module.cuda()(t.from_numpy(x).float().cuda()).numpy()
+                res =  self.module.cuda()(t.from_numpy(x).float().cuda())
             else:
-                return self.module(t.from_numpy(x).float()).numpy()
+                res = self.module(t.from_numpy(x).float())
+
+            return res if isinstance(res, np.ndarray) else res.numpy()
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.
