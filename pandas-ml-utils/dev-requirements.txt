@@ -1,1 +1,6 @@
 twine
+tensorflow<2.0
+keras
+keras-rl
+gym
+torch
