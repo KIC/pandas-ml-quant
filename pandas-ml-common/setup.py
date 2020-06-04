@@ -1,17 +1,20 @@
+"""Augment pandas DataFrame with methods for machine learning"""
+__version__ = '0.1.9'
+
+import os
 from setuptools import setup, find_packages
-import pandas_ml_common
 
 
 setup(
-   name=pandas_ml_common.__name__.replace("_", "-"),
-   version=pandas_ml_common.__version__,
+   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   version=__version__,
    author='KIC',
    author_email='',
    packages=find_packages(),
    scripts=[],
    url='https://github.com/KIC/pandas-ml-quant',
    license='MIT',
-   description=pandas_ml_common.__doc__,
+   description=__doc__,
    long_description=open('Readme.md').read(),
    long_description_content_type='text/markdown',
    install_requires=open("requirements.txt").read().splitlines(),
@@ -28,5 +31,5 @@ setup(
       'Programming Language :: Python :: 3',
       'Programming Language :: Python :: 3.7',
    ],
-   keywords = ['pandas', 'ml', 'util', 'quant'],
+   keywords=['pandas', 'ml', 'util', 'quant'],
 )
