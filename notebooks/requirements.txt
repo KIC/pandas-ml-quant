@@ -1,2 +1,5 @@
 tensorflow_probability<0.9
-tensorflow<2.0
+tensorflow<2
+jupyter
+ipywidgets
+

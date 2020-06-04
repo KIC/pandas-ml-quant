@@ -10,7 +10,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 class TestLazyInit(TestCase):
 
     def test_serialization(self):
-        from keras import backend as K
+        from tensorflow.keras import backend as K
 
         """given"""
         lazy_val = LazyInit(lambda: K.constant(12))
