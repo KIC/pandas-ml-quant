@@ -5,6 +5,7 @@ import dill as pickle
 import numpy as np
 from keras import backend as K
 
+from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_quant.keras.loss import tailed_categorical_crossentropy, DifferentiableArgmax, \
     normal_penalized_crossentropy, \
     parabolic_crossentropy
@@ -15,19 +16,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 def save_object(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
-
-
-def one_hot(index, len):
-    arr = np.zeros(len)
-
-    if np.issubdtype(np.uint32, np.integer):
-        arr[index] = 1.0
-    elif index.values >= 0:
-        arr[index] = 1.0
-    else:
-        arr += np.NAN
-
-    return arr
 
 
 class TestKerasLoss(TestCase):
@@ -79,11 +67,12 @@ class TestKerasLoss(TestCase):
         loss = tailed_categorical_crossentropy(categories, 1)
 
         """then"""
-        l = K.eval(loss(K.variable(one_hot(3, 11)), K.variable(one_hot(6, 11))))
+        truth = one_hot(3, 11)
+        l = K.eval(loss(K.variable(truth), K.variable(one_hot(6, 11))))
         pickle
 
         """then"""
-        self.assertGreater(l, 0)
+        np.testing.assert_almost_equal(l, 25.39289, decimal=5)
         save_object(loss, '/tmp/test__tailed_categorical_crossentropy.dill')
 
     def test_normal_penalized_crossentropy(self):
