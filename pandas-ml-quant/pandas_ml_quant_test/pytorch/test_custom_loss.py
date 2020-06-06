@@ -68,8 +68,8 @@ class TestCustomLoss(TestCase):
         l2 = loss(t.tensor([one_hot(6, 11), one_hot(9, 11)]), t.tensor([truth, truth]))
 
         """then"""
-        np.testing.assert_almost_equal(l, 25.39289, decimal=5)
-        np.testing.assert_array_almost_equal(l2, [25.39289, 56.03752], decimal=5)
+        np.testing.assert_almost_equal(l, 11.817837, decimal=5)
+        np.testing.assert_array_almost_equal(l2, [11.817837, 42.46247], decimal=5)
         self.assertGreater(l.mean().numpy(), 0)
 
     def test_soft_dtw_loss(self):

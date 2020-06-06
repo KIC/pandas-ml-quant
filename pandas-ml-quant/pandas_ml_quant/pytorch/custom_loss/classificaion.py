@@ -26,20 +26,6 @@ class ParabolicPenaltyLoss(nn.Module):
         return ((self.argmax(y_pred) + self.offset) - (self.argmax(y_true)) * self.f) ** 2
 
 
-class KerasCrossEntropyLoss(nn.Module):
-
-    def __init__(self, epsilon=1e-7):
-        super().__init__()
-        self.epsilon = epsilon
-
-    def forward(self, output, target, axis=-1):
-        output = output / t.sum(output, axis, True)
-        output = output.clamp(self.epsilon, 1. - self.epsilon)
-        output = target * t.log(output)
-
-        return -t.sum(output, axis)
-
-
 class TailedCategoricalCrossentropyLoss(nn.Module):
 
     def __init__(self, nr_of_categories: int, alpha=0.1, beta=1e10, delta=1.0, reduction='none'):
@@ -57,13 +43,17 @@ class TailedCategoricalCrossentropyLoss(nn.Module):
         """
         super().__init__()
         self.parabolic_penalty = ParabolicPenaltyLoss(nr_of_categories, delta, beta)
-        self.categorical_crossentropy = KerasCrossEntropyLoss()
+        self.categorical_crossentropy = nn.CrossEntropyLoss()
         self.reduction = reduction
         self.alpha = alpha
 
     def forward(self, y_pred, y_true):
         penalty = self.alpha * self.parabolic_penalty(y_true, y_pred)
-        loss = self.categorical_crossentropy(y_pred, y_true)
+        if isinstance(self.categorical_crossentropy, nn.CrossEntropyLoss):
+            loss = self.categorical_crossentropy(y_pred, y_true.argmax(dim=-1))
+        else:
+            loss = self.categorical_crossentropy(y_pred, y_true)
+
         loss = penalty + loss
 
         if self.reduction == 'sum':

@@ -1,7 +1,7 @@
 from unittest import TestCase
 from pandas_ml_quant import pd
-from pandas_ml_quant.analysis.labels import ta_opening_gap, ta_future_bband_quantile, ta_future_multi_bband_quantile,\
-    ta_opening_gap_closed
+from pandas_ml_quant.analysis.labels import ta_has_opening_gap, ta_future_bband_quantile, ta_future_multi_bband_quantile,\
+    ta_is_opening_gap_closed
 from pandas_ml_quant_test.config import DF_TEST
 
 
@@ -11,7 +11,7 @@ class TestDescreteLabels(TestCase):
         df = pd.DataFrame({"Open": [0, 2, 2, 2],
                            "Close":   [1, 2, 3, 0]})
 
-        label = ta_opening_gap(df)
+        label = ta_has_opening_gap(df)
 
         self.assertListEqual([2., 0., 1.], label.dropna().tolist())
 
@@ -35,7 +35,7 @@ class TestDescreteLabels(TestCase):
     def test_ta_opening_gap_closed(self):
         df = DF_TEST[-30:].copy()
 
-        df["label"] = ta_opening_gap_closed(df, no_gap=-1)
+        df["label"] = ta_is_opening_gap_closed(df, no_gap=-1)
 
         self.assertListEqual(
             df["label"].values.tolist(),

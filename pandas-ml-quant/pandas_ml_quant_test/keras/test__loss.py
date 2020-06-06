@@ -67,12 +67,13 @@ class TestKerasLoss(TestCase):
         loss = tailed_categorical_crossentropy(categories, 1)
 
         """then"""
-        truth = one_hot(3, 11)
-        l = K.eval(loss(K.variable(truth), K.variable(one_hot(6, 11))))
+        truth = K.constant(one_hot(3, 11))
+        prediction = K.softmax(K.constant(one_hot(6, 11)))
+        l = K.eval(loss(truth, prediction))
         pickle
 
         """then"""
-        np.testing.assert_almost_equal(l, 25.39289, decimal=5)
+        np.testing.assert_almost_equal(l, 11.817837, decimal=5)
         save_object(loss, '/tmp/test__tailed_categorical_crossentropy.dill')
 
     def test_normal_penalized_crossentropy(self):

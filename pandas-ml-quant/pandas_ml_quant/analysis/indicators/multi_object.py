@@ -107,3 +107,7 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
 
     md = tp.rolling(period).apply(lambda x: _np.abs(x - x.mean()).sum() / period)
     return ((1 / alpha) * (tp - tp_sma) / md / 100).rename(f"cci_{period}")
+
+
+def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
+    return df[open] / df[close].shift(1) - 1
