@@ -32,8 +32,6 @@ class PytorchModel(Model):
                  callbacks: Dict[str, List[Callable]] = {},
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
-        import torch
-        self.Tensor = torch.Tensor
         self.module_provider = module_provider
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
@@ -149,9 +147,6 @@ class PytorchModel(Model):
         return np.array(epoch_losses), np.array(epoch_val_losses)
 
     def _calc_weighted_loss(self, criterion, y_hat, y, weights):
-        if isinstance(y_hat, self.Tensor) and isinstance(y, self.Tensor):
-            y = y.view(y_hat.shape)
-
         loss = criterion(y_hat, y)
 
         if loss.ndim > 0:

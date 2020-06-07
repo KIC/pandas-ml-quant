@@ -9,6 +9,7 @@ _log = logging.getLogger(__name__)
 def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
     # get raw values
     values = df.values
+    res = None
 
     # un-nest eventually nested numpy arrays
     if values.dtype == 'object':
@@ -16,13 +17,18 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
 
         if values.ndim > 1:
             # stack all rows per column then stack all columns
-            return np.array([np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]) \
-                     .swapaxes(0, 1)
+            res = np.array([np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]) \
+                    .swapaxes(0, 1)
         else:
             # stack all rows
-            return np.array([np.array(v) for v in values])
+            res = np.array([np.array(v) for v in values])
     else:
-        return values
+        res = values
+
+    if res.ndim == 3 and res.shape[1] == 1:
+        return res[:, 0, :]
+    else:
+        return res
 
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:
