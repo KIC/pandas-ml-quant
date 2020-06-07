@@ -110,4 +110,4 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
 
 
 def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
-    return df[open] / df[close].shift(1) - 1
+    return (df[open] / df[close].shift(1) - 1).rename("gap")

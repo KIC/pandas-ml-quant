@@ -1,6 +1,8 @@
 import torch as t
 import torch.nn as nn
 
+from pandas_ml_utils.pytorch.loss import CrossEntropyLoss
+
 
 class DifferentiableArgmax(nn.Module):
 
@@ -43,17 +45,14 @@ class TailedCategoricalCrossentropyLoss(nn.Module):
         """
         super().__init__()
         self.parabolic_penalty = ParabolicPenaltyLoss(nr_of_categories, delta, beta)
-        self.categorical_crossentropy = nn.CrossEntropyLoss()
+        self.categorical_crossentropy = CrossEntropyLoss()
         self.reduction = reduction
         self.alpha = alpha
 
     def forward(self, y_pred, y_true):
-        penalty = self.alpha * self.parabolic_penalty(y_true, y_pred)
-        if isinstance(self.categorical_crossentropy, nn.CrossEntropyLoss):
-            loss = self.categorical_crossentropy(y_pred, y_true.argmax(dim=-1))
-        else:
-            loss = self.categorical_crossentropy(y_pred, y_true)
-
+        y_true = y_true.view(y_pred.shape)
+        penalty = self.alpha * self.parabolic_penalty(y_true, y_pred).squeeze()
+        loss = self.categorical_crossentropy(y_pred, y_true)
         loss = penalty + loss
 
         if self.reduction == 'sum':

@@ -5,7 +5,7 @@ import numpy as _np
 import pandas as _pd
 
 from pandas_ml_common import Typing as _t
-from pandas_ml_common.utils import has_indexed_columns
+from pandas_ml_common.utils import has_indexed_columns, inner_join, add_multi_index
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 from pandas_ml_utils import Model
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
@@ -97,6 +97,25 @@ def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1, include_mean=True) -> _
             .sort_index(axis=1)
 
 
+def ta_multi_ma(df: _t.PatchedDataFrame, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)) -> _t.PatchedDataFrame:
+    ma = {'sma': ta_sma, 'ema': ta_ema, 'wilder': ta_wilders}
+    res = _pd.DataFrame({}, index=df.index)
+
+    if has_indexed_columns(df):
+        res = None
+        for col in df.columns.to_list():
+            _df = ta_multi_ma(df[col], average_function, period, factors)
+            _df = add_multi_index(_df, col)
+            res = inner_join(res, _df, force_multi_index=True)
+
+        return res
+
+    for x in factors:
+        res[f"{df.name}_{average_function}({period})({x:.3f})"] = ma[average_function](df, period) * x
+
+    return res
+
+
 def ta_model(df: _t.PatchedDataFrame, model: _Union[Model, str], post_processors=[]) -> _t.PatchedDataFrame:
     if isinstance(model, str):
         model = Model.load(model)
@@ -108,3 +127,5 @@ def ta_model(df: _t.PatchedDataFrame, model: _Union[Model, str], post_processors
         p = pc(p)
 
     return p
+
+

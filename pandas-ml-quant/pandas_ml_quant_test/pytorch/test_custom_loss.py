@@ -7,7 +7,7 @@ from torch.optim import Adam
 
 from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_quant.pytorch.custom_loss import SoftDTW, DifferentiableArgmax, ParabolicPenaltyLoss, TailedCategoricalCrossentropyLoss
+from pandas_ml_quant.pytorch.loss import SoftDTW, DifferentiableArgmax, ParabolicPenaltyLoss, TailedCategoricalCrossentropyLoss
 from pandas_ml_quant_test.config import DF_TEST
 from pandas_ml_utils import AutoEncoderModel
 from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
@@ -71,6 +71,15 @@ class TestCustomLoss(TestCase):
         np.testing.assert_almost_equal(l, 11.817837, decimal=5)
         np.testing.assert_array_almost_equal(l2, [11.817837, 42.46247], decimal=5)
         self.assertGreater(l.mean().numpy(), 0)
+
+    def test__tailed_categorical_crossentropy_3d(self):
+        loss = TailedCategoricalCrossentropyLoss(11, 1)
+        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,
+                         (32,))
+        self.assertEqual(loss(t.ones((32, 1, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,
+                         (32,))
+        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 11), requires_grad=True)).shape,
+                         (32,))
 
     def test_soft_dtw_loss(self):
         df = DF_TEST[["Close"]][-21:].copy()

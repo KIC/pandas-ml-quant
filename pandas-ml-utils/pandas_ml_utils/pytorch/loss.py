@@ -52,3 +52,21 @@ class MultiObjectiveLoss(nn.Module):
     def callback(self, epoch):
         if self.on_epoch is not None:
             self.on_epoch(self, epoch)
+
+
+class CrossEntropyLoss(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.cel = nn.CrossEntropyLoss(reduction='none')
+
+    def forward(self, y_pred, y_true):
+        y_true = y_true.view(y_pred.shape)
+
+        if y_true.ndim > 2:
+            if y_true.shape[1] > 1:
+                return t.stack([self.forward(y_pred[:, i], y_true[:, i]) for i in range(y_true.shape[1])], dim=1)
+            else:
+                return self.cel(y_pred[:, 0], y_true[:, 0].argmax(dim=-1))
+        else:
+            return self.cel(y_pred, y_true.argmax(dim=-1))
