@@ -8,9 +8,9 @@ class DifferentiableArgmax(nn.Module):
 
     def __init__(self, nr_of_categories, beta=1e10):
         super().__init__()
-        self.y_range = t.arange(0, nr_of_categories).float()
         self.softmax = nn.Softmax(dim=-1)
-        self.beta = t.tensor(beta).float()
+        self.register_buffer('y_range', t.arange(0, nr_of_categories).float())
+        self.register_buffer('beta', t.tensor(beta).float())
 
     def forward(self, y):
         return t.sum(self.softmax(y * self.beta) * self.y_range, dim=-1)
@@ -21,8 +21,8 @@ class ParabolicPenaltyLoss(nn.Module):
     def __init__(self, nr_of_categories, delta=1.0, beta=1e10):
         super().__init__()
         self.argmax = DifferentiableArgmax(nr_of_categories, beta)
-        self.offset = t.tensor(delta / 2).float()
-        self.f = t.tensor((nr_of_categories + delta) / nr_of_categories).float()
+        self.register_buffer('offset', t.tensor(delta / 2).float())
+        self.register_buffer('f', t.tensor((nr_of_categories + delta) / nr_of_categories).float())
 
     def forward(self, y_pred, y_true):
         return ((self.argmax(y_pred) + self.offset) - (self.argmax(y_true)) * self.f) ** 2

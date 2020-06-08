@@ -100,7 +100,12 @@ class MultipleBinaryWeightedClassificationSummary(ClassificationSummary):
 
     def __init__(self, df: Typing.PatchedDataFrame, probability_cutoff=0.5, **kwargs):
         super().__init__(df)
-        df = df[[LABEL_COLUMN_NAME, PREDICTION_COLUMN_NAME, GROSS_LOSS_COLUMN_NAME]]
+        if GROSS_LOSS_COLUMN_NAME in df:
+            df = df[[LABEL_COLUMN_NAME, PREDICTION_COLUMN_NAME, GROSS_LOSS_COLUMN_NAME]]
+        else:
+            _log.warning("No gross loss provided!")
+            df = df[[LABEL_COLUMN_NAME, PREDICTION_COLUMN_NAME]]
+
         nr_columns = len(df.columns) // 3
 
         self.binary_summaries =\

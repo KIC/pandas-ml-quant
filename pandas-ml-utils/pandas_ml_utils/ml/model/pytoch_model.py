@@ -48,6 +48,9 @@ class PytorchModel(Model):
         from torch.autograd import Variable
         import torch as t
 
+        # TODO we should not re-initialize model, criterion and optimizer once we have it already
+        #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
+
         is_verbose = kwargs["verbose"] if "verbose" in kwargs else False
         on_epoch_callbacks = kwargs["on_epoch"] if "on_epoch" in kwargs else []
         restore_best_weights = kwargs["restore_best_weights"] if "restore_best_weights" in kwargs else False
@@ -55,10 +58,15 @@ class PytorchModel(Model):
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
 
-        # TODO we should not re-initialize model, criterion and optimizer once we have it already
-        #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
-        module = (self.module.cuda() if use_cuda else self.module).train()
-        criterion = self.criterion_provider()
+        module = self.module
+        criterion_provider = self.criterion_provider
+
+        if use_cuda:
+            criterion_provider = lambda: self.criterion_provider().cuda()
+            module = module.cuda()
+
+        module = module.train()
+        criterion = criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
         best_model_wts = deepcopy(module.state_dict())
         best_loss = sys.float_info.max
@@ -115,11 +123,11 @@ class PytorchModel(Model):
                         weights, weights_val = weights.cuda(), weights_val.cuda()
 
                     y_hat = module(nnx)
-                    loss = self._calc_weighted_loss(self.criterion_provider(), y_hat, nny, weights).item()
+                    loss = self._calc_weighted_loss(criterion_provider(), y_hat, nny, weights).item()
                     epoch_losses.append(loss)
 
                     y_hat_val = module(nnx_val)
-                    val_loss = self._calc_weighted_loss(self.criterion_provider(), y_hat_val, nny_val, weights_val).item()
+                    val_loss = self._calc_weighted_loss(criterion_provider(), y_hat_val, nny_val, weights_val).item()
                     epoch_val_losses.append(val_loss)
 
                     if val_loss < best_loss:
@@ -161,16 +169,9 @@ class PytorchModel(Model):
         # import specifics
         import torch as t
 
-        use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
-
         with t.no_grad():
-            self.module.eval()
-
-            if use_cuda:
-                res =  self.module.cuda()(t.from_numpy(x).float().cuda())
-            else:
-                res = self.module(t.from_numpy(x).float())
-
+            module = self.module.cpu().eval()
+            res = module(t.from_numpy(x).float())
             return res if isinstance(res, np.ndarray) else res.numpy()
 
     def __getstate__(self):
