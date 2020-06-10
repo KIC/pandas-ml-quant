@@ -96,6 +96,7 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
         )
 
 
+# TODO create a generic MultiModelMultiSummary(summary_provider, ...)
 class MultipleBinaryWeightedClassificationSummary(ClassificationSummary):
 
     def __init__(self, df: Typing.PatchedDataFrame, probability_cutoff=0.5, **kwargs):

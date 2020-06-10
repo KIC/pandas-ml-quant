@@ -1,0 +1,16 @@
+
+<div style="width:100%; float: left;">
+    <img src="${cmx_plot}" style="float: left; width: 49%; margin-top: 0px; "/>
+    <img src="${roc_plot}" style="float: left; width: 49%; margin-top: 0px; "/>
+</div>
+
+
+<div style="width:100%; float: left;">
+    <img src="${gross_loss_plot}" style="float: left; width: 98%; margin-top: 0px;"/>
+    <p>
+        <span>Number of Events: ${gross_confusion[0]}</span>
+        <span>Number of Positives: ${round(gross_confusion[1], 2)}</span>
+        <span>Gross Loss: ${round(gross_confusion[2], 2)}</span>
+        <span>Minimum Premium Needed: ${round(gross_confusion[2] / gross_confusion[0], 2)}</span>
+    </p>
+</div>

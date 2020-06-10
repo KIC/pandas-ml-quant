@@ -10,6 +10,7 @@ import numpy as np
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import call_callable_dynamic_args
+from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
@@ -37,6 +38,7 @@ class PytorchModel(Model):
         self.optimizer_provider = optimizer_provider
         self.callbacks = callbacks
         self.module = None
+        self.log_once = LogOnce().log
 
     def fit_fold(self,
                  fold_nr: int,
@@ -161,7 +163,13 @@ class PytorchModel(Model):
             if loss.ndim == weights.ndim:
                 loss = (loss * weights).mean()
             else:
-                loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
+                self.log_once("loss.ndim!=weights.ndim", _log.warning,
+                              f"sample weight has different dimensions {loss.shape}, {weights.shape}")
+
+                if weights.ndim > loss.ndim and weights.shape[-1] == 1:
+                    loss = self._calc_weighted_loss(criterion, y_hat, y, weights.squeeze())
+                else:
+                    loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
 
         return loss
 

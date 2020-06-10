@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 
 import pandas_ml_utils.html as html
+from pandas_ml_common import Typing
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
@@ -54,6 +55,13 @@ class Fit(object):
         :return: None
         """
         self.model.save(filename)
+
+    def with_summary(self, summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary, **kwargs):
+        return Fit(self.model,
+                   summary_provider(self.training_summary.df, **{**self._kwargs, **kwargs}),
+                   summary_provider(self.test_summary.df, **{**self._kwargs, **kwargs}),
+                   self._trails,
+                   **self._kwargs)
 
     def __str__(self):
         return f"train:\n" \
