@@ -10,3 +10,4 @@ DF_TEST = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "
 DF_DEBUG = pd.DataFrame({"Close": np.random.random(10)})
 
 DF_INVERSE_GAF = pd.read_pickle(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data", "inverse_gaf.df"))
+DF_TEST_MULTI_CASS = pd.read_pickle(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data", "one_hot_classified_df.pickle"))

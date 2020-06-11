@@ -36,7 +36,7 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
             self.df[GROSS_LOSS_COLUMN_NAME][self.neg_idx].dropna().abs().values.sum()
         )
 
-    def plot_classification(self, figsize=(16, 9)) -> Figure:
+    def plot_gross_distribution(self, figsize=(16, 9)) -> Figure:
         import seaborn as sns
         import matplotlib.pyplot as plt
         from pandas.plotting import register_matplotlib_converters
@@ -92,7 +92,7 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
             gross_confusion=self.gross_confusion(),
             roc_plot=plot_to_html_img(self.plot_ROC),
             cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
-            gross_loss_plot=plot_to_html_img(self.plot_classification),
+            gross_distribution_plot=plot_to_html_img(self.plot_gross_distribution),
         )
 
 
