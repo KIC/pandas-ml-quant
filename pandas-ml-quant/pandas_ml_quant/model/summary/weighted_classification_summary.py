@@ -2,7 +2,6 @@ import logging
 import os
 
 import numpy as np
-from matplotlib.figure import Figure
 
 from pandas_ml_common import Typing, pd
 from pandas_ml_common.utils.numpy_utils import empty_lists, get_buckets
@@ -15,10 +14,20 @@ _log = logging.getLogger(__name__)
 
 class WeightedClassificationSummary(ClassificationSummary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, **kwargs):
+    def __init__(self, df: Typing.PatchedDataFrame, clip_profit_at=0, classes=None, **kwargs):
         super().__init__(df)
-        self.confusion_indices = self._confusion_indices()
+        self.clip_profit_at = clip_profit_at
         self.targets = df[TARGET_COLUMN_NAME]
+
+        # calculate confusion indices
+        truth, prediction = self._fix_label_prediction_representation()
+        distinct_values = len({*truth.reshape((-1,))}) if classes is None else classes
+        cm = empty_lists((distinct_values, distinct_values))
+
+        for i, (t, p) in enumerate(zip(truth, prediction)):
+            cm[int(t), int(p)].append(self.df.index[i])
+
+        self.confusion_indices = cm
 
         # we can calculate the gross loss from the predicted band and the true price,
         #  therefore we need to pass the true price as gross loss such that we calculate the real loss
@@ -30,44 +39,34 @@ class WeightedClassificationSummary(ClassificationSummary):
 
         # find target for predicted value
         mid = self.targets.shape[1] / 2.0
-        if self.targets.shape[1] % 2 == 0:
-            # 0             1            2            3           4
-            #   25.901625  	  26.815800 	27.729975 	28.644150
-            self.df_gross_loss["loss"] = self.df_gross_loss.apply(
-                lambda r: (r["price"] - r["bucket"][r["pidx"]][0]) if r["pidx"] <= mid else (
-                            r["bucket"][r["pidx"]][1] - r["price"]),
-                axis=1,
-                raw=False
-            )
-        else:
-            # mid -> np.floor(mid)[1] / np.ceil(mid)[0]
-            # 0           1            2           3
-            #   25.901625 	26.815800 	 27.729975
-            self.df_gross_loss["loss"] = self.df_gross_loss.apply(
-                lambda r: (r["price"] - r["bucket"][r["pidx"]][1]) if r["pidx"] < mid else (r["bucket"][r["pidx"]][0] - r["price"]),
-                axis=1,
-                raw=False
-            )
+        self.df_gross_loss["loss"] = self.df_gross_loss.apply(
+            lambda r: (r["price"] - r["bucket"][r["pidx"]][0]) if r["pidx"] <= mid else (
+                        r["bucket"][r["pidx"]][1] - r["price"]),
+            axis=1,
+            raw=False
+        ).fillna(0)
 
-    def _confusion_indices(self):
-        truth, prediction = self._fix_label_prediction_representation()
-        distinct_values = len({*truth.reshape((-1,))})
-        cm = empty_lists((distinct_values, distinct_values))
+    def plot_gross_confusion(self, figsize=(9, 8)):
+        import matplotlib.pyplot as plt
+        import seaborn as sns
 
-        for i, (t, p) in enumerate(zip(truth, prediction)):
-            cm[int(t), int(p)].append(self.df.index[i])
+        f, ax = plt.subplots(figsize=figsize)
+        sns.heatmap(self._gross_confusion(), annot=True, linewidths=.5, ax=ax)
+        return f, ax
 
-        return cm
+    def _gross_confusion(self):
+        cm = np.empty(self.confusion_indices.shape)
+        for i in np.ndindex(cm.shape):
+            cm[i] = self.df_gross_loss["loss"].loc[self.confusion_indices[i]].clip(upper=self.clip_profit_at).sum()
 
-    def plot_gross_confusion(self):
-        # TODO we can calculate the gross loss from the predicted band and the true price,
-        #  therefore we need to pass the true price as gross loss such that we calculate the real loss
+        return pd.DataFrame(cm)
 
-        pass
+    def plot_gross_distribution(self, figsize=(9, 6)):
+        import matplotlib.pyplot as plt
 
-    def plot_gross_distribution(self):
         # FIXME plot gross loss bubble chart
-        return ""
+        f, ax = plt.subplots(figsize=figsize)
+        return f, ax
 
     def _repr_html_(self):
         from mako.template import Template
@@ -78,8 +77,8 @@ class WeightedClassificationSummary(ClassificationSummary):
 
         return template.render(
             summary=self,
-            gross_confusion=self.gross_confusion(),
+            gmx_plot=plot_to_html_img(self.plot_gross_confusion),
             roc_plot=plot_to_html_img(self.plot_ROC),
             cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
-            gross_loss_plot=plot_to_html_img(self.plot_classification),
+            gross_loss_plot=plot_to_html_img(self.plot_gross_distribution),
         )

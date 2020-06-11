@@ -16,7 +16,7 @@ def extract_feature_labels_weights(
     targets = call_if_not_none(get_pandas_object(df, features_and_labels.targets, **kwargs), 'dropna')
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
     gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
-    common_index = intersection_of_index(features, labels, targets, sample_weights)
+    common_index = intersection_of_index(features, labels, targets, sample_weights, gross_loss)
 
     if features_and_labels.label_type is not None:
         labels = labels.astype(features_and_labels.label_type)
