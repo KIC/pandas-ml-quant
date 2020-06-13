@@ -57,16 +57,9 @@ class WeightedClassificationSummary(ClassificationSummary):
     def _gross_confusion(self):
         cm = np.empty(self.confusion_indices.shape)
         for i in np.ndindex(cm.shape):
-            cm[i] = self.df_gross_loss["loss"].loc[self.confusion_indices[i]].clip(upper=self.clip_profit_at).sum()
+            cm[i] = self.df_gross_loss["loss"].loc[self.confusion_indices[i]].clip(upper=self.clip_profit_at).mean()
 
         return pd.DataFrame(cm)
-
-    def plot_gross_distribution(self, figsize=(9, 6)):
-        import matplotlib.pyplot as plt
-
-        # FIXME plot gross loss bubble chart
-        f, ax = plt.subplots(figsize=figsize)
-        return f, ax
 
     def _repr_html_(self):
         from mako.template import Template
@@ -75,10 +68,10 @@ class WeightedClassificationSummary(ClassificationSummary):
         file = os.path.join(path, 'html', 'weighted_classification_summary.html')
         template = Template(filename=file)
 
+        # TODO add min premium field -> sum all losses / nr_of_trades
         return template.render(
             summary=self,
             gmx_plot=plot_to_html_img(self.plot_gross_confusion),
             roc_plot=plot_to_html_img(self.plot_ROC),
             cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
-            gross_loss_plot=plot_to_html_img(self.plot_gross_distribution),
         )
