@@ -84,14 +84,24 @@ def ta_future_multi_bband_quantile(df: _pd.Series, period=5, forecast_period=5, 
         .rename(f"{df.name}_quantile")
 
 
-def ta_opening_gap(df: _pd.DataFrame, forecast_period=1, offset=0.005, open="Open", close="Close"):
+def ta_future_multi_ma_quantile(df: _pd.Series, forecast_period=5, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)):
+    future = df.shift(-forecast_period)
+    mas = _f.ta_multi_ma(df, average_function, period, factors)
+
+    return mas \
+        .join(future) \
+        .apply(lambda row: _index_of_bucket(row[future.name], row[mas.columns]), axis=1, raw=False) \
+        .rename(f"{df.name}_quantile")
+
+
+def ta_has_opening_gap(df: _pd.DataFrame, forecast_period=1, offset=0.005, open="Open", close="Close"):
     gap = (df[open].shift(-forecast_period) / df[close]) - 1
     return gap.apply(lambda row: _np.nan if _np.isnan(row) or _np.isinf(row) else \
                                  2 if row > offset else 1 if row < -offset else 0)\
               .rename("opening_gap")
 
 
-def ta_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, no_gap=_np.nan, open="Open", high="High", low="Low", close="Close"):
+def ta_is_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, no_gap=_np.nan, open="Open", high="High", low="Low", close="Close"):
     gap = "$gap$"
     yesterday_close = "$close-1$"
     df = df[[open, high, low, close]].copy()

@@ -10,6 +10,7 @@ import numpy as np
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import call_callable_dynamic_args
+from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
@@ -37,6 +38,7 @@ class PytorchModel(Model):
         self.optimizer_provider = optimizer_provider
         self.callbacks = callbacks
         self.module = None
+        self.log_once = LogOnce().log
 
     def fit_fold(self,
                  fold_nr: int,
@@ -48,6 +50,9 @@ class PytorchModel(Model):
         from torch.autograd import Variable
         import torch as t
 
+        # TODO we should not re-initialize model, criterion and optimizer once we have it already
+        #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
+
         is_verbose = kwargs["verbose"] if "verbose" in kwargs else False
         on_epoch_callbacks = kwargs["on_epoch"] if "on_epoch" in kwargs else []
         restore_best_weights = kwargs["restore_best_weights"] if "restore_best_weights" in kwargs else False
@@ -55,10 +60,15 @@ class PytorchModel(Model):
         batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 128
         use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
 
-        # TODO we should not re-initialize model, criterion and optimizer once we have it already
-        #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
-        module = (self.module.cuda() if use_cuda else self.module).train()
-        criterion = self.criterion_provider()
+        module = self.module
+        criterion_provider = self.criterion_provider
+
+        if use_cuda:
+            criterion_provider = lambda: self.criterion_provider().cuda()
+            module = module.cuda()
+
+        module = module.train()
+        criterion = criterion_provider()
         optimizer = self.optimizer_provider(module.parameters())
         best_model_wts = deepcopy(module.state_dict())
         best_loss = sys.float_info.max
@@ -115,11 +125,11 @@ class PytorchModel(Model):
                         weights, weights_val = weights.cuda(), weights_val.cuda()
 
                     y_hat = module(nnx)
-                    loss = self._calc_weighted_loss(self.criterion_provider(), y_hat, nny, weights).item()
+                    loss = self._calc_weighted_loss(criterion_provider(), y_hat, nny, weights).item()
                     epoch_losses.append(loss)
 
                     y_hat_val = module(nnx_val)
-                    val_loss = self._calc_weighted_loss(self.criterion_provider(), y_hat_val, nny_val, weights_val).item()
+                    val_loss = self._calc_weighted_loss(criterion_provider(), y_hat_val, nny_val, weights_val).item()
                     epoch_val_losses.append(val_loss)
 
                     if val_loss < best_loss:
@@ -153,7 +163,13 @@ class PytorchModel(Model):
             if loss.ndim == weights.ndim:
                 loss = (loss * weights).mean()
             else:
-                loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
+                self.log_once("loss.ndim!=weights.ndim", _log.warning,
+                              f"sample weight has different dimensions {loss.shape}, {weights.shape}")
+
+                if weights.ndim > loss.ndim and weights.shape[-1] == 1:
+                    loss = self._calc_weighted_loss(criterion, y_hat, y, weights.squeeze())
+                else:
+                    loss = (loss * weights.repeat(1, *loss.shape[1:])).mean()
 
         return loss
 
@@ -161,15 +177,10 @@ class PytorchModel(Model):
         # import specifics
         import torch as t
 
-        use_cuda = kwargs["cuda"] if "cuda" in kwargs else False
-
         with t.no_grad():
-            self.module.eval()
-
-            if use_cuda:
-                return self.module.cuda()(t.from_numpy(x).float().cuda()).numpy()
-            else:
-                return self.module(t.from_numpy(x).float()).numpy()
+            module = self.module.cpu().eval()
+            res = module(t.from_numpy(x).float())
+            return res if isinstance(res, np.ndarray) else res.numpy()
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.

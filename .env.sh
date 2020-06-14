@@ -10,3 +10,4 @@ for d in $(find "$SCRIPTPATH" -maxdepth 1 -type d) ; do
 done
 
 echo "python path: $PYTHONPATH"
+export PYTHONPATH

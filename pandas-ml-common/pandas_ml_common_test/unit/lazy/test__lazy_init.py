@@ -1,8 +1,6 @@
 import os
 from unittest import TestCase
 
-from keras import backend as K
-
 from pandas_ml_common import LazyInit
 from pandas_ml_common.utils.serialization_utils import serialize, deserialize
 
@@ -12,6 +10,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 class TestLazyInit(TestCase):
 
     def test_serialization(self):
+        from tensorflow.keras import backend as K
+
         """given"""
         lazy_val = LazyInit(lambda: K.constant(12))
         val = lazy_val()

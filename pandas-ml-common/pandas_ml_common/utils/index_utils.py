@@ -24,8 +24,17 @@ def add_multi_index(df, head, inplace=False):
 
 
 def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_multi_index=False, ffill=False):
+    if df is None:
+        if force_multi_index:
+            if isinstance(join.columns, pd.MultiIndex):
+                return join
+            else:
+                return add_multi_index(join, prefix)
+        else:
+            return join
+
     if force_multi_index:
-        if not isinstance(df.columns, pd.MultiIndex):
+        if not isinstance(df.columns, pd.MultiIndex) and len(df.columns) > 0:
             if len(prefix_left) <= 0:
                 raise ValueError("You need to provide a prefix_left")
             else:

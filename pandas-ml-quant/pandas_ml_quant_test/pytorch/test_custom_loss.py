@@ -1,17 +1,85 @@
 from unittest import TestCase
 
+import numpy as np
 import torch as t
 import torch.nn as nn
 from torch.optim import Adam
 
-from pandas_ml_quant.pytorch.custom_loss import SoftDTW
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_utils import AutoEncoderModel, FeaturesAndLabels
+from pandas_ml_quant.pytorch.loss import SoftDTW, DifferentiableArgmax, ParabolicPenaltyLoss, TailedCategoricalCrossentropyLoss
+from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_utils import AutoEncoderModel
 from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
 
 
 class TestCustomLoss(TestCase):
+
+    def test__differentiable_argmax(self):
+        """given"""
+        args = 10
+        argmax = DifferentiableArgmax(args)
+
+        """when"""
+
+        res = np.array([argmax(t.tensor(one_hot(i, args))).numpy() for i in range(args)])
+
+        """then"""
+        print(res)
+        np.testing.assert_array_almost_equal(res, np.arange(0, args))
+
+    def test__parabolic_crossentropy(self):
+        """when"""
+        categories = 11
+        loss_function = ParabolicPenaltyLoss(categories, 1)
+
+        """then"""
+        for truth in range(categories):
+            losses = []
+            for prediction in range(categories):
+                loss = loss_function(t.tensor(one_hot(prediction, categories)),
+                                     t.tensor(one_hot(truth, categories)))
+                losses.append(loss)
+
+            # all predictions left of truth need to increase
+            for i in range(1, truth):
+                self.assertGreater(losses[i - 1], losses[i])
+
+            # right of truth need to decrease
+            for i in range(truth, categories - 1):
+                self.assertLess(losses[i], losses[i + 1])
+
+            if truth > 0 and truth < categories - 1:
+                if truth > categories / 2:
+                    # right tail:
+                    self.assertGreater(losses[truth - 1], losses[truth + 1])
+                else:
+                    # left tail
+                    self.assertGreater(losses[truth + 1], losses[truth - 1])
+
+    def test__tailed_categorical_crossentropy(self):
+        """when"""
+        categories = 11
+        loss = TailedCategoricalCrossentropyLoss(categories, 1)
+
+        """then"""
+        truth = one_hot(3, 11)
+        l = loss(t.tensor([one_hot(6, 11)]), t.tensor([truth]))
+        l2 = loss(t.tensor([one_hot(6, 11), one_hot(9, 11)]), t.tensor([truth, truth]))
+
+        """then"""
+        np.testing.assert_almost_equal(l, 11.817837, decimal=5)
+        np.testing.assert_array_almost_equal(l2, [11.817837, 42.46247], decimal=5)
+        self.assertGreater(l.mean().numpy(), 0)
+
+    def test__tailed_categorical_crossentropy_3d(self):
+        loss = TailedCategoricalCrossentropyLoss(11, 1)
+        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,
+                         (32,))
+        self.assertEqual(loss(t.ones((32, 1, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,
+                         (32,))
+        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 11), requires_grad=True)).shape,
+                         (32,))
 
     def test_soft_dtw_loss(self):
         df = DF_TEST[["Close"]][-21:].copy()

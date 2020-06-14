@@ -9,6 +9,7 @@ _log = logging.getLogger(__name__)
 def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
     # get raw values
     values = df.values
+    res = None
 
     # un-nest eventually nested numpy arrays
     if values.dtype == 'object':
@@ -16,44 +17,89 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
 
         if values.ndim > 1:
             # stack all rows per column then stack all columns
-            return np.array([np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]) \
-                     .swapaxes(0, 1)
+            res = np.array([np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]) \
+                    .swapaxes(0, 1)
         else:
             # stack all rows
-            return np.array([np.array(v) for v in values])
+            res = np.array([np.array(v) for v in values])
     else:
-        return values
+        res = values
+
+    if res.ndim == 3 and res.shape[1] == 1:
+        return res[:, 0, :]
+    else:
+        return res
 
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:
-    # if the last dimension is 1 we can remove it
-    if arr.ndim > 1 and arr.shape[-1] == 1:
+    # array has an expected shape of (rows, samples, columns, value(s))
+    # remove last dimension of arr if it equals 1
+    if arr.shape[-1] == 1:
         arr = arr.reshape(arr.shape[:-1])
 
-    # if we have one column and a 1D vector just return a new series
-    if len(columns) == 1 and arr.ndim == 1:
-        return pd.DataFrame({columns[0]: arr}, index=index)
-
-    # make sure columns is of type list
-    if not isinstance(columns, list):
-        columns = columns.tolist()
-
-    # create the data frame
+    # initial variables
     df = pd.DataFrame({}, index=index)
-    last_idx = len(columns) - 1
+    nr_columns = len(columns)
+    nr_rows = len(index)
 
-    # TODO add logic for multi index
-    for i in range(len(columns)):
-        if i >= last_idx and arr.shape[-1] > len(columns):
-            col_vals = np.take(arr, range(i, arr.shape[-1]), -1)
+    if arr.ndim > 2:
+        sample_index = 0 if arr.shape[1] == 1 else list(range(arr.shape[1]))
+
+        # array has the shape of (rows, samples, columns, value(s))
+        # each column contains embedded array
+        # fill all columns up to the last one normally
+        nans = np.ones((*arr.shape[:3], *arr.shape[4:])) * np.nan
+        for i, col in enumerate(columns[:-1]):
+            # if i < nr_columns else np.nan's in the shape of the arr
+            _arr = arr[:, sample_index, i] if i < arr.shape[2] else nans[:, sample_index]
+            df[col] = [row.tolist() for row in _arr] if _arr.ndim > 1 else _arr
+
+        # fill last column
+        if arr.shape[2] > nr_columns:
+            # compound overflow into last column
+            _arr = arr[:, sample_index, nr_columns - 1:]
+            df[columns[-1]] = [row.tolist() for row in _arr] if _arr.ndim > 1 else _arr
         else:
-            col_vals = np.take(arr, i, axis=-1)
+            # fill normal last column
+            _arr = arr[:, sample_index, -1]
+            df[columns[-1]] = [row.tolist() for row in _arr] if _arr.ndim > 1 else _arr
 
-        # might save one dimension
-        if col_vals.ndim > 1 and col_vals.shape[1] == 1:
-            col_vals = col_vals.reshape((arr.shape[0], *col_vals.shape[2:]))
+    elif arr.ndim > 1:
+        # array has the shape of (rows, samples)
+        if nr_columns == 1:
+            # one sample per column
+            df[columns[0]] = [row.tolist() for row in arr] if arr.shape[1] > 1 else arr
+        else:
+            # fill all columns up to the last one regularly
+            for i, col in enumerate(columns[:-1]):
+                df[col] = arr[:, i] if i < nr_columns else np.nan
 
-        # eventually we need to nest back multi dimensional arrays
-        df[columns[i]] = [row.tolist() for row in col_vals] if col_vals.ndim > 1 else col_vals
+            # fill last column
+            if arr.shape[1] > nr_columns:
+                # if we have more data then columns pack everything into last column
+                df[columns[-1]] = [row.tolist() for row in arr[:, nr_columns - 1:]] if arr.shape[1] > nr_columns else arr[:, -1]
+            elif arr.shape[1] == nr_columns:
+                df[columns[-1]] = arr[:, -1]
+            else:
+                # if we have more columns then data, we set the last column to be nan
+                df[columns[-1]] = np.nan
+
+    elif arr.ndim > 0:
+        # array has the shape of (rows) and we need nr_columns to be 1 and arr.shape[0] to be nr_rows
+        if arr.shape[0] != nr_rows:
+            raise ValueError(f"incompatible shapes: columns={columns} ({nr_columns}), rows={nr_rows}, {arr.shape}")
+
+        for i, col in enumerate(columns):
+            # if nr of columns > 1 then fill rest with nan
+            df[col] = arr if i <= 0 else np.nan
+    else:
+        # array is a scalar
+        # we need nr_columns to be 1 and nr_rows to be 1
+        if nr_rows != 1:
+            raise ValueError(f"incompatible shapes: columns={columns} ({nr_columns}), rows={nr_rows}, {arr.shape}")
+
+        for i, col in enumerate(columns):
+            # if nr of columns > 1 then fill rest with nan
+            df[col] = arr if i <= 0 else np.nan
 
     return df

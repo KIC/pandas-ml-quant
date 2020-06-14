@@ -120,6 +120,11 @@ class FeaturesAndLabels(object):
         copy._labels = labels
         return copy
 
+    def with_sample_weights(self, sample_weights: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]]):
+        copy = deepcopy(self)
+        copy._sample_weights = sample_weights
+        return copy
+
     def with_kwargs(self, **kwargs):
         copy = deepcopy(self)
         copy.kwargs = {**self.kwargs, **kwargs}
@@ -153,7 +158,13 @@ class FeaturesAndLabels(object):
             if params is None:
                 return None
             else:
-                return [inspect.getsource(p) if callable(p) else p if isinstance(p, (bool, int, float, str)) else repr(p) for p in params]
+                def insp(p):
+                    try:
+                        return inspect.getsource(p)
+                    except Exception as e:
+                        return p
+
+                return [insp(p) if callable(p) else p if isinstance(p, (bool, int, float, str)) else repr(p) for p in params]
 
         return f'FeaturesAndLabels(' \
                f'\t{source(self.features)}, ' \

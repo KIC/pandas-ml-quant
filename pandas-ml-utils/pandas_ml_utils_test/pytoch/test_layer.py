@@ -1,5 +1,6 @@
-import torch as t
 from unittest import TestCase
+
+import torch as t
 
 from pandas_ml_utils.pytorch.layers import KerasLikeLSTM
 

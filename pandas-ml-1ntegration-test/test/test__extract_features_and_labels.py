@@ -41,7 +41,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         self.assertEqual((6463, 280, 2), features._.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 1, 4), labels._.values.shape)
+        self.assertEqual((6463, 4), labels._.values.shape)
         self.assertEqual((6463, 4), labels._.values.squeeze().shape)
 
         self.assertEqual(len(features), len(labels))

@@ -101,5 +101,3 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
         ratio.index = ratio.index - _pd.DateOffset(days=(ratio.index[-1] - ratio.index[0]).days + 7 - 1)
 
     return ratio
-
-

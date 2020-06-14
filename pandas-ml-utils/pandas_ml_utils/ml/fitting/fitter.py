@@ -16,6 +16,7 @@ from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
+from .exception import FitException
 
 _log = logging.getLogger(__name__)
 
@@ -83,20 +84,24 @@ def fit(df: pd.DataFrame,
     # assemble result objects
     train_sampler, train_idx = sampler.training()
     test_sampler, test_idx = sampler.validation()
-    prediction = (to_pandas(model.predict(train_sampler, **kwargs), train_idx, labels.columns),
-                  to_pandas(model.predict(test_sampler, **kwargs), test_idx, labels.columns))
 
-    # get training and test data tuples of the provided frames
-    features, labels, targets, weights, gross_loss = sampler[0], sampler[1], sampler[2], sampler[3], sampler[4]
-    df_train, df_test = [
-        _assemble_result_frame(targets[i], prediction[i], labels[i], gross_loss[i], weights[i], features[i])
-        for i in range(2)]
+    try:
+        prediction = (to_pandas(model.predict(train_sampler, **kwargs), train_idx, labels.columns),
+                      to_pandas(model.predict(test_sampler, **kwargs), test_idx, labels.columns))
 
-    # update model properties and return the fit
-    model._validation_indices = test_idx
-    model.features_and_labels.set_min_required_samples(min_required_samples)
-    model.features_and_labels.set_label_columns(labels[0].columns.tolist())
-    return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails, **kwargs)
+        # get training and test data tuples of the provided frames
+        features, labels, targets, weights, gross_loss = sampler[0], sampler[1], sampler[2], sampler[3], sampler[4]
+        df_train, df_test = [
+            _assemble_result_frame(targets[i], prediction[i], labels[i], gross_loss[i], weights[i], features[i])
+            for i in range(2)]
+
+        # update model properties and return the fit
+        model._validation_indices = test_idx
+        model.features_and_labels.set_min_required_samples(min_required_samples)
+        model.features_and_labels.set_label_columns(labels[0].columns.tolist())
+        return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails, **kwargs)
+    except Exception as e:
+        raise FitException(e, model)
 
 
 def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, **kwargs) -> pd.DataFrame:

@@ -1,0 +1,77 @@
+import logging
+import os
+
+import numpy as np
+
+from pandas_ml_common import Typing, pd
+from pandas_ml_common.utils.numpy_utils import empty_lists, get_buckets
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
+from pandas_ml_utils.constants import *
+from pandas_ml_utils.ml.summary import ClassificationSummary
+
+_log = logging.getLogger(__name__)
+
+
+class WeightedClassificationSummary(ClassificationSummary):
+
+    def __init__(self, df: Typing.PatchedDataFrame, clip_profit_at=0, classes=None, **kwargs):
+        super().__init__(df)
+        self.clip_profit_at = clip_profit_at
+        self.targets = df[TARGET_COLUMN_NAME]
+
+        # calculate confusion indices
+        truth, prediction = self._fix_label_prediction_representation()
+        distinct_values = len({*truth.reshape((-1,))}) if classes is None else classes
+        cm = empty_lists((distinct_values, distinct_values))
+
+        for i, (t, p) in enumerate(zip(truth, prediction)):
+            cm[int(t), int(p)].append(self.df.index[i])
+
+        self.confusion_indices = cm
+
+        # we can calculate the gross loss from the predicted band and the true price,
+        #  therefore we need to pass the true price as gross loss such that we calculate the real loss
+        self.df_gross_loss = pd.DataFrame({
+            "bucket": df[[TARGET_COLUMN_NAME]].apply(get_buckets, axis=1, raw=True),
+            "pidx": df.apply(lambda r: int(r[PREDICTION_COLUMN_NAME]._.values.argmax()), axis=1, raw=False),
+            "price": df[GROSS_LOSS_COLUMN_NAME].values[:,0]
+        }, index=df.index)
+
+        # find target for predicted value
+        mid = self.targets.shape[1] / 2.0
+        self.df_gross_loss["loss"] = self.df_gross_loss.apply(
+            lambda r: (r["price"] - r["bucket"][r["pidx"]][0]) if r["pidx"] <= mid else (
+                        r["bucket"][r["pidx"]][1] - r["price"]),
+            axis=1,
+            raw=False
+        ).fillna(0)
+
+    def plot_gross_confusion(self, figsize=(9, 8)):
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        f, ax = plt.subplots(figsize=figsize)
+        sns.heatmap(self._gross_confusion(), annot=True, linewidths=.5, ax=ax)
+        return f, ax
+
+    def _gross_confusion(self):
+        cm = np.empty(self.confusion_indices.shape)
+        for i in np.ndindex(cm.shape):
+            cm[i] = self.df_gross_loss["loss"].loc[self.confusion_indices[i]].clip(upper=self.clip_profit_at).mean()
+
+        return pd.DataFrame(cm)
+
+    def _repr_html_(self):
+        from mako.template import Template
+
+        path = os.path.dirname(os.path.abspath(__file__))
+        file = os.path.join(path, 'html', 'weighted_classification_summary.html')
+        template = Template(filename=file)
+
+        # TODO add min premium field -> sum all losses / nr_of_trades
+        return template.render(
+            summary=self,
+            gmx_plot=plot_to_html_img(self.plot_gross_confusion),
+            roc_plot=plot_to_html_img(self.plot_ROC),
+            cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
+        )

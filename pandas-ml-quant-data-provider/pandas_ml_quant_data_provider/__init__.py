@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods to fetch time series data for quant finance"""
-__version__ = '0.1.7'
+__version__ = '0.1.9'
 
 import pandas as pd
 
