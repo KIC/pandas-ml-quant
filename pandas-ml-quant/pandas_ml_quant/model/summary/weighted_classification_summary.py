@@ -61,6 +61,28 @@ class WeightedClassificationSummary(ClassificationSummary):
 
         return pd.DataFrame(cm)
 
+    def plot_samples(self, worst=200):
+        import matplotlib.pyplot as plt
+        f, ax = plt.subplots(1, 1, figsize=(16, 9))
+
+        _df = self.df
+        _df = _df.loc[self.df_gross_loss["loss"].sort_values().index[:worst]]
+
+        ax.imshow(
+            _df[PREDICTION_COLUMN_NAME]._.values.T,
+            cmap='afmhot',
+            interpolation='nearest',
+            aspect='auto'
+        )
+
+        ax.scatter(
+            np.arange(0, len(_df)),
+            _df[LABEL_COLUMN_NAME].apply(lambda r: np.array(r[0]).argmax(), axis=1, raw=True)
+        )
+
+        ax.invert_yaxis()
+        return f, ax
+
     def _repr_html_(self):
         from mako.template import Template
 
@@ -74,4 +96,5 @@ class WeightedClassificationSummary(ClassificationSummary):
             gmx_plot=plot_to_html_img(self.plot_gross_confusion),
             roc_plot=plot_to_html_img(self.plot_ROC),
             cmx_plot=plot_to_html_img(self.plot_confusion_matrix),
+            samples_plot=plot_to_html_img(self.plot_samples)
         )
