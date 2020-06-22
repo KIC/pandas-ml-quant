@@ -57,7 +57,14 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
             if params is None:
                 return None
             else:
-                return [inspect.getsource(p) if callable(p) else p if isinstance(p, (bool, int, float, str)) else repr(p) for p in params]
+                def insp(p):
+                    try:
+                        return inspect.getsource(p)
+                    except Exception as e:
+                        return p
+
+                return [insp(p) if callable(p) else p if isinstance(p, (bool, int, float, str)) else repr(p) for p in
+                        params]
 
         return f'PostProcessedFeaturesAndLabels(' \
                f'\t{source(self._raw[0][0])}, ' \

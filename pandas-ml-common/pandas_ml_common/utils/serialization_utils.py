@@ -43,3 +43,10 @@ def plot_to_html_img(plotter: Callable, **kwargs):
             return traceback.print_exc()
 
 
+def dict_to_str(d):
+    if d is None:
+        return ""
+    else:
+        from sortedcontainers import SortedDict
+        return ",".join([f"{k}={v}" for k, v in SortedDict(d).items()])
+
