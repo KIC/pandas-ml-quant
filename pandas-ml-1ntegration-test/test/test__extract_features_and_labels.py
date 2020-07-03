@@ -16,7 +16,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         (features, _), labels, targets, weights, gross_loss = df._.extract(
             FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].ta.rsi().ta.rnn(280),
+                    lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
                     lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(280)
                 ],
                 labels=[
@@ -55,7 +55,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         (features, min_samples), labels, targets, weights, gross_loss = df._.extract(
             FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].ta.rsi().ta.rnn(280),
+                    lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
                     lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(280)
                 ],
                 labels=[
@@ -90,7 +90,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         serialize(FeaturesAndLabels(
                 features=[
-                    lambda df: df["Close"].ta.rsi().ta.rnn(280),
+                    lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
                     lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(280)
                 ],
                 labels=[

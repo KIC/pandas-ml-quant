@@ -37,7 +37,7 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"wilders_{period}", res)
 
 
-def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:
+def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:
     assert not has_indexed_columns(s)
     mean = s.rolling(period).mean().rename("mean")
     std = s.rolling(period).std(ddof=ddof)
@@ -55,7 +55,7 @@ def ta_multi_bbands(s: _pd.Series, period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=
     return df
 
 
-def ta_bbands(df: _PANDAS, period=5, stddev=2.0, ddof=1, include_mean=True) -> _PANDAS:
+def ta_bbands(df: _PANDAS, period=12, stddev=2.0, ddof=1, include_mean=True) -> _PANDAS:
     mean = df.rolling(period).mean()
     std = df.rolling(period).std(ddof=ddof)
     most_recent = df.rolling(period).apply(lambda x: x[-1], raw=True)

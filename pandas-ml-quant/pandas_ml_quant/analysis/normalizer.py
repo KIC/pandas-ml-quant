@@ -35,7 +35,7 @@ def ta_log_returns(df: Typing.PatchedPandas):
     return _wcs("log_return", np.log(current) - np.log(lagged))
 
 
-def ta_ma_ratio(df: Typing.PatchedPandas, period=20, lag=0, ma='sma', **kwargs):
+def ta_ma_ratio(df: Typing.PatchedPandas, period=12, lag=0, ma='sma', **kwargs):
     mafunc = getattr(_f, f'ta_{ma}')
     return _wcs(f"{ma}({period}) x 1/", df / mafunc(df, period=period, **kwargs).shift(lag).values - 1, df)
 

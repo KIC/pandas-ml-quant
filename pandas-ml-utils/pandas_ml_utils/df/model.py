@@ -1,9 +1,10 @@
 from typing import Callable, Tuple, Dict, Union, Iterable
 
 from pandas_ml_common import get_pandas_object, Typing
-from pandas_ml_common.utils import has_indexed_columns
+from pandas_ml_common.utils import has_indexed_columns, merge_kwargs
 from pandas_ml_utils.ml.data.analysis import feature_selection
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
+from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
 from pandas_ml_utils.ml.data.splitting import Splitter, RandomSplits
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
@@ -23,10 +24,11 @@ class Model(object):
                           minimum_features: int = 1,
                           lags: Iterable[int] = range(100),
                           show_plots: bool = True,
-                          figsize: Tuple[int, int] = (12, 10)):
+                          figsize: Tuple[int, int] = (12, 10),
+                          **kwargs):
         # extract pandas objects
-        features = get_pandas_object(self.df, features_and_labels.features)
-        label = get_pandas_object(self.df, features_and_labels.labels)
+        kwargs = merge_kwargs(features_and_labels.kwargs, kwargs)
+        (features, _), label, _, _, _ = extract_feature_labels_weights(self.df, features_and_labels, **kwargs)
 
         # try to estimate good features
         return feature_selection(features, label, top_features, correlation_threshold, minimum_features,
