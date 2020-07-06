@@ -1,6 +1,6 @@
 from typing import Callable, Tuple, Dict, Union, Iterable
 
-from pandas_ml_common import get_pandas_object, Typing
+from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns, merge_kwargs
 from pandas_ml_utils.ml.data.analysis import feature_selection
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features

@@ -39,12 +39,13 @@ def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
 
 
 def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=True) -> _PANDAS:
+    from ..utils import difference
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
 
     temp = _pd.DataFrame({
-        "up": (h / h.shift(1) - 1) if relative else (h - h.shift(1)),
-        "down": (l.shift(1) / l - 1) if relative else (l.shift(1) - l)
+        "up": difference(h, h.shift(1), relative, 0),
+        "down": difference(l.shift(1), l, relative, 0)
     }, index=df.index)
 
     atr = ta_atr(df, period, high, low, close, relative=relative)

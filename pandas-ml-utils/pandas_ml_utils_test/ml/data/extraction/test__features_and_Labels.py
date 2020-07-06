@@ -1,6 +1,9 @@
 from functools import partial
 from unittest import TestCase
 
+import numpy as np
+import pandas as pd
+
 from pandas_ml_utils import FeaturesAndLabels
 from test.config import DF_TEST
 
@@ -34,6 +37,19 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
             ["Close_5", "Close_6", "Close_7", "Close_8", "Close_9"],
             labels.columns.tolist()
         )
+
+    def test__extract_inf(self):
+
+        df = pd.DataFrame({"a": [1, 2, 4, np.nan, np.inf]})
+
+        (features, _), labels, targets, weights, gross_loss = df._.extract(
+            FeaturesAndLabels(
+                features=["a"],
+                labels=["a"]
+            )
+        )
+
+        self.assertEqual(len(features), 3)
 
     def test_extraction(self):
 

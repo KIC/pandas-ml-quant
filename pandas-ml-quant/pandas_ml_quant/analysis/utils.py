@@ -21,3 +21,11 @@ def conditional_func(s: pd.Series, s_true: pd.Series, s_false: pd.Series):
     return df.apply(lambda r: r["TRUTHY"] if r["CONDITION"] is True else r["FALSY"] , axis=1)
 
 
+def difference(a: pd.Series, b: pd.Series, relative: bool, replace_inf=0):
+    if relative:
+        if replace_inf is not None:
+            return (a / b - 1).replace([np.inf, -np.inf], replace_inf)
+        else:
+            return a / b - 1
+    else:
+        return a - b

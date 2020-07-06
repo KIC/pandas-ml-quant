@@ -47,7 +47,7 @@ class Model(object):
                                     feature engineerings and labels
         :param summary_provider: a summary provider in the most simple case just holds a `pd.DataFrame` containing all
                                  the labels and all the predictions and optionally loss and target values. Since
-                                 constructors as callables as well it is usually enoug tho just pass the type i.e.
+                                 constructors as callables as well it is usually enough tho just pass the type i.e.
                                  `summary_provider=BinaryClassificationSummary`
         :param kwargs:
         """
