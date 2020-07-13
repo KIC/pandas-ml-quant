@@ -8,6 +8,7 @@ from typing import List, Callable, Union, Tuple
 import numpy as np
 
 from pandas_ml_common import Typing
+from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
 from ..data.splitting.sampeling import Sampler
@@ -21,7 +22,7 @@ class MultiModel(Model):
 
     def __init__(self,
                  basis_model: Model,
-                 nr_models: Union[int, List, Tuple],
+                 model_args: Union[int, List, Tuple],
                  model_index_variable: str = "i",
                  features_and_labels: FeaturesAndLabels = None,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
@@ -31,18 +32,25 @@ class MultiModel(Model):
             #  DataSampler returns one numpy array (which we then need to slice up again for each individual model).
             MultiModel._expand_features_and_labels(
                 features_and_labels if features_and_labels is not None else basis_model.features_and_labels,
-                nr_models,
+                MultiModel.models_iter(model_args),
                 model_index_variable
             ),
             summary_provider,
             **kwargs
         )
         self.basis_model = basis_model
-        self.nr_models = nr_models if isinstance(nr_models, int) else len(nr_models)
         self.sub_models: List[Model] = []
+        self.model_index_variable = model_index_variable
+        self.model_args = model_args
+        self.nr_models = len(list(MultiModel.models_iter(model_args)))
 
     @staticmethod
-    def _expand_features_and_labels(features_and_labels, nr_of_models, model_index_variable):
+    def _expand_features_and_labels(features_and_labels, model_args_iter, model_index_variable):
+        # remove the variable which controls the avirous aspects of each of the multi model
+        # we replace this information by the usage of a partial
+        if model_index_variable in features_and_labels.kwargs:
+            del features_and_labels.kwargs[model_index_variable]
+
         # early exit if nothing to do!
         if model_index_variable is None:
             return features_and_labels
@@ -54,29 +62,40 @@ class MultiModel(Model):
 
             return selector
 
-        models_iter = range(nr_of_models) if isinstance(nr_of_models, int) else nr_of_models
-        labels = [wrap_partial(i, l) for i in models_iter for l in features_and_labels.labels]
+        labels = [wrap_partial(i, l) for i in model_args_iter for l in features_and_labels.labels if callable(l)]
         features_and_labels = features_and_labels.with_labels(labels)
 
         if features_and_labels.sample_weights is not None:
-            models_iter = range(nr_of_models) if isinstance(nr_of_models, int) else nr_of_models
-            weights = [wrap_partial(i, w) for i in models_iter for w in features_and_labels.sample_weights]
+            weights = [wrap_partial(i, w) for i in model_args_iter for w in features_and_labels.sample_weights if callable(w)]
             features_and_labels = features_and_labels.with_sample_weights(weights)
+
+        if features_and_labels.gross_loss is not None:
+            gross_loss = [wrap_partial(i, gl) for i in model_args_iter for gl in features_and_labels.gross_loss if callable(gl)]
+            features_and_labels = features_and_labels.with_gross_loss(gross_loss)
 
         return features_and_labels
 
+    @staticmethod
+    def models_iter(nr_of_models):
+        return range(nr_of_models) if isinstance(nr_of_models, int) else nr_of_models
+
     def fit(self, sampler: Sampler, **kwargs) -> float:
         sub_model_losses = []
+        nr_of_models = self.nr_models
 
         # copy sampler and add a new cross validator extracting the model
-        for i_model in range(self.nr_models):
+        for i_model, arg in enumerate(MultiModel.models_iter(self.model_args)):
             if "verbose" in kwargs and kwargs["verbose"]:
-                print(f"fit model {i_model + 1} / {self.nr_models}")
+                print(f"fit model {i_model + 1} / {nr_of_models}")
             else:
-                _log.info(f"fit model {i_model + 1} / {self.nr_models}")
+                _log.info(f"fit model {i_model + 1} / {nr_of_models}")
+
+            if "on_model_callbacks" in kwargs:
+                for callback in kwargs["callbacks"]:
+                    callback(i_model, {**kwargs, self.model_index_variable: arg})
 
             sm_loss = self.sub_models[i_model]\
-                .fit(ExtractMultiMultiModelSampler(i_model, self.nr_models, sampler), **kwargs)
+                .fit(ExtractMultiMultiModelSampler(i_model, nr_of_models, sampler), **kwargs)
             sub_model_losses.append(sm_loss)
 
         self._history = [sm._history for sm in self.sub_models]
@@ -92,9 +111,10 @@ class MultiModel(Model):
     def plot_loss(self, figsize=(8, 6), columns=None):
         # override the plot function and plot the loss per model and fold
         import matplotlib.pyplot as plt
+        nr_of_models = len(self.nr_models)
 
-        columns = self.nr_models if columns is None else int(columns)
-        rows = math.ceil(self.nr_models / columns)
+        columns = nr_of_models if columns is None else int(columns)
+        rows = math.ceil(nr_of_models / columns)
         fig, axes = plt.subplots(rows, columns, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
         axes = axes.flatten()
 
@@ -110,11 +130,12 @@ class MultiModel(Model):
 
     def __call__(self, *args, **kwargs):
         copy = deepcopy(self)
-        nr_models = self.nr_models
+        nr_of_models = self.nr_models
 
         # get the labels and sample weights from the basis model
         l = self.features_and_labels.labels
         w = self.features_and_labels.sample_weights
+        gl = self.features_and_labels.gross_loss
 
         # this function is now reverse splitting up the generated labels
         # which is useful if one of the sum models gets used individually somewhere else
@@ -123,8 +144,9 @@ class MultiModel(Model):
             fl = deepcopy(self.features_and_labels)
 
             # replace labels with one slice per model
-            fl._labels = [l[i*nr_models:(i+1)*nr_models]]
-            fl._sample_weights = [w[i*nr_models:(i+1)*nr_models]] if w is not None else None
+            fl._labels = [l[i*nr_of_models:(i+1)*nr_of_models]]
+            fl._sample_weights = [w[i*nr_of_models:(i+1)*nr_of_models]] if w is not None else None
+            fl._gross_loss = [gl[i*nr_of_models:(i+1)*nr_of_models]] if gl is not None else None
 
             # create a new model from the basis model and replace the FeaturesAndLabels object
             sm = self.basis_model(*args, **kwargs)
@@ -134,5 +156,5 @@ class MultiModel(Model):
         # initialize all sub models and use the mutated FeaturesAndLabels objects we prepared for each model
         # Note! the data is actually engineered by the usage of the MultiModel's FeaturesAndLabels object and NOT
         # by the individual once. However this is needed to keep a FeaturesAndLabels and Models consistent.
-        copy.sub_models = [create_sub_model(i) for i in range(self.nr_models)]
+        copy.sub_models = [create_sub_model(i) for i in range(nr_of_models)]
         return copy

@@ -67,3 +67,8 @@ class TestMLValues(TestCase):
     def test_constant(self):
         df = pd.DataFrame({"a": [1, 2, 3]})
         self.assertListEqual([12, 12, 12], df._[Constant(12)].values.tolist())
+
+#    def test_duplicates_and_unnamed(self):
+#        df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+#        res = df._[[lambda f: f["a"] / f["b"], "a", "a", "a"]]
+#        print(res)

@@ -94,6 +94,10 @@ class PytorchModel(Model):
                 if use_cuda:
                     nnx, nny, weights = nnx.cuda(), nny.cuda(), weights.cuda()
 
+                if nnx.shape[0] <= 1:
+                    self.log_once("invalid_batch", _log.warning, "skip single element batch!")
+                    continue
+
                 # ===================forward=====================
                 output = module(nnx)
                 loss = self._calc_weighted_loss(criterion, output, nny, weights)

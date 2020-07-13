@@ -24,6 +24,7 @@ class ExtractMultiMultiModelSampler(Sampler):
             # features, labels, targets, weights, gross_loss
             (x, y, t, w, gl), (x_val, y_val, t_val, w_val, gl_val) = s
             nr_labels = y.shape[1] // self.nr_models
+            # print(f'nr of features: {x.shape[1]}, nr of labels: {nr_labels}')
 
             def cut(arr):
                 return arr[:, (nr_labels * self.start_index):(nr_labels * (self.start_index + 1))]
