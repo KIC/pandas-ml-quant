@@ -1,0 +1,89 @@
+small fixes:
+* bring back gross loss
+* bring back BinaryWeightedClassificationSummary
+* bring back hyper opt
+* implement regularisation -> https://stackoverflow.com/questions/44641976/in-pytorch-how-to-add-l1-regularizer-to-activations/47196174#47196174
+* fix github actions ... tests
+* upgrade keras to tf_keras and tensorflow 2.0
+  * change keras model analog pytorch model to only construct a new model in the __call__
+
+
+data sources:
+* cpi data source https://inflationdata.com/Inflation/Consumer_Price_Index/HistoricalCPI.aspx?reloaded=true
+* add fed balance sheet: https://www.federalreserve.gov/datadownload/Download.aspx?rel=H41&series=17398fbf71bc6a47df150bceebdea2bc&filetype=csv&label=include&layout=seriescolumn&from=01/01/2002&to=02/01/2020
+   -> try reproduce with https://pypi.org/project/fred/
+* add bigmax index: http://bigmacindex.org/download
+* pytrends: https://pypi.org/project/pytrends/#interest-over-time
+
+
+indicators:
+ * price action strength indicator: https://www.mql5.com/en/market/product/20858#
+ * ichimoku cloud
+ * heikin ashi candles
+ * shiller pe ratio
+ *
+
+eventually investigate:
+ * https://www.researchgate.net/figure/a-The-Klang-River-basin-daily-TRMM-rainfall-hyetograph-b-The-wavelet-power-spectrum_fig4_306356291
+ * http://ataspinar.com/2018/12/21/a-guide-for-using-the-wavelet-transform-in-machine-learning/
+ 
+
+plots:
+ * plot histogram of prices on the right end of the chart
+
+reinforcement impementations:
+ * simple dqn https://gist.github.com/sauravkaushik8/321bfc6d6ea7a48f38819341b2252407
+ * google rainbow + ppo
+
+
+fälle wenn wir frames und series unterscheiden müssen:
+
+* wir wollten eientlich keine series haben aber einen frame, nehmen als fallback die erste spalte
+  `labels.columns[0] if has_indexed_columns(labels) else labels.name`
+
+
+* wir machen etwas entweder für eine series oder für jede spalte
+  ```
+  def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True) -> Union[pd.Series, pd.DataFrame]:
+    if has_indexed_columns(po):
+        return pd.DataFrame([ta_one_hot_encode_discrete(po[col]) for col in po.columns]).T
+    else:
+        pass
+  ```
+
+* app prefix/postfix und rename sollten alle nur auf die spalten angewendet werden
+
+
+TODO
+* wir sollten die fälle abstrahieren
+* add sponsor button
+   https://help.github.com/en/github/supporting-the-open-source-community-with-github-sponsors/setting-up-github-sponsors-for-your-user-account
+
+empyrical implementieren (analog ta-lib)
+
+
+
+# Ideen:
+## Risk factors light:
+    "USO", / MLPA - oil
+    "UUP", - usd
+    "GLD", - gold
+    "CPER", - copper
+    "BND", - fixed income
+    "JPST", - cash
+    "REIT", - real estate
+    "XBI", - biotech
+    "XLV", - health
+    "TQQQ", - technology
+    "SPY", - equity market
+    "ACT", - sins
+    "PPS", - ^SPSIAD aorospase and defence (military)
+    "VIX", - ^VIX volatility
+    "VVIX", -^VVIX  vola of vola
+    "FM", - fontier markets
+    "SPEM", - emerging markets
+
+## index re-composition
+ use an auto encoder of all stock wihtin an index
+ boil it down to one feature (as this is the index)
+ use intermediate decoder layers as higher level features
