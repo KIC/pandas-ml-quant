@@ -1,0 +1,3 @@
+[submodule "notebooks/models"]
+	path = notebooks/models
+	url = git@github.com:KIC/models.git
