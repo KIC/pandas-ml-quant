@@ -16,6 +16,32 @@ class TestSkMultiModel(TestCase):
             "a": [1, 0, 1, 0, 1, 0, 1, 0,],
             "b": [0, 0, 1, 1, 0, 0, 1, 1,],
             "c": [1, 0, 0, 1, 1, 0, 0, 1,],
+        })
+
+        model = MultiModel(
+            SkModel(
+                MLPClassifier(activation='logistic', max_iter=1000, hidden_layer_sizes=(3,), alpha=0.001,
+                              solver='lbfgs', random_state=42),
+                FeaturesAndLabels(
+                    features=["a", "b"],
+                    labels=[lambda df, i: df["c"].rename(f"c_{i}")],
+                    label_type=int),
+                summary_provider=ClassificationSummary
+            ),
+            2,
+            model_index_variable="i",
+            summary_provider=MultiModelSummary
+        )
+
+        fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)
+        print(fit.training_summary._repr_html_()[:100])
+
+    def test_multi_model_multi_label(self):
+        """given some toy classification data"""
+        df = pd.DataFrame({
+            "a": [1, 0, 1, 0, 1, 0, 1, 0,],
+            "b": [0, 0, 1, 1, 0, 0, 1, 1,],
+            "c": [1, 0, 0, 1, 1, 0, 0, 1,],
             "d": [1, 0, 0, 1, 1, 0, 0, 1,],
         })
 

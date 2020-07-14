@@ -106,7 +106,7 @@ class MultiModel(Model):
         predictions = [m.predict_sample(x) for m in self.sub_models]
 
         # and then concatenate the arrays back into one prediction
-        return np.concatenate(predictions, 1)
+        return np.concatenate(predictions, 1) if predictions[0].ndim > 1 else np.stack(predictions, 1)
 
     def plot_loss(self, figsize=(8, 6), columns=None):
         # override the plot function and plot the loss per model and fold
