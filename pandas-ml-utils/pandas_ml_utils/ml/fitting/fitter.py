@@ -99,7 +99,7 @@ def fit(df: pd.DataFrame,
         model._validation_indices = test_idx
         model.features_and_labels.set_min_required_samples(min_required_samples)
         model.features_and_labels.set_label_columns(labels[0].columns.tolist())
-        return Fit(model, model.summary_provider(df_train, **kwargs), model.summary_provider(df_test, **kwargs), trails, **kwargs)
+        return Fit(model, model.summary_provider(df_train, model, **kwargs), model.summary_provider(df_test, model, **kwargs), trails, **kwargs)
     except Exception as e:
         raise FitException(e, model)
 
@@ -127,7 +127,7 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
     return _assemble_result_frame(targets, y_hat, None, None, None, features)
 
 
-def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = Summary, **kwargs) -> Summary:
+def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = None, **kwargs) -> Summary:
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
     (features, _), labels, targets, weights, gross_loss =\
         extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
@@ -137,7 +137,7 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
 
     y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)
     df_backtest = _assemble_result_frame(targets, y_hat, labels, gross_loss, weights, features)
-    return (summary_provider or model.summary_provider)(df_backtest, **kwargs)
+    return (summary_provider or model.summary_provider)(df_backtest, model, **kwargs)
 
 
 def _assemble_result_frame(targets, prediction, labels, gross_loss, weights, features):

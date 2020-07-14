@@ -6,7 +6,7 @@ from pandas_ml_common import Typing
 
 class BacktestSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, **kwargs):
+    def __init__(self, df: Typing.PatchedDataFrame, model, **kwargs):
         super().__init__(df, **kwargs)
 
     def calculate_performance(self, initial_capital=100, prediction_name="0", target_name="Close"):

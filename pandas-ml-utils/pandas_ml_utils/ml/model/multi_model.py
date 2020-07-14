@@ -90,12 +90,12 @@ class MultiModel(Model):
             else:
                 _log.info(f"fit model {i_model + 1} / {nr_of_models}")
 
-            if "on_model_callbacks" in kwargs:
-                for callback in kwargs["callbacks"]:
+            if "on_model" in kwargs:
+                for callback in kwargs["on_model"]:
                     callback(i_model, {**kwargs, self.model_index_variable: arg})
 
             sm_loss = self.sub_models[i_model]\
-                .fit(ExtractMultiMultiModelSampler(i_model, nr_of_models, sampler), **kwargs)
+                .fit(ExtractMultiMultiModelSampler(i_model, nr_of_models, sampler), **deepcopy(kwargs))
             sub_model_losses.append(sm_loss)
 
         self._history = [sm._history for sm in self.sub_models]
@@ -106,12 +106,12 @@ class MultiModel(Model):
         predictions = [m.predict_sample(x) for m in self.sub_models]
 
         # and then concatenate the arrays back into one prediction
-        return np.stack(predictions, 1)
+        return np.concatenate(predictions, 1)
 
     def plot_loss(self, figsize=(8, 6), columns=None):
         # override the plot function and plot the loss per model and fold
         import matplotlib.pyplot as plt
-        nr_of_models = len(self.nr_models)
+        nr_of_models = self.nr_models
 
         columns = nr_of_models if columns is None else int(columns)
         rows = math.ceil(nr_of_models / columns)
@@ -122,11 +122,18 @@ class MultiModel(Model):
             ax = axes[m_nr]
 
             for fold_nr, fold_loss in enumerate(m_hist):
+                if len(fold_loss[0]) <= 1:
+                    _log.warning("can not plot single epoch loss")
+
                 p = ax.plot(fold_loss[0], '-', label=f'{m_nr}: {fold_nr}: loss')
                 ax.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{m_nr}: {fold_nr}: val loss')
 
         plt.legend(loc='upper right')
-        return fig, ax
+        return fig, axes
+
+    def _slices(self, i, total_nr_of_columns=1) -> slice:
+        nr_labels = total_nr_of_columns // self.nr_models
+        return slice(i * nr_labels, (i + 1) * nr_labels)
 
     def __call__(self, *args, **kwargs):
         copy = deepcopy(self)
@@ -134,6 +141,7 @@ class MultiModel(Model):
 
         # get the labels and sample weights from the basis model
         l = self.features_and_labels.labels
+        t = self.features_and_labels.targets
         w = self.features_and_labels.sample_weights
         gl = self.features_and_labels.gross_loss
 
@@ -144,9 +152,10 @@ class MultiModel(Model):
             fl = deepcopy(self.features_and_labels)
 
             # replace labels with one slice per model
-            fl._labels = [l[i*nr_of_models:(i+1)*nr_of_models]]
-            fl._sample_weights = [w[i*nr_of_models:(i+1)*nr_of_models]] if w is not None else None
-            fl._gross_loss = [gl[i*nr_of_models:(i+1)*nr_of_models]] if gl is not None else None
+            fl._labels = l[self._slices(i, len(l))]
+            fl._targets = t[self._slices(i, len(t))] if t is not None else None
+            fl._sample_weights = w[self._slices(i, len(w))] if w is not None else None
+            fl._gross_loss = gl[self._slices(i, len(gl))] if gl is not None else None
 
             # create a new model from the basis model and replace the FeaturesAndLabels object
             sm = self.basis_model(*args, **kwargs)

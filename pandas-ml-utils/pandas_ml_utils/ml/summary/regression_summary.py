@@ -8,12 +8,13 @@ from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import Summary
+from pandas_ml_utils.ml.model.base_model import Model
 
 
 class RegressionSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, true_columns=None, pred_columns=None, **kwargs):
-        super().__init__(df)
+    def __init__(self, df: Typing.PatchedDataFrame, model: Model, true_columns=None, pred_columns=None, **kwargs):
+        super().__init__(df, model, **kwargs)
         self.true_columns = LABEL_COLUMN_NAME if true_columns is None else true_columns
         self.pred_columns = PREDICTION_COLUMN_NAME if pred_columns is None else pred_columns
 

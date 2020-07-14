@@ -49,7 +49,7 @@ class Model(object):
 
     def backtest(self,
                  model: MlModel,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = None,
                  **kwargs) -> Summary:
         return backtest(self.df, model, summary_provider, **kwargs)
 

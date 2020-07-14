@@ -11,6 +11,8 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
+from pandas_ml_utils.ml.model.base_model import Model
+
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -18,9 +20,10 @@ class ReconstructionSummary(Summary):
 
     def __init__(self,
                  df: Typing.PatchedDataFrame,
+                 model: Model,
                  reconstruction_plotter: Callable[[Axis, np.ndarray], Any] = lambda ax, x: ax.plot(x),
                  **kwargs):
-        super().__init__(df, **kwargs)
+        super().__init__(df, model, **kwargs)
         self.reconstruction_plotter = reconstruction_plotter
 
     def reconstruction_plot(self):
