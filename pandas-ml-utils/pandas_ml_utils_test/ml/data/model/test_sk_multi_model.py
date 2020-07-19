@@ -36,6 +36,9 @@ class TestSkMultiModel(TestCase):
         fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)
         print(fit.training_summary._repr_html_()[:100])
 
+        pdf = df.model.predict(fit.model, tail=2)
+        print(pdf)
+
     def test_multi_model_multi_label(self):
         """given some toy classification data"""
         df = pd.DataFrame({
@@ -69,6 +72,9 @@ class TestSkMultiModel(TestCase):
             fit.training_summary.df[PREDICTION_COLUMN_NAME, "c_0"],
             fit.training_summary.df[PREDICTION_COLUMN_NAME, "c_1"]
         )
+
+        pdf = df.model.predict(fit.model, tail=2)
+        print(pdf)
 
     def test_multi_model_kwargs(self):
         """given some toy classification data"""

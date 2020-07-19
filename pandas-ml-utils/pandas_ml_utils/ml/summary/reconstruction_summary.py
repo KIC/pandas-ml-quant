@@ -39,6 +39,9 @@ class ReconstructionSummary(Summary):
         _y = _y[indices, :]
         _y_hat = _y_hat[indices, :]
 
+        # print shape
+        print(_y.shape, _y_hat.shape)
+
         for i in range(10):
             self.reconstruction_plotter(ax[i], _y[i])
             self.reconstruction_plotter(ax[i], _y_hat[i])
