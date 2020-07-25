@@ -64,7 +64,7 @@ class MultiModel(Model):
 
         labels = [wrap_partial(i, l) for i in model_args_iter for l in features_and_labels.labels if callable(l)]
         features_and_labels = features_and_labels.with_labels(labels)
-        features_and_labels.set_label_columns(None)
+        features_and_labels.set_label_columns(None, True)
 
         if features_and_labels.sample_weights is not None:
             weights = [wrap_partial(i, w) for i in model_args_iter for w in features_and_labels.sample_weights if callable(w)]
