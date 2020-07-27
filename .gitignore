@@ -15,3 +15,4 @@ __temp__.*
 /pandas-ml-1ntegration-test/test/test_4_debug.py
 private/
 mount.sh
+streamlit_apps/models/

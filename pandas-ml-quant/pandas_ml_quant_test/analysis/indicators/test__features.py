@@ -39,13 +39,13 @@ class TestIndicator(TestCase):
                              my_multi_macd.columns.to_list())
 
     def test__mom(self):
-        me = ta_mom(DF_TEST["Close"], relative=False)[-100:]
+        me = ta_mom(DF_TEST["Close"], period=10, relative=False)[-100:]
         ta = talib.MOM(DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta)
 
     def test__stddev(self):
-        me = ta_stddev(DF_TEST["Close"], ddof=0, downscale=False)[-100:]
+        me = ta_stddev(DF_TEST["Close"], period=5, ddof=0, downscale=False)[-100:]
         ta = talib.STDDEV(DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta)
@@ -93,7 +93,7 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me["-DM"], ta_mdm * 0.07142861354566638)
 
     def test__bbands(self):
-        me = ta_bbands(DF_TEST["Close"], ddof=0)[-100:]
+        me = ta_bbands(DF_TEST["Close"], period=5, ddof=0)[-100:]
         u, m, l = talib.BBANDS(DF_TEST["Close"])
         u = u[-100:]
         m = m[-100:]
@@ -104,7 +104,7 @@ class TestIndicator(TestCase):
         np.testing.assert_array_almost_equal(me["lower"], l)
 
     def test__rsi(self):
-        me = ta_rsi(DF_TEST["Close"])[-100:]
+        me = ta_rsi(DF_TEST["Close"], period=14)[-100:]
         ta = talib.RSI(DF_TEST["Close"])[-100:]
 
         np.testing.assert_array_almost_equal(me, ta / 100)
@@ -196,4 +196,16 @@ class TestIndicator(TestCase):
         np.testing.assert_almost_equal(0.9423, me.values[-1], 4)
         np.testing.assert_almost_equal(0.0192, me.loc["2017-01-03"], 4)
         np.testing.assert_almost_equal(1.0, me.loc["2017-12-29"], 4)
+
+    def test_poly_coeff(self):
+        me = ta_poly_coeff(DF_TEST["Close"], period=16)
+        print(me.tail())
+
+        np.testing.assert_almost_equal(
+            me.iloc[-1].values,
+            np.array([-3.279875, 4.177750, 0.183198]),
+            6
+        )
+
+
 

@@ -59,7 +59,7 @@ def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
     return crossings.shift(-forecast)
 
 
-def ta_future_bband_quantile(df: _pd.Series, period=5, forecast_period=5, stddev=2.0, ddof=1, include_mean=True):
+def ta_future_bband_quantile(df: _pd.Series, period=12, forecast_period=5, stddev=2.0, ddof=1, include_mean=True):
     # we want to know if a future price is violating the current upper/lower band
     bands = _f.ta_bbands(df, period, stddev, ddof)
     bands = bands[["lower", "mean", "upper"] if include_mean else ["lower", "upper"] ]
@@ -71,7 +71,7 @@ def ta_future_bband_quantile(df: _pd.Series, period=5, forecast_period=5, stddev
         .rename(f"{df.name}_quantile")
 
 
-def ta_future_multi_bband_quantile(df: _pd.Series, period=5, forecast_period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True):
+def ta_future_multi_bband_quantile(df: _pd.Series, period=12, forecast_period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True):
     future = df.shift(-forecast_period)
     bands = _f.ta_multi_bbands(df, period, stddevs, ddof)
 
@@ -84,7 +84,7 @@ def ta_future_multi_bband_quantile(df: _pd.Series, period=5, forecast_period=5, 
         .rename(f"{df.name}_quantile")
 
 
-def ta_future_multi_ma_quantile(df: _pd.Series, forecast_period=5, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)):
+def ta_future_multi_ma_quantile(df: _pd.Series, forecast_period=12, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)):
     future = df.shift(-forecast_period)
     mas = _f.ta_multi_ma(df, average_function, period, factors)
 

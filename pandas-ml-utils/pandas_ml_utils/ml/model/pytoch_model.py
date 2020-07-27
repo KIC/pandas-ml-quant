@@ -94,6 +94,10 @@ class PytorchModel(Model):
                 if use_cuda:
                     nnx, nny, weights = nnx.cuda(), nny.cuda(), weights.cuda()
 
+                if nnx.shape[0] <= 1:
+                    self.log_once("invalid_batch", _log.warning, "skip single element batch!")
+                    continue
+
                 # ===================forward=====================
                 output = module(nnx)
                 loss = self._calc_weighted_loss(criterion, output, nny, weights)
@@ -239,20 +243,23 @@ class PytorchModel(Model):
 
             return printer
 
-        @staticmethod
-        def early_stopping(patience=1, tolerance=0.001):
-            last_loss = sys.float_info.max
-            counter = 0
+        class early_stopping(object):
 
-            def callback(val_loss):
-                nonlocal last_loss, counter
-                if (val_loss - tolerance) < last_loss:
-                    last_loss = val_loss
-                    counter = 0
+            def __init__(self, patience=1, tolerance=0.001):
+                self.patience = patience
+                self.tolerance = tolerance
+                self.last_loss = sys.float_info.max
+                self.counter = 0
+
+            def __call__(self, val_loss, **kwargs):
+                if (val_loss - self.tolerance) < self.last_loss:
+                    self.last_loss = val_loss
+                    self.counter = 0
                 else:
-                    counter += 1
-                    if counter >= patience:
-                        print(f"early stopping {counter}, {val_loss} > {last_loss}")
+                    self.counter += 1
+                    if self.counter >= self.patience:
+                        print(f"early stopping {self.counter}, {val_loss} > {self.last_loss}")
                         raise StopIteration("early stopping")
 
-            return callback
+            def __copy__(self):
+                return type(self)(self.patience, self.tolerance)

@@ -125,6 +125,11 @@ class FeaturesAndLabels(object):
         copy._sample_weights = sample_weights
         return copy
 
+    def with_gross_loss(self, gross_loss: Union[str, List[T], Callable[[Any], Union[pd.DataFrame, pd.Series]]]):
+        copy = deepcopy(self)
+        copy._gross_loss = gross_loss
+        return copy
+
     def with_kwargs(self, **kwargs):
         copy = deepcopy(self)
         copy.kwargs = {**self.kwargs, **kwargs}

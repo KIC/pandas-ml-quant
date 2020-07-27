@@ -8,14 +8,14 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import ClassificationSummary
-
+from pandas_ml_utils import Model
 _log = logging.getLogger(__name__)
 
 
 class BinaryWeightedClassificationSummary(ClassificationSummary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, probability_cutoff=0.5, **kwargs):
-        super().__init__(df)
+    def __init__(self, df: Typing.PatchedDataFrame, model: Model, probability_cutoff=0.5, **kwargs):
+        super().__init__(df, model, **kwargs)
         pc = self.probability_cutoff = probability_cutoff
 
         self.true_neg = (df[PREDICTION_COLUMN_NAME].iloc[:, 0] <  pc) & (df[LABEL_COLUMN_NAME].iloc[:, 0] < pc)

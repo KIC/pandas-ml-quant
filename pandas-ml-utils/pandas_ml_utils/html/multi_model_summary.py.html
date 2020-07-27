@@ -1,0 +1,7 @@
+<%include file="./style.html" />
+
+<ul style="width: 100%;">
+% for summary in summaries:
+    <li>${summary._repr_html_() | n}</li>
+% endfor
+</ul>

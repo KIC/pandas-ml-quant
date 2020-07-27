@@ -1,14 +1,18 @@
 from typing import Tuple, List, Callable
 
 import pandas as pd
+import numpy as np
+import logging
 
-from pandas_ml_common import get_pandas_object
+from pandas_ml_common import get_pandas_object, Typing
 from pandas_ml_common.utils import intersection_of_index, loc_if_not_none
 from pandas_ml_common.utils.callable_utils import call_if_not_none
 
+_log = logging.getLogger(__name__)
+
 
 def extract_feature_labels_weights(
-        df: pd.DataFrame,
+        df: Typing.PatchedDataFrame,
         features_and_labels,
         **kwargs) -> Tuple[Tuple[pd.DataFrame, int], pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
@@ -16,10 +20,20 @@ def extract_feature_labels_weights(
     targets = call_if_not_none(get_pandas_object(df, features_and_labels.targets, **kwargs), 'dropna')
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
     gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
-    common_index = intersection_of_index(features, labels, targets, sample_weights, gross_loss)
 
     if features_and_labels.label_type is not None:
         labels = labels.astype(features_and_labels.label_type)
+
+    for frame in [features, labels, targets, sample_weights, gross_loss]:
+        if frame is not None:
+            max = frame._.values.max()
+
+            if np.isscalar(max) and np.isinf(max):
+                _log.warning("features containing infinit number\n", frame[frame.apply(lambda r: np.isinf(r.values).any(), axis=1)])
+                frame.replace([np.inf, -np.inf], np.nan, inplace=True)
+                frame.dropna(inplace=True)
+
+    common_index = intersection_of_index(features, labels, targets, sample_weights, gross_loss)
 
     return (
         (features.loc[common_index], len(df) - len(features) + 1),

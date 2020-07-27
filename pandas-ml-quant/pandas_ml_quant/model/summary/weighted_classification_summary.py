@@ -6,6 +6,7 @@ import numpy as np
 from pandas_ml_common import Typing, pd
 from pandas_ml_common.utils.numpy_utils import empty_lists, get_buckets
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
+from pandas_ml_utils import Model
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import ClassificationSummary
 
@@ -14,8 +15,8 @@ _log = logging.getLogger(__name__)
 
 class WeightedClassificationSummary(ClassificationSummary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, clip_profit_at=0, classes=None, **kwargs):
-        super().__init__(df)
+    def __init__(self, df: Typing.PatchedDataFrame, model: Model, clip_profit_at=0, classes=None, **kwargs):
+        super().__init__(df, model, **kwargs)
         self.clip_profit_at = clip_profit_at
         self.targets = df[TARGET_COLUMN_NAME]
 

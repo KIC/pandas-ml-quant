@@ -1,6 +1,7 @@
 import logging
 from typing import Callable, Tuple, Generator, List, Dict, Any
 
+import gym
 import numpy as np
 import pandas as pd
 
@@ -15,7 +16,6 @@ _log = logging.getLogger(__name__)
 
 
 class ReinforcementModel(Model):
-    import gym
 
     class RLModel(object):
         def learn(self, total_timesteps, callback=None,
@@ -32,7 +32,6 @@ class ReinforcementModel(Model):
             pass
 
     class DataFrameGym(gym.Env):
-        import gym
 
         def __init__(self,
                      action_space: gym.spaces.Space,

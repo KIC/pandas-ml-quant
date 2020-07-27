@@ -31,12 +31,6 @@ def feature_selection(df: pd.DataFrame,
     :param figsize: size of the polots
     :return: None
     """
-    df = df.dropna()
-    label = label.dropna()
-    index = df.index.intersection(label.index)
-
-    df = df.loc[index]
-    label = label.loc[index]
     N = len(df)
     assert N > 1, f"data is empty {len(df)}, {len(label)}"
 
@@ -65,6 +59,8 @@ def feature_selection(df: pd.DataFrame,
 
     # then eliminate features with high correlation to each other
     features = _sort_correlation(features)
+
+    # TODO improve teh correlation selection
     while len(features) > minimum_features and __max_correlation(features) > correlation_threshold:
         index = np.unravel_index(__argmax_correlation(features), features.values.shape)
         print(f"\nfilter feature {features.columns[index[1]]}"

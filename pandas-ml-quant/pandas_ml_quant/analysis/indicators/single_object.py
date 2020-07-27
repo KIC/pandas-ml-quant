@@ -39,19 +39,19 @@ def ta_macd(df: Typing.PatchedPandas, fast_period=12, slow_period=26, signal_per
         return macd.join(signal).join(hist)
 
 
-def ta_mom(df: _PANDAS, period=10, relative=True) -> _PANDAS:
+def ta_mom(df: _PANDAS, period=12, relative=True) -> _PANDAS:
     return _wcs(f"mom_{period}", df.pct_change(period) if relative else df.diff(period))
 
 
-def ta_roc(df: _PANDAS, period=10) -> _PANDAS:
+def ta_roc(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"roc_{period}", df.pct_change(period))
 
 
-def ta_stddev(df: _PANDAS, period=5, nbdev=1, ddof=1, downscale=True) -> _PANDAS:
+def ta_stddev(df: _PANDAS, period=12, nbdev=1, ddof=1, downscale=True) -> _PANDAS:
     return _wcs(f"stddev_{period}", (df.rolling(period).std(ddof=ddof) * nbdev) / (100 if downscale else 1))
 
 
-def ta_rsi(df: _PANDAS, period=14):
+def ta_rsi(df: _PANDAS, period=12):
     returns = df.diff()
 
     pos = _wilders(returns.clip(lower=0), period)
@@ -101,3 +101,28 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
         ratio.index = ratio.index - _pd.DateOffset(days=(ratio.index[-1] - ratio.index[0]).days + 7 - 1)
 
     return ratio
+
+
+def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
+    from pandas_ml_common.utils import ReScaler
+    from pandas_ml_common import nans
+    from pandas_ml_common import inner_join
+
+    if isinstance(df, _pd.DataFrame):
+        res = None
+        for col in df.columns:
+            res = inner_join(res, ta_poly_coeff(df[col], period, degree), col, force_multi_index=True)
+
+        return res
+
+    x = _np.linspace(0, 1, period)
+    v = df.values
+    res = nans((len(df), degree + 1))
+
+    for i in range(period, len(df)):
+        y =  v[i - period:i]
+        rescaler = ReScaler((y.min(), y.max()), (-1, 1))
+        p, err, _, _, _ = _np.polyfit(x, rescaler(y), degree, full=True)
+        res[i] = _np.hstack([p[:-1], err / period])
+
+    return _pd.DataFrame(res, index=df.index, columns=[*[f'b{b}' for b in range(0, degree)], "mse"])
