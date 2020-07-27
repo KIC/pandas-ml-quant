@@ -1,1 +1,3 @@
-include *
+include requirements.txt
+recursive-include pandas_ml_utils *
+recursive-include pandas_ml_utils_test *
