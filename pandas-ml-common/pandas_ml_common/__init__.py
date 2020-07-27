@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 
 import logging
 from typing import Union, List, Callable, Any
