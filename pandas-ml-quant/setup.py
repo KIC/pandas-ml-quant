@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for quant analysis"""
-__version__ = '0.1.13'
+__version__ = '0.1.14'
 
 import os
 from setuptools import setup, find_packages
