@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.1.14.3'
+__version__ = '0.1.15'
 
 import os
 from setuptools import setup, find_packages
