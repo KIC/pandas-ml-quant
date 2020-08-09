@@ -99,6 +99,8 @@ def fit(df: pd.DataFrame,
         model._validation_indices = test_idx
         model.features_and_labels.set_min_required_samples(min_required_samples)
         model.features_and_labels.set_label_columns(labels[0].columns.tolist())
+        model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
+
         return Fit(model, model.summary_provider(df_train, model, **kwargs), model.summary_provider(df_test, model, **kwargs), trails, **kwargs)
     except Exception as e:
         raise FitException(e, model)

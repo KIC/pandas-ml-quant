@@ -1,1 +1,2 @@
-include *
+include requirements.txt
+recursive-include test *
