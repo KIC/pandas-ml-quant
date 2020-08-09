@@ -3,6 +3,7 @@ from typing import Union, Iterable
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.metrics import r2_score, f1_score
@@ -11,6 +12,23 @@ from sklearn.model_selection._split import _BaseKFold
 
 from pandas_ml_common import Typing as t
 from pandas_ml_utils.ml.data.selection.feature_selection_report import FeatureSelectionReport, FeatureScoreReport
+
+
+LINEAR = {
+    "regressor": LinearRegression(),
+    "classifier": LogisticRegression(multi_class='multinomial')
+}
+
+TREE = {
+    "regressor": DecisionTreeRegressor(),
+    "classifier": DecisionTreeClassifier()
+}
+
+MLP = {
+    "regressor": MLPRegressor((30, 10), activation='tanh', early_stopping=True),
+    "classifier": MLPClassifier((30, 10), activation='tanh', early_stopping=True)
+}
+
 
 
 def autoselect_features(df: t.PatchedDataFrame) -> FeatureSelectionReport:
@@ -24,13 +42,10 @@ def score_feature(
         features,
         lags: Union[int, Iterable[int]] = [0],
         cv: _BaseKFold = KFold(6),
-        model = 'linear'
+        regressor=DecisionTreeRegressor(),
+        classifier=DecisionTreeClassifier
     ) -> FeatureScoreReport:
     import matplotlib.pyplot as plt
-
-    # define models
-    regressor = LinearRegression() if model == 'linear' else DecisionTreeRegressor()
-    classifier = LogisticRegression(multi_class='multinomial') if model == 'linear' else DecisionTreeRegressor()
 
     # get X and y data
     _X = df._[features]
