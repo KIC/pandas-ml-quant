@@ -8,22 +8,22 @@ class TestFeatureSelection(TestCase):
 
     def test_continuous_feature_continuous_label(self):
         score = score_feature(DF_TEST, "Close", "Open", [1, 2, 3])
-        print(score.whisker_data)
+        print(score.scores)
 
     def test_discrete_feature_continuous_label(self):
         df = DF_TEST.copy()
         df["discrete"] = (df["Open"] / df["Close"] * 10).round().astype(int)
         score = score_feature(df, "Close", "discrete", [1, 2, 3])
-        print(score.whisker_data)
+        print(score.scores)
 
     def test_continuous_feature_discrete_label(self):
         df = DF_TEST.copy()
         df["discrete"] = (df["Open"] / df["Close"] * 10).round().astype(int)
         score = score_feature(df, "discrete", "Close", [1, 2, 3])
-        print(score.whisker_data)
+        print(score.scores)
 
     def test_discrete_feature_discrete_label(self):
         df = DF_TEST.copy()
         df["discrete"] = (df["Open"] / df["Close"] * 10).round().astype(int)
         score = score_feature(df, "discrete", "discrete", [1, 2, 3])
-        print(score.whisker_data)
+        print(score.scores)

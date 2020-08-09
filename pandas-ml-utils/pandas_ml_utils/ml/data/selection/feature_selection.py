@@ -43,7 +43,7 @@ def score_feature(
         lags: Union[int, Iterable[int]] = [0],
         cv: _BaseKFold = KFold(6),
         regressor=DecisionTreeRegressor(),
-        classifier=DecisionTreeClassifier
+        classifier=DecisionTreeClassifier()
     ) -> FeatureScoreReport:
     import matplotlib.pyplot as plt
 
