@@ -3,8 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 from keras import Sequential
-from keras.callbacks import EarlyStopping
-from keras.layers import Dense, Reshape, ActivityRegularization
+from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
@@ -12,9 +11,7 @@ from stable_baselines import PPO2
 from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
-from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_quant.keras.loss import tailed_categorical_crossentropy
-from pandas_ml_quant.model.rl_trading_agent import TradingAgentGym
+from pandas_ml_quant_rl.model.rl_trading_agent import TradingAgentGym
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel, Constant
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor

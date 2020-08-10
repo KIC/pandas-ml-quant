@@ -1,9 +1,9 @@
-"""Augment pandas DataFrame with methods for quant analysis"""
+"""Augment pandas DataFrame with methods to fetch time series data for quant finance"""
 __version__ = '0.1.15'
 
 import os
-from setuptools import setup, find_packages
 
+from setuptools import setup, find_packages
 
 setup(
    name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
@@ -17,7 +17,7 @@ setup(
    description=__doc__,
    long_description=open('Readme.md').read(),
    long_description_content_type='text/markdown',
-   install_requires=["pandas-ml-common", "pandas-ml-utils", *open("requirements.txt").read().splitlines()],
+   install_requires=["pandas-ml-common", "pandas-ml-utils", "pandas-ml-quant", *open("requirements.txt").read().splitlines()],
    extras_require={
       "dev": open("dev-requirements.txt").read().splitlines(),
    },
@@ -31,5 +31,5 @@ setup(
       'Programming Language :: Python :: 3',
       'Programming Language :: Python :: 3.7',
    ],
-   keywords=['pandas', 'ml', 'util', 'quant'],
+   keywords=['pandas', 'ml', 'util', 'quant', 'data', 'timeseries'],
 )
