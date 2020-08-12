@@ -44,7 +44,7 @@ class TestAgents(TestCase):
                     self.loosers = 0
 
                 # return reward and game end
-                return reward * 100, game_over
+                return reward, game_over
 
 
         # env with 3 discrete actions: pass, buy, sell
@@ -178,7 +178,7 @@ class TestAgents(TestCase):
             optimizer.step()
 
             print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
-                iter_no, loss_v.item(), reward_m * 100, reward_b, 0.0))
+                iter_no, loss_v.item(), reward_m * 100, reward_b * 100, 0.0))
             #writer.add_scalar("loss", loss_v.item(), iter_no)
             #writer.add_scalar("reward_bound", reward_b, iter_no)
             #writer.add_scalar("reward_mean", reward_m, iter_no)

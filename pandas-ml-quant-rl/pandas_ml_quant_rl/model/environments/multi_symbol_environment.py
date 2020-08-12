@@ -11,7 +11,7 @@ from pandas_ml_utils.ml.data.extraction import extract_features
 class Cache(object):
 
     def __init__(self, data_provider: Callable[[str], Typing.PatchedDataFrame] = None):
-        self.data_provider = pd.fetch_yahoo if data_provider is None else data_provider
+        self.data_provider = yfinance.download if data_provider is None else data_provider
 
     def get_data_or_fetch(self, symbol) -> pd.DataFrame:
         pass
@@ -80,7 +80,7 @@ class RandomAssetEnv(gym.Env):
                  reward_provider: Callable[[Any, np.ndarray, np.ndarray, np.ndarray], Tuple[float, bool]] = None,
                  pct_train_data: float = 0.8,
                  max_steps: int = None,
-                 use_cache: Cache = NoCache(lambda symbol: yfinance.download(symbol))):
+                 use_cache: Cache = NoCache()):
         super().__init__()
         self.max_steps = math.inf if max_steps is None else max_steps
         self.features_and_labels = features_and_labels
