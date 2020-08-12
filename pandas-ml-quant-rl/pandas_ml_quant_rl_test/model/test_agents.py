@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from unittest import TestCase
 
@@ -5,17 +6,18 @@ import gym.spaces as spaces
 import torch as T
 import torch.nn as nn
 import torch.optim as optim
-from tensorboardX import SummaryWriter
-from pandas_ml_utils.pytorch import Reshape
 
-from pandas_ml_quant import pd, np, PostProcessedFeaturesAndLabels
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
+from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv, FileCache
 from pandas_ml_quant_rl_test.config import load_symbol
+from pandas_ml_utils.pytorch import Reshape
 
 
 class TestAgents(TestCase):
 
     def test_reinforce(self):
+        os.path.exists('/tmp/agent.test.dada.hd5') and os.remove('/tmp/agent.test.dada.hd5')
+
         class Statefulreward(object):
 
             def __init__(self):
@@ -61,11 +63,10 @@ class TestAgents(TestCase):
             ),
             ["SPY", "GLD"],
             spaces.Discrete(3),
-            load_symbol,
             reward_provider=Statefulreward().calc_reward,
             pct_train_data=0.8,
             max_steps=50,
-            use_file_cache='/tmp/agent.test.dada.hd5'
+            use_cache=FileCache('/tmp/agent.test.dada.hd5', load_symbol)
         )
 
         # try to train this stuff

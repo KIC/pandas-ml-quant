@@ -8,38 +8,91 @@ from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction import extract_features
 
 
-class RandomAssetEnv(gym.Env):
+class Cache(object):
 
-    # TODO der reward ist ein callable (state, action, label)
-    #
-    # die actions muss man als gym space definieren. bei take action rufen wir die reward Funktion auf und gehen einen Schritt weiter im Feature und label array.
-    #
-    # wenn man state braucht z.b für Kauf Verkauf usw. muss das der action handler können. um die Position bewerten zu können muss dann eine explizite hold Aktion ausgeführt werden.
-    #
-    # das env muss ein train / test / predict modus haben entsprechend werden die Daten und Parameter im reset() gesetzt. der Agent muss dann entsprechend ausserhalb der train loop laufen. 2 Varianten sollten möglich sein:  führe actions zufällig gemäss prob distribution aus oder führe immer besste action aus.
+    def __init__(self, data_provider: Callable[[str], Typing.PatchedDataFrame] = None):
+        self.data_provider = pd.fetch_yahoo if data_provider is None else data_provider
+
+    def get_data_or_fetch(self, symbol) -> pd.DataFrame:
+        pass
+
+    def get_feature_frames_or_fetch(self, df, symbol, features_and_labels) -> Tuple[pd.DataFrame, ...]:
+        pass
+
+
+class NoCache(Cache):
+
+    def __init__(self, data_provider: Callable[[str], Typing.PatchedDataFrame] = None):
+        super().__init__(data_provider)
+
+    def get_data_or_fetch(self, symbol):
+        return self.data_provider(symbol)
+
+    def get_feature_frames_or_fetch(self, df, symbol, features_and_labels):
+        (features, _), labels, targets, weights, loss = df._.extract(features_and_labels)
+        return features, labels, targets, weights, loss
+
+
+class FileCache(Cache):
+
+    def __init__(self, file_name: str, data_provider: Callable[[str], Typing.PatchedDataFrame] = None):
+        super().__init__(data_provider)
+        self.file_cache = pd.HDFStore(file_name, mode='a')
+
+    def get_data_or_fetch(self, symbol):
+        if symbol in self.file_cache:
+            return self.file_cache[symbol]
+        else:
+            df = self.data_provider(symbol)
+            self.file_cache[symbol] = df
+            return df
+
+    def get_feature_frames_or_fetch(self, df, symbol, features_and_labels):
+        fkey = f'{symbol}__features'
+        lkey = f'{symbol}__labels'
+        tkey = f'{symbol}__targets'
+        swkey = f'{symbol}__sample_weights'
+        glkey = f'{symbol}__gross_loss'
+
+        if fkey in self.file_cache:
+            features = self.file_cache[fkey]
+            labels = self.file_cache[lkey]
+            targets = self.file_cache[tkey] if tkey in self.file_cache else None
+            weights = self.file_cache[swkey] if swkey in self.file_cache else None
+            loss = self.file_cache[glkey] if glkey in self.file_cache else None
+        else:
+            (features, _), labels, targets, weights, loss = df._.extract(features_and_labels)
+            self.file_cache[fkey] = features
+            self.file_cache[lkey] = labels
+            if targets is not None: self.file_cache[tkey] = targets
+            if weights is not None: self.file_cache[swkey] = weights
+            if loss is not None: self.file_cache[glkey] = loss
+
+        return features, labels, targets, weights, loss
+
+
+class RandomAssetEnv(gym.Env):
 
     def __init__(self,
                  features_and_labels: FeaturesAndLabels,
                  symbols: Union[str, List[str]],
                  action_space: gym.Space,
-                 data_provider: Callable[[str], Typing.PatchedDataFrame] = lambda symbol: yfinance.download(symbol),
                  reward_provider: Callable[[Any, np.ndarray, np.ndarray, np.ndarray], Tuple[float, bool]] = None,
                  pct_train_data: float = 0.8,
                  max_steps: int = None,
-                 use_file_cache: str = None):
+                 use_cache: Cache = NoCache(lambda symbol: yfinance.download(symbol))):
         super().__init__()
         self.max_steps = math.inf if max_steps is None else max_steps
         self.features_and_labels = features_and_labels
         self.reward_provider = reward_provider
         self.pct_train_data = pct_train_data
-        self.data_provider = data_provider
 
         # define spaces
         self.action_space = action_space
         self.observation_space = None
 
         # define execution mode
-        self.file_cache = pd.HDFStore(use_file_cache, mode='a') if use_file_cache is not None else None
+        self.cache = use_cache
         self.mode = 'train'
         self.done = True
 
@@ -89,16 +142,11 @@ class RandomAssetEnv(gym.Env):
 
     def _init(self):
         self._symbol = np.random.choice(self.symbols, 1).item()
-        self._df = self._from_cache_or_create(self._symbol, lambda: self.data_provider(self._symbol))
+        self._df = self.cache.get_data_or_fetch(self._symbol)
 
         if self.mode in ['train', 'test']:
             self._features, self._labels, self._targets, self._sample_weights, self._gross_loss = \
-                [*self._from_cache_or_create(
-                    [f'{self._symbol}__features', f'{self._symbol}__labels', f'{self._symbol}__targets', f'{self._symbol}__sample_weights', f'{self._symbol}__gross_loss'],
-                    lambda: [f[0] if isinstance(f, Tuple) else f for f in self._df._.extract(self.features_and_labels)]
-                 ),
-                 *[None] * 5
-                ][:5]
+                self.cache.get_feature_frames_or_fetch(self._df, self._symbol, self.features_and_labels)
 
             if self.mode == 'train':
                 self._last_index = int(len(self._features) * 0.8)
@@ -124,27 +172,6 @@ class RandomAssetEnv(gym.Env):
         self._start_idx = self._state_idx
         self.done = self._state_idx >= self._last_index
         return self._current_state()
-
-    def _from_cache_or_create(self, keys, creator):
-        if self.file_cache is None:
-            return creator()
-
-        # make keys a list
-        if isinstance(keys, str): keys = [keys]
-
-        frames = []
-        for key in keys:
-            if key in self.file_cache:
-                frames.append(self.file_cache[key])
-
-        if len(frames) <= 0:
-            frames = creator()
-            if isinstance(frames, pd.DataFrame): frames = [frames]
-            for i in range(len(frames)):
-                if frames[i] is not None:
-                    self.file_cache[keys[i]] = frames[i]
-
-        return frames[0] if len(frames) == 1 else frames
 
     def _current_state(self):
         # make sure to return it as a batch of size one therefore use list of state_idx

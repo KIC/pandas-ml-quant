@@ -1,9 +1,10 @@
+import os
 from unittest import TestCase
 
 import gym.spaces as spaces
 
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv, FileCache
 from pandas_ml_quant_rl_test.config import load_symbol
 
 env = RandomAssetEnv(
@@ -20,16 +21,17 @@ env = RandomAssetEnv(
             ),
             ["SPY", "GLD"],
             spaces.Discrete(2),
-            load_symbol,
             pct_train_data=0.8,
             max_steps=10,
-            use_file_cache='/tmp/lalala.hd5'
+            use_cache=FileCache('/tmp/lalala.hd5', load_symbol)
         )
 
 
 class TestEnvironments(TestCase):
 
     def test_multi_symbol_env_reset(self):
+        os.path.exists('/tmp/lalala.hd5') and os.remove('/tmp/lalala.hd5' )
+
         fresh_train = env.as_train().reset()
         print(fresh_train)
         print(len(env._features), len(env._labels), env._state_idx)
@@ -45,6 +47,8 @@ class TestEnvironments(TestCase):
         print(env.observation_space)
 
     def test_multi_symbol_env_action(self):
+        os.path.exists('/tmp/lalala.hd5') and os.remove('/tmp/lalala.hd5')
+
         def step(a, l, *args):
             print(a, l[0].shape)
             return 0, False
