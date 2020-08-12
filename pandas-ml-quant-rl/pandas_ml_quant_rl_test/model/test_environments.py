@@ -21,7 +21,9 @@ env = RandomAssetEnv(
             ["SPY", "GLD"],
             spaces.Discrete(2),
             load_symbol,
-            0.8
+            pct_train_data=0.8,
+            max_steps=10,
+            use_file_cache='/tmp/lalala.hd5'
         )
 
 
@@ -43,11 +45,11 @@ class TestEnvironments(TestCase):
         print(env.observation_space)
 
     def test_multi_symbol_env_action(self):
-        def step(s, a, l):
-            print(s.shape, a, l[0].shape)
+        def step(a, l, *args):
+            print(a, l[0].shape)
             return 0, False
 
-        env.action_executor = step
+        env.reward_provider = step
         env.as_train().reset()
 
         for act_space in [spaces.Discrete(3), spaces.Box(low=-1, high=1, shape=(2,))]:

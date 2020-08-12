@@ -1,6 +1,6 @@
 import math
 import re
-from typing import Union, List, Callable, Tuple, Any
+from typing import Union, List, Callable, Tuple, Any, Iterable
 import yfinance
 import gym
 from pandas_ml_common import pd, np, Typing
@@ -23,13 +23,14 @@ class RandomAssetEnv(gym.Env):
                  symbols: Union[str, List[str]],
                  action_space: gym.Space,
                  data_provider: Callable[[str], Typing.PatchedDataFrame] = lambda symbol: yfinance.download(symbol),
-                 action_executor: Callable[[np.ndarray, Any, Tuple[np.ndarray, ...]], Tuple[float, bool]] = None,
+                 reward_provider: Callable[[Any, np.ndarray, np.ndarray, np.ndarray], Tuple[float, bool]] = None,
                  pct_train_data: float = 0.8,
-                 max_steps: int = None):
+                 max_steps: int = None,
+                 use_file_cache: str = None):
         super().__init__()
         self.max_steps = math.inf if max_steps is None else max_steps
         self.features_and_labels = features_and_labels
-        self.action_executor = action_executor
+        self.reward_provider = reward_provider
         self.pct_train_data = pct_train_data
         self.data_provider = data_provider
 
@@ -38,6 +39,7 @@ class RandomAssetEnv(gym.Env):
         self.observation_space = None
 
         # define execution mode
+        self.file_cache = pd.HDFStore(use_file_cache, mode='a') if use_file_cache is not None else None
         self.mode = 'train'
         self.done = True
 
@@ -47,6 +49,9 @@ class RandomAssetEnv(gym.Env):
                 self.symbols = np.array(re.split("[\r\n]|[\n]|[\r]", f.read()))
         else:
             self.symbols = symbols
+
+        # finally make a dummy initialisation
+        self._init()
 
     def as_train(self):
         self.mode = 'train'
@@ -61,13 +66,11 @@ class RandomAssetEnv(gym.Env):
         return self
 
     def step(self, action):
-        reward, game_over = self.action_executor(
-            self._features.iloc[[self._state_idx]]._.values,
+        reward, game_over = self.reward_provider(
             action,
-            (self._labels.iloc[[self._state_idx]]._.values,
-             self._sample_weights.iloc[[self._state_idx]]._.values if self._sample_weights is not None else None,
-             self._gross_loss.iloc[[self._state_idx]]._.values if self._gross_loss is not None else None
-            )
+            self._labels.iloc[[self._state_idx]]._.values,
+            self._sample_weights.iloc[[self._state_idx]]._.values if self._sample_weights is not None else None,
+            self._gross_loss.iloc[[self._state_idx]]._.values if self._gross_loss is not None else None
         )
 
         self._state_idx += 1
@@ -75,7 +78,7 @@ class RandomAssetEnv(gym.Env):
                     or self._state_idx >= self._last_index \
                     or self._state_idx > (self._start_idx + self.max_steps)
 
-        return self._state_idx, reward, self.done, {}
+        return self._current_state(), reward, self.done, {}
 
     def render(self, mode='human'):
         # eventually implement me
@@ -86,11 +89,16 @@ class RandomAssetEnv(gym.Env):
 
     def _init(self):
         self._symbol = np.random.choice(self.symbols, 1).item()
-        self._df = self.data_provider(self._symbol)
+        self._df = self._from_cache_or_create(self._symbol, lambda: self.data_provider(self._symbol))
 
         if self.mode in ['train', 'test']:
-            (self._features, _), self._labels, self._targets, self._sample_weights, self._gross_loss = \
-                self._df._.extract(self.features_and_labels)
+            self._features, self._labels, self._targets, self._sample_weights, self._gross_loss = \
+                [*self._from_cache_or_create(
+                    [f'{self._symbol}__features', f'{self._symbol}__labels', f'{self._symbol}__targets', f'{self._symbol}__sample_weights', f'{self._symbol}__gross_loss'],
+                    lambda: [f[0] if isinstance(f, Tuple) else f for f in self._df._.extract(self.features_and_labels)]
+                 ),
+                 *[None] * 5
+                ][:5]
 
             if self.mode == 'train':
                 self._last_index = int(len(self._features) * 0.8)
@@ -111,12 +119,36 @@ class RandomAssetEnv(gym.Env):
             self._state_idx = 0
 
         if self.observation_space is None:
-            self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=self._features._.values.shape[1:])
+            self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=self._features.iloc[[-1]]._.values.shape[1:])
 
         self._start_idx = self._state_idx
         self.done = self._state_idx >= self._last_index
-        return self._state_idx
+        return self._current_state()
 
+    def _from_cache_or_create(self, keys, creator):
+        if self.file_cache is None:
+            return creator()
+
+        # make keys a list
+        if isinstance(keys, str): keys = [keys]
+
+        frames = []
+        for key in keys:
+            if key in self.file_cache:
+                frames.append(self.file_cache[key])
+
+        if len(frames) <= 0:
+            frames = creator()
+            if isinstance(frames, pd.DataFrame): frames = [frames]
+            for i in range(len(frames)):
+                if frames[i] is not None:
+                    self.file_cache[keys[i]] = frames[i]
+
+        return frames[0] if len(frames) == 1 else frames
+
+    def _current_state(self):
+        # make sure to return it as a batch of size one therefore use list of state_idx
+        return self._features.iloc[[self._state_idx]]
 
 # ...
 # TODO later allow features to be a list of feature sets echa witha possible different shape
