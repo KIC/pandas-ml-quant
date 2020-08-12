@@ -1,2 +1,5 @@
+tensorboardX
+yfinance
 torch
+ptan
 gym

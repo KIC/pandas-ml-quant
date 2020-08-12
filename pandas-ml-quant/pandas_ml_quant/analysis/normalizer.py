@@ -72,6 +72,11 @@ def ta_performance(df: Typing.PatchedPandas):
     return delta.cumprod()
 
 
+def ta_sma_price_ratio(df: Typing.Series, period=14, log=False):
+    from .labels.continuous import ta_future_pct_to_current_mean
+    return ta_future_pct_to_current_mean(df, 0, period, log)
+
+
 def _ta_adaptive_normalisation():
     # TODO implement .papers/Adaptive Normalization.pdf
     pass
