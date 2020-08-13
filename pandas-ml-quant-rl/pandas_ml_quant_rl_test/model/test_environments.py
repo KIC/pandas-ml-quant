@@ -1,10 +1,11 @@
-import os
 from unittest import TestCase
 
 import gym.spaces as spaces
 
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv, FileCache
+from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.cache import FileCache
+
 from pandas_ml_quant_rl_test.config import load_symbol
 
 env = RandomAssetEnv(
@@ -30,31 +31,29 @@ env = RandomAssetEnv(
 class TestEnvironments(TestCase):
 
     def test_multi_symbol_env_reset(self):
-        os.path.exists('/tmp/lalala.hd5') and os.remove('/tmp/lalala.hd5' )
 
-        fresh_train = env.as_train().reset()
+        _, fresh_train = env.as_train()
         print(fresh_train)
         print(len(env._features), len(env._labels), env._state_idx)
 
-        fresh_test = env.as_test().reset()
+        _, fresh_test = env.as_test()
         print(fresh_test)
         print(len(env._features), len(env._labels), env._state_idx)
 
-        fresh_predict = env.as_predict().reset()
+        _, fresh_predict = env.as_predict()
         print(fresh_predict)
         print(len(env._features), len(env._labels), env._state_idx)
 
         print(env.observation_space)
 
     def test_multi_symbol_env_action(self):
-        os.path.exists('/tmp/lalala.hd5') and os.remove('/tmp/lalala.hd5')
 
         def step(a, l, *args):
             print(a, l[0].shape)
             return 0, False
 
         env.reward_provider = step
-        env.as_train().reset()
+        env.as_train()
 
         for act_space in [spaces.Discrete(3), spaces.Box(low=-1, high=1, shape=(2,))]:
             done = False

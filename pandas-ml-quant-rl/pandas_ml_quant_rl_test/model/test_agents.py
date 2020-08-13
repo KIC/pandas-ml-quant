@@ -1,4 +1,3 @@
-import os
 from collections import namedtuple
 from unittest import TestCase
 
@@ -8,7 +7,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv, FileCache
+from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.cache import FileCache
 from pandas_ml_quant_rl_test.config import load_symbol
 from pandas_ml_utils.pytorch import Reshape
 
@@ -16,7 +16,6 @@ from pandas_ml_utils.pytorch import Reshape
 class TestAgents(TestCase):
 
     def test_reinforce(self):
-        os.path.exists('/tmp/agent.test.dada.hd5') and os.remove('/tmp/agent.test.dada.hd5')
 
         class Statefulreward(object):
 
@@ -103,11 +102,10 @@ class TestAgents(TestCase):
         #writer = SummaryWriter(comment="-stocks")
 
         print(env.step(env.action_space.sample()))
-
+        sm = nn.Softmax(dim=1)
 
         # play BATCH_SIZE episodes using random actions and store all trajectories
         def iterate_batches(env, net, batch_size):
-            sm = nn.Softmax(dim=1)
             episode_reward = 0.0
             episode_steps = []
             batch = []
@@ -177,8 +175,21 @@ class TestAgents(TestCase):
             loss_v.backward()
             optimizer.step()
 
-            print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
-                iter_no, loss_v.item(), reward_m * 100, reward_b * 100, 0.0))
+            # test what we have learned
+            test_env, obs = env.as_test()
+            test_done = False
+            test_reward = 0
+            while not test_done:
+                np_obs = obs._.values
+                obs_v = T.FloatTensor(np_obs)
+                act_probs_v = sm(net(obs_v))
+                act_probs = act_probs_v.data.numpy()[0]
+                action = np.random.choice(len(act_probs), p=act_probs)
+                obs, episode_reward, test_done, _ = test_env.step(action)
+                test_reward += episode_reward
+
+            print("%d: loss=%.3f, test_reward: %.1f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
+                iter_no, loss_v.item(), test_reward * 100, reward_m * 100, reward_b * 100, 0.0))
             #writer.add_scalar("loss", loss_v.item(), iter_no)
             #writer.add_scalar("reward_bound", reward_b, iter_no)
             #writer.add_scalar("reward_mean", reward_m, iter_no)
