@@ -23,23 +23,32 @@ class CandleStickRenderer(Renderer):
             ax.xaxis_date()
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
 
-        self.x = None
-        self.y = None
         self.r = 0
 
     def plot(self, old_state, action, new_state, reward, done):
-        self.x = matplot_dates(new_state)
-        self.y = new_state["Close"].values
+        x = matplot_dates(new_state)
+        o = new_state["Open"].values
+        h = new_state["High"].values
+        l = new_state["Low"].values
+        c = new_state["Close"].values
+
+        b = min(o, c)
+        # if action was right other color then loosing action
+
+        if reward > 0:
+            color = 'black' if o > c else 'silver'
+        else:
+            color = 'red' if o > c else 'orange'
+
         self.r += reward
 
-        self.axes[0].bar(self.x, self.y)
-        self.axes[1].bar(self.x, self.r)
-
-        print(self.x, self.y, self.r)
+        self.axes[0].vlines(x, l, h, color=color)
+        self.axes[0].bar(x, max(o, c) - b, bottom=b, color=color)
+        self.axes[1].bar(x, self.r, color='silver')
 
     def render(self, mode=None):
         for ax in self.axes:
-            ax.autoscale_view(tight=True, scalex=True, scaley=False)
+            ax.autoscale_view(tight=True, scalex=True, scaley=True)
 
         self.fig.canvas.draw()
         plt.pause(0.05)

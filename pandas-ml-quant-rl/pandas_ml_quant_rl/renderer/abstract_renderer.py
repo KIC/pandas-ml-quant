@@ -3,7 +3,7 @@ import time
 from queue import Empty
 
 
-def render_frame(q, renderer_provider):
+def render_frame(q, reset_event, renderer_provider):
     renderer = renderer_provider()
 
     done = False
@@ -14,6 +14,9 @@ def render_frame(q, renderer_provider):
         except Empty:
             renderer.render()
 
+    reset_event.wait()
+    renderer.reset()
+    
     print("done !!!")
 
 
@@ -28,13 +31,17 @@ class Renderer(object):
     def render(self, mode=None):
         pass
 
+    def reset(self):
+        pass
+
 
 class OnlineRenderer(Renderer):
 
     def __init__(self, renderer_provider):
         super().__init__()
         self.q = multiprocessing.Queue()
-        self.worker = multiprocessing.Process(target=render_frame, args=(self.q, renderer_provider))
+        self.reset_event = multiprocessing.Event()
+        self.worker = multiprocessing.Process(target=render_frame, args=(self.q, self.reset_event, renderer_provider))
         self.startup = True
 
     def plot(self, old_state, action, new_state, reward, done):
@@ -47,7 +54,8 @@ class OnlineRenderer(Renderer):
         if not self.worker.is_alive():
             self.worker.start()
 
-    def wait(self,):
-        self.worker.join()
+    def reset(self):
+        self.reset_event.set()
+
 
 
