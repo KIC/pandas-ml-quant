@@ -19,11 +19,13 @@ class RandomAssetEnv(gym.Env):
                  reward_provider: Callable[[Any, np.ndarray, np.ndarray, np.ndarray], Tuple[float, bool]] = None,
                  pct_train_data: float = 0.8,
                  max_steps: int = None,
+                 min_training_samples: float = np.inf,
                  use_cache: Cache = NoCache(),
                  renderer: Renderer = Renderer()
                  ):
         super().__init__()
         self.max_steps = math.inf if max_steps is None else max_steps
+        self.min_training_samples = min_training_samples
         self.features_and_labels = features_and_labels
         self.reward_provider = reward_provider
         self.pct_train_data = pct_train_data
@@ -54,16 +56,18 @@ class RandomAssetEnv(gym.Env):
         copy.mode = 'train'
         return copy, self._current_state()
 
-    def as_test(self) -> Tuple['RandomAssetEnv', pd.Series] :
+    def as_test(self, renderer=None) -> Tuple['RandomAssetEnv', pd.Series] :
         # note that shallow copy is shuffling due to the _init call
         copy = self._shallow_copy()
         copy.mode = 'test'
+        if renderer is not None: copy.renderer = renderer
         return copy, self._current_state()
 
-    def as_predict(self) -> Tuple['RandomAssetEnv', pd.Series] :
+    def as_predict(self, renderer=None) -> Tuple['RandomAssetEnv', pd.Series] :
         # note that shallow copy is shuffling due to the _init call
         copy = self._shallow_copy()
         copy.mode = 'predict'
+        if renderer is not None: copy.renderer = renderer
         return copy, self._current_state()
 
     def _shallow_copy(self):
@@ -75,6 +79,7 @@ class RandomAssetEnv(gym.Env):
             self.reward_provider,
             self.pct_train_data,
             self.max_steps,
+            self.min_training_samples,
             self.cache,
             self.renderer
         )
@@ -87,15 +92,18 @@ class RandomAssetEnv(gym.Env):
             self._gross_loss.iloc[[self._state_idx]]._.values if self._gross_loss is not None else None
         )
 
-        old_state = self._current_state()
+        old_price_frame = self._current_price_frame()
         self._state_idx += 1
         self.done = game_over \
                     or self._state_idx >= self._last_index \
                     or self._state_idx > (self._start_idx + self.max_steps)
 
-        new_state = self._current_state()
-        self.renderer.put_action(old_state, action, new_state, reward, self.done)
-        return new_state, reward, self.done, {}
+        # push rendering information
+        new_price_frame = self._current_price_frame()
+        self.renderer.plot(old_price_frame, action, new_price_frame, reward, self.done)
+
+        # return new state reward and done flag
+        return self._current_state(), reward, self.done, {}
 
     def render(self, mode='human'):
         self.renderer.render(mode)
@@ -117,9 +125,10 @@ class RandomAssetEnv(gym.Env):
                 self._state_idx = np.random.randint(1, self._last_index - 1, 1).item()
             if self.mode == 'test':
                 self._last_index = len(self._features)
-                # allow at least one step
-                self._state_idx = np.random.randint(int(len(self._features) * 0.8), len(self._features) - 1, 1).item()
-
+                # if min samples is infinity then we start from the first index of the test data
+                test_start_idx = int(len(self._features) * 0.8)
+                test_end_idx = min(len(self._features) - self.min_training_samples, test_start_idx + 1)
+                self._state_idx = np.random.randint(test_start_idx, test_end_idx, 1).item()
         else:
             # only extract features!
             _, self._features, self._targets = extract_features(self._df, self.features_and_labels)
@@ -139,6 +148,11 @@ class RandomAssetEnv(gym.Env):
     def _current_state(self):
         # make sure to return it as a batch of size one therefore use list of state_idx
         return self._features.iloc[[self._state_idx]]
+
+    def _current_price_frame(self):
+        timestep = self._features.index[self._state_idx]
+        return self._df.loc[[timestep]]
+
 
 # ...
 # TODO later allow features to be a list of feature sets echa witha possible different shape

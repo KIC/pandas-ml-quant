@@ -1,4 +1,5 @@
 from collections import namedtuple
+from time import sleep
 from unittest import TestCase
 
 import gym.spaces as spaces
@@ -7,8 +8,9 @@ import torch.nn as nn
 import torch.optim as optim
 
 from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
 from pandas_ml_quant_rl.cache import FileCache
+from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.renderer import OnlineRenderer, CandleStickRenderer
 from pandas_ml_quant_rl_test.config import load_symbol
 from pandas_ml_utils.pytorch import Reshape
 
@@ -17,7 +19,7 @@ class TestAgents(TestCase):
 
     def test_reinforce(self):
 
-        class Statefulreward(object):
+        class StatefulReward(object):
 
             def __init__(self):
                 self.max_loosers = 5
@@ -62,10 +64,11 @@ class TestAgents(TestCase):
             ),
             ["SPY", "GLD"],
             spaces.Discrete(3),
-            reward_provider=Statefulreward().calc_reward,
+            reward_provider=StatefulReward().calc_reward,
             pct_train_data=0.8,
             max_steps=50,
-            use_cache=FileCache('/tmp/agent.test.dada.hd5', load_symbol)
+            min_training_samples=50,
+            use_cache=FileCache('/tmp/agent.test.dada.hd5', load_symbol),
         )
 
         # try to train this stuff
@@ -161,7 +164,6 @@ class TestAgents(TestCase):
             train_act_v = T.LongTensor(train_act)
             return train_obs_v, train_act_v, reward_bound, reward_mean
 
-
         for iter_no, batch in enumerate(iterate_batches(env, net, BATCH_SIZE)):
             obs_v, acts_v, reward_b, reward_m = filter_batch(batch, PERCENTILE)
             optimizer.zero_grad()
@@ -175,28 +177,40 @@ class TestAgents(TestCase):
             loss_v.backward()
             optimizer.step()
 
-            # test what we have learned
-            test_env, obs = env.as_test()
-            test_done = False
-            test_reward = 0
-            while not test_done:
-                np_obs = obs._.values
-                obs_v = T.FloatTensor(np_obs)
-                act_probs_v = sm(net(obs_v))
-                act_probs = act_probs_v.data.numpy()[0]
-                action = np.random.choice(len(act_probs), p=act_probs)
-                obs, episode_reward, test_done, _ = test_env.step(action)
-                test_reward += episode_reward
 
-            print("%d: loss=%.3f, test_reward: %.1f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
-                iter_no, loss_v.item(), test_reward * 100, reward_m * 100, reward_b * 100, 0.0))
+            print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
+                iter_no, loss_v.item(), reward_m * 100, reward_b * 100, 0.0))
             #writer.add_scalar("loss", loss_v.item(), iter_no)
             #writer.add_scalar("reward_bound", reward_b, iter_no)
             #writer.add_scalar("reward_mean", reward_m, iter_no)
-            if iter_no > 15:
+            if iter_no > 20:
                 print("Solved!")
                 break
         #writer.close()
 
 
+
+        render_engine = OnlineRenderer(lambda: CandleStickRenderer(
+            action_mapping=[(1, 'buy', 'Open'), (1, 'sell', 'Close'), (2, 'sell', 'Open'), (2, 'buy', 'Close')]))
+        render_engine.render()
+
+        # test what we have learned
+        test_env, obs = env.as_test(render_engine)
+
+        test_done = False
+        test_reward = 0
+        while not test_done:
+            np_obs = obs._.values
+            obs_v = T.FloatTensor(np_obs)
+            act_probs_v = sm(net(obs_v))
+            act_probs = act_probs_v.data.numpy()[0]
+            print(f"act probs: {act_probs}")
+
+            action = np.random.choice(len(act_probs), p=act_probs)
+            obs, episode_reward, test_done, _ = test_env.step(action)
+            test_reward += episode_reward
+
+        print(f"test reward: {test_reward}")
+        sleep(2)
+        render_engine.stop()
 

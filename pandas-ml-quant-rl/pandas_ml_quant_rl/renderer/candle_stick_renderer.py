@@ -1,5 +1,6 @@
 from time import sleep
-
+from typing import Dict, Tuple, List
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -10,12 +11,21 @@ from .abstract_renderer import Renderer
 
 class CandleStickRenderer(Renderer):
 
-    def __init__(self, figsize=(20, 10)):
+    def __init__(self, action_mapping: List[Tuple[int, str, str]] = None, figsize=(20, 10)):
         super(CandleStickRenderer, self).__init__()
         matplotlib.use('Qt5Agg')
         plt.ion()
 
-        self.fig, self.axes = plt.subplots(2, 1, gridspec_kw={"height_ratios": [3, 1]}, figsize=figsize)
+        self.action_map = action_mapping
+        self.figsize = figsize
+        self.r = 0
+
+        self.reset()
+
+    def reset(self):
+        self.r = 0
+
+        self.fig, self.axes = plt.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [3, 1]}, figsize=self.figsize)
         self.fig.canvas.draw()  # draw and show it
         plt.show(block=False)
 
@@ -23,28 +33,37 @@ class CandleStickRenderer(Renderer):
             ax.xaxis_date()
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
 
-        self.r = 0
-
     def plot(self, old_state, action, new_state, reward, done):
+        ox = matplot_dates(old_state)
         x = matplot_dates(new_state)
         o = new_state["Open"].values
         h = new_state["High"].values
         l = new_state["Low"].values
         c = new_state["Close"].values
 
+        # plot candle
         b = min(o, c)
-        # if action was right other color then loosing action
-
-        if reward > 0:
-            color = 'black' if o > c else 'silver'
-        else:
-            color = 'red' if o > c else 'orange'
-
-        self.r += reward
-
+        color = 'red' if o > c else 'green'
         self.axes[0].vlines(x, l, h, color=color)
         self.axes[0].bar(x, max(o, c) - b, bottom=b, color=color)
+
+        # plot actions
+        for _action, plot_act, column in self.action_map:
+            if _action == action:
+                if plot_act == 'buy':
+                    self.axes[0].scatter((ox + x) / 2, new_state[column], marker=">", color='green')
+                if plot_act == 'sell':
+                    self.axes[0].scatter((ox + x) / 2, new_state[column], marker=">", color='red')
+
+        # plot reward
+        self.r += reward.item() if isinstance(reward, np.ndarray) else float(reward)
+        print(x, self.r)
         self.axes[1].bar(x, self.r, color='silver')
+
+        if done:
+            sleep(1)
+            plt.close(self.fig)
+            self.reset()
 
     def render(self, mode=None):
         for ax in self.axes:

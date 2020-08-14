@@ -105,7 +105,7 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
 
 def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
     from pandas_ml_common.utils import ReScaler
-    from pandas_ml_common import nans
+    from pandas_ml_common import np_nans
     from pandas_ml_common import inner_join
 
     if isinstance(df, _pd.DataFrame):
@@ -117,7 +117,7 @@ def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
 
     x = _np.linspace(0, 1, period)
     v = df.values
-    res = nans((len(df), degree + 1))
+    res = np_nans((len(df), degree + 1))
 
     for i in range(period, len(df)):
         y =  v[i - period:i]

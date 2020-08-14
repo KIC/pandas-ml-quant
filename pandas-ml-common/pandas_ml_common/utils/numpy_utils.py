@@ -14,7 +14,7 @@ def one_hot(index, len):
     return arr
 
 
-def nans(shape):
+def np_nans(shape):
     arr = np.empty(shape)
     arr.fill(np.nan)
     return arr
@@ -44,3 +44,30 @@ def get_buckets(arr, open=True, at_index=None):
     tuples = [(arr[i], arr[i+1]) for i in range(len(arr)-1)]
     return tuples if at_index is None else tuples[at_index]
 
+
+class CircularBuffer(object):
+
+    def __init__(self, size, dtype=None):
+        self.buffer = np_nans(size) if dtype is None else np_nans(size).astype(dtype)
+        self.last_index = size - 1
+        self.is_full = False
+        self.i = -1
+
+    def append(self, value):
+        if self.i >= self.last_index:
+            self.buffer = np.roll(self.buffer, -1)
+            self.is_full = True
+            self.i = 0
+        else:
+            self.i += 1
+
+        self.buffer[self.i] = value
+
+    def get_filled(self):
+        return self.buffer if self.is_full else self.buffer[0:self.i+1]
+
+    def __setitem__(self, key, value):
+        self.buffer.__setitem__(key, value)
+
+    def __getitem__(self, item):
+        self.buffer.__getitem__(item)
