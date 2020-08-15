@@ -5,6 +5,7 @@ import gym.spaces as spaces
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
 from pandas_ml_quant_rl.cache import FileCache
+from pandas_ml_quant_rl.model.strategies.discrete import BuyOpenSellCloseSellOpenBuyClose
 
 from pandas_ml_quant_rl_test.config import load_symbol
 
@@ -21,7 +22,7 @@ env = RandomAssetEnv(
                 ],
             ),
             ["SPY", "GLD"],
-            spaces.Discrete(2),
+            BuyOpenSellCloseSellOpenBuyClose(),
             pct_train_data=0.8,
             max_steps=10,
             use_cache=FileCache('/tmp/lalala.hd5', load_symbol)
@@ -48,18 +49,6 @@ class TestEnvironments(TestCase):
 
     def test_multi_symbol_env_action(self):
 
-        def step(a, l, *args):
-            print(a, l[0].shape)
-            return 0, False
-
-        env.reward_provider = step
-        env.as_train()
-
-        for act_space in [spaces.Discrete(3), spaces.Box(low=-1, high=1, shape=(2,))]:
-            done = False
-            while not done:
-                env.action_space = act_space
-                s, r, done, _ = env.step(env.action_space.sample())
-
-            env.reset()
+        for _ in range(2):
+            print(env.step(env.sample_action()))
 

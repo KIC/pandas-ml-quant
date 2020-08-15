@@ -10,6 +10,7 @@ import torch.optim as optim
 from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
 from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.model.strategies.discrete import BuyOpenSellCloseSellOpenBuyClose
 from pandas_ml_quant_rl.renderer import OnlineRenderer, CandleStickRenderer
 from pandas_ml_quant_rl_test.config import load_symbol
 from pandas_ml_utils.pytorch import Reshape
@@ -19,36 +20,6 @@ class TestAgents(TestCase):
 
     def test_reinforce(self):
 
-        class StatefulReward(object):
-
-            def __init__(self):
-                self.max_loosers = 5
-                self.loosers = 0
-
-            # do nothing or buy, sell the next candle
-            def calc_reward(self, action, trade_return, *args):
-                game_over = False
-                if action == 0:
-                    reward = -0.00001
-                elif action == 1:
-                    reward = trade_return
-                else:
-                    reward = -trade_return
-
-                # count max loosers
-                if reward < 0:
-                    self.loosers += 1
-                    if self.loosers >= self.max_loosers:
-                        game_over = True
-                        self.loosers = 0
-                else:
-                    self.loosers = 0
-
-                # return reward and game end
-                return reward, game_over
-
-
-        # env with 3 discrete actions: pass, buy, sell
         env = RandomAssetEnv(
             PostProcessedFeaturesAndLabels(
                 features=[
@@ -63,8 +34,7 @@ class TestAgents(TestCase):
                 ],
             ),
             ["SPY", "GLD"],
-            spaces.Discrete(3),
-            reward_provider=StatefulReward().calc_reward,
+            strategy=BuyOpenSellCloseSellOpenBuyClose(),
             pct_train_data=0.8,
             max_steps=50,
             min_training_samples=50,

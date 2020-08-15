@@ -8,6 +8,7 @@ from pandas_ml_quant_rl.cache import NoCache
 from pandas_ml_quant_rl.renderer.abstract_renderer import Renderer
 from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction import extract_features
+from ..strategies.abstract_startegy import Strategy
 
 
 class RandomAssetEnv(gym.Env):
@@ -15,8 +16,7 @@ class RandomAssetEnv(gym.Env):
     def __init__(self,
                  features_and_labels: FeaturesAndLabels,
                  symbols: Union[str, List[str]],
-                 action_space: gym.Space,
-                 reward_provider: Callable[[Any, np.ndarray, np.ndarray, np.ndarray], Tuple[float, bool]] = None,
+                 strategy: Strategy,
                  pct_train_data: float = 0.8,
                  max_steps: int = None,
                  min_training_samples: float = np.inf,
@@ -27,13 +27,13 @@ class RandomAssetEnv(gym.Env):
         self.max_steps = math.inf if max_steps is None else max_steps
         self.min_training_samples = min_training_samples
         self.features_and_labels = features_and_labels
-        self.reward_provider = reward_provider
         self.pct_train_data = pct_train_data
+        self.strategy = strategy
         self.renderer = renderer
 
         # define spaces
-        self.action_space = action_space
         self.observation_space = None
+        self.action_space = strategy.action_space
 
         # define execution mode
         self.cache = use_cache
@@ -75,8 +75,7 @@ class RandomAssetEnv(gym.Env):
         return RandomAssetEnv(
             self.features_and_labels,
             self.symbols,
-            self.action_space,
-            self.reward_provider,
+            self.strategy,
             self.pct_train_data,
             self.max_steps,
             self.min_training_samples,
@@ -84,12 +83,18 @@ class RandomAssetEnv(gym.Env):
             self.renderer
         )
 
+    def sample_action(self, probs=None):
+        # FIXME allow a way to query possible action i.e. if you already bought you can only sell or hold
+        #  then sample as long as needed until we get a possible action
+        action = np.random.choice(len(probs), p=probs) if probs is not None else self.strategy.action_space.sample()
+        return action
+
     def step(self, action):
-        reward, game_over = self.reward_provider(
+        reward, game_over = self.strategy.trade_reward(
             action,
-            self._labels.iloc[[self._state_idx]]._.values,
-            self._sample_weights.iloc[[self._state_idx]]._.values if self._sample_weights is not None else None,
-            self._gross_loss.iloc[[self._state_idx]]._.values if self._gross_loss is not None else None
+            self._labels.iloc[self._state_idx],
+            self._sample_weights.iloc[self._state_idx] if self._sample_weights is not None else None,
+            self._gross_loss.iloc[self._state_idx] if self._gross_loss is not None else None
         )
 
         old_price_frame = self._current_price_frame()
@@ -156,3 +161,6 @@ class RandomAssetEnv(gym.Env):
 
 # ...
 # TODO later allow features to be a list of feature sets echa witha possible different shape
+
+# Also later we want to implement an envoronment where the agent has access to all assets and he needs to pick a combination
+# of assets like in a portfolio construction manner
