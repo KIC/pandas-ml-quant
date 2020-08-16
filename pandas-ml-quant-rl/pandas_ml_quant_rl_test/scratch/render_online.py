@@ -8,6 +8,7 @@ import numpy as np
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
 from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.model.strategies.discrete import BuyOpenSellCloseSellOpenBuyClose
 from pandas_ml_quant_rl.renderer import CandleStickRenderer, OnlineRenderer
 from pandas_ml_quant_rl_test.config import load_symbol
 
@@ -27,11 +28,10 @@ def render_from_environment():
             ],
         ),
         ["SPY", "GLD"],
-        spaces.Discrete(3),
         pct_train_data=0.8,
         max_steps=10,
         use_cache=FileCache('/tmp/lalala.hd5', load_symbol),
-        reward_provider=lambda *x: (np.random.random(1) - 0.5, False),
+        strategy=BuyOpenSellCloseSellOpenBuyClose(),
         renderer=OnlineRenderer(
             lambda: CandleStickRenderer
                 (action_mapping=[(1, 'buy', 'Open'), (1, 'sell', 'Close'), (2, 'sell', 'Open'), (2, 'buy', 'Close')])

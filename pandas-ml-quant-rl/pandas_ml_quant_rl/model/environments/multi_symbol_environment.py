@@ -86,44 +86,52 @@ class RandomAssetEnv(gym.Env):
     def sample_action(self, probs=None):
         # FIXME allow a way to query possible action i.e. if you already bought you can only sell or hold
         #  then sample as long as needed until we get a possible action
+        #  self.strategy.current_available_actions()
         action = np.random.choice(len(probs), p=probs) if probs is not None else self.strategy.action_space.sample()
         return action
 
     def step(self, action):
-        reward, game_over = self.strategy.trade_reward(
+        old_price_frame = self._current_price_frame()
+
+        # regardless what action we take we will end up in the next time step
+        # and this is the first possible time where we actually can do something
+        self._state_idx += 1
+        new_price_frame = self._current_price_frame()
+
+        # let the agent execute an action according to our strategy
+        strategy_state, reward, game_over = self.strategy.trade_reward(
             action,
-            self._labels.iloc[self._state_idx],
-            self._sample_weights.iloc[self._state_idx] if self._sample_weights is not None else None,
-            self._gross_loss.iloc[self._state_idx] if self._gross_loss is not None else None
+            new_price_frame
         )
 
-        old_price_frame = self._current_price_frame()
-        self._state_idx += 1
+        # check if the epoch is over
         self.done = game_over \
                     or self._state_idx >= self._last_index \
                     or self._state_idx > (self._start_idx + self.max_steps)
 
         # push rendering information
-        new_price_frame = self._current_price_frame()
         self.renderer.plot(old_price_frame, action, new_price_frame, reward, self.done)
 
         # return new state reward and done flag
         return self._current_state(), reward, self.done, {}
 
     def render(self, mode='human'):
-        self.renderer.render(mode)
+        import matplotlib.dates as mdates
+        min_time_step = np.diff(mdates.date2num(self._df.index)).min()
+        self.renderer.render(mode, min_time_step)
 
     def reset(self):
+        self.strategy.reset()
         return self._init()
 
     def _init(self):
         self._symbol = np.random.choice(self.symbols, 1).item()
         self._df = self.cache.get_data_or_fetch(self._symbol)
 
-        if self.mode in ['train', 'test']:
-            self._features, self._labels, self._targets, self._sample_weights, self._gross_loss = \
-                self.cache.get_feature_frames_or_fetch(self._df, self._symbol, self.features_and_labels)
+        # this is reinforcement learning, we can only extract features!
+        _, self._features, self._targets = extract_features(self._df, self.features_and_labels)
 
+        if self.mode in ['train', 'test']:
             if self.mode == 'train':
                 self._last_index = int(len(self._features) * 0.8)
                 # allow at least one step
@@ -135,8 +143,6 @@ class RandomAssetEnv(gym.Env):
                 test_end_idx = min(len(self._features) - self.min_training_samples, test_start_idx + 1)
                 self._state_idx = np.random.randint(test_start_idx, test_end_idx, 1).item()
         else:
-            # only extract features!
-            _, self._features, self._targets = extract_features(self._df, self.features_and_labels)
             self._last_index = len(self._features)
             self._labels = pd.DataFrame({})
             self._sample_weights = pd.DataFrame({})
@@ -154,9 +160,9 @@ class RandomAssetEnv(gym.Env):
         # make sure to return it as a batch of size one therefore use list of state_idx
         return self._features.iloc[[self._state_idx]]
 
-    def _current_price_frame(self):
-        timestep = self._features.index[self._state_idx]
-        return self._df.loc[[timestep]]
+    def _current_price_frame(self) -> pd.Series:
+        ts = self._features.index[self._state_idx]
+        return self._df.loc[ts]
 
 
 # ...

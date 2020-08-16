@@ -18,6 +18,8 @@ class CandleStickRenderer(Renderer):
 
         self.action_map = action_mapping
         self.figsize = figsize
+
+        self.min_time_step = 1.0
         self.r = 0
 
         self.reset()
@@ -34,12 +36,16 @@ class CandleStickRenderer(Renderer):
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
 
     def plot(self, old_state, action, new_state, reward, done):
-        ox = matplot_dates(old_state)
-        x = matplot_dates(new_state)
-        o = new_state["Open"].values
-        h = new_state["High"].values
-        l = new_state["Low"].values
-        c = new_state["Close"].values
+        df = new_state.to_frame().T
+        x = matplot_dates(df)
+        o = df["Open"].values
+        h = df["High"].values
+        l = df["Low"].values
+        c = df["Close"].values
+
+        # indicator x is half a time step before / after the trading day
+        bx = x - (self.min_time_step * 0.4)
+        sx = x + (self.min_time_step * 0.4)
 
         # plot candle
         b = min(o, c)
@@ -51,9 +57,9 @@ class CandleStickRenderer(Renderer):
         for _action, plot_act, column in self.action_map:
             if _action == action:
                 if plot_act == 'buy':
-                    self.axes[0].scatter((ox + x) / 2, new_state[column], marker=">", color='green')
+                    self.axes[0].scatter(bx, df[column], marker=">", color='green')
                 if plot_act == 'sell':
-                    self.axes[0].scatter((ox + x) / 2, new_state[column], marker=">", color='red')
+                    self.axes[0].scatter(sx, df[column], marker="<", color='red')
 
         # plot reward
         self.r += reward.item() if isinstance(reward, np.ndarray) else float(reward)
@@ -65,7 +71,9 @@ class CandleStickRenderer(Renderer):
             plt.close(self.fig)
             self.reset()
 
-    def render(self, mode=None):
+    def render(self, mode=None, min_time_step=1.0):
+        self.min_time_step = min_time_step
+
         for ax in self.axes:
             ax.autoscale_view(tight=True, scalex=True, scaley=True)
 

@@ -8,7 +8,7 @@ class Renderer(object):
     def plot(self, old_state, action, new_state, reward, done):
         pass
 
-    def render(self, mode=None):
+    def render(self, mode=None, min_time_step=1.0):
         pass
 
 

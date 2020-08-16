@@ -20,36 +20,29 @@ class BuyOpenSellCloseSellOpenBuyClose(Strategy):
                  return_label: Union[str, tuple, int] = 0,
                  max_loos: float = -0.2
                  ):
-        super().__init__(Discrete(3), (1,))
+        super().__init__(Discrete(3), buffer=1, assets=1, indicators=1)
         self.long_columns = long
         self.short_columns = short
         self.return_label = return_label
         self.max_loos = max_loos
         self.total_return = 0
 
-    def trade_reward(self, action, label, sample_weight, gross_loss) -> Tuple[float, bool]:
-        trade_return = label[self.return_label]
-
+    def trade_reward(self, action, bar):
         if action == 0:
             reward = -0.00001
         elif action == 1:
-            reward = trade_return
+            reward = np.log(bar[self.long_columns[1]] / bar[self.long_columns[0]])
         else:
-            reward = -trade_return
+            reward = np.log(bar[self.long_columns[0]] / bar[self.long_columns[1]])
 
         self.total_return += reward
-        return reward, self.total_return < self.max_loos
+
+        # remember one indicator for one asset
+        row_to_buffer = np.array([[reward]])
+        return self._roll_state_buffer(row_to_buffer), reward, self.total_return < self.max_loos
 
     def reset(self):
+        super().reset()
         self.total_return = 0
-
-    def current_state(self) -> np.ndarray:
-        # FIXME
-        pass
-
-    def current_available_actions(self):
-        # FIXME
-        pass
-
 
 

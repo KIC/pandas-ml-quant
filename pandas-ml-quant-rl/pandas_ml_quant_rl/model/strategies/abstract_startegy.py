@@ -7,32 +7,51 @@ from gym import Space
 
 class Strategy(object):
 
-    def __init__(self, action_space: Space, state_shape: Tuple[int]):
-        self.action_space = action_space
-        self.state_shape = state_shape
+    def __init__(self, action_space: Space, buffer: int = 1, assets: int = 1, indicators: int = 1):
+        """
 
-    def trade_reward(self, action, label: pd.Series, sample_weight: pd.Series, gross_loss: pd.Series) -> Tuple[float, bool]:
+        :param action_space: a gmy space defining the possible actions
+        :param buffer: size of a buffer which is holding information like executed actions and rewards but
+            also information like currently open positions for example. Each strategy needs to decide which information
+            is needed. default buffer size = 1
+        :param assets: number of assets simultaneously trade-able, default 1
+        :param indicators: the number of indicators the buffer can hold like action and rewards would be 2.
+            default = 1 (reward)
+        """
+        self.action_space = action_space
+        self.buffer = buffer
+        self.assets = assets
+        self.indicators = indicators
+        self.buffered_state = np.zeros((buffer, assets, indicators))
+
+    def trade_reward(self, action, bar: pd.Series) -> Tuple[np.ndarray, float, bool]:
         """
 
         :param action:
         :param label:
         :param sample_weight:
         :param gross_loss:
-        :return: during training we execute the action and calculate the immediate return of this action alongside
+        :return: we return a tuple of (state, reward, bust)
+        the sate of the portfolio after the action which is a 3D matrix of [timestepes, assets, indicators].
+        Each strategy has to implement a set of indicators like rewards, positions weights or sharp ratio etc.
+
+        during training we execute the action and calculate the immediate return of this action alongside
         the information if we can continue trading or not (i.e. we got bust).
         """
-        return 0, False
 
-    def current_state(self) -> np.ndarray:
+        return self.buffered_state, 0, False
+
+    def _roll_state_buffer(self, state: np.ndarray) -> np.ndarray:
         """
-        :return: we return the sate of the current portfolio which means a 2D matrix of i assets and indicator columns like
-        percentage long, percentage short, volatility, and eventually more such indicators. Eventually we also return measures
-        of the whole portfolio history like return, volatility, sharp ratio etc.: [assets, indicators]
+        A helper function to roll over the state array
 
-        Eventually a 3D matrix containing a history of n portfolio states [timestepes, assets, indicators]
-
+        :return: rolled state
         """
-        return np.zeros(self.state_shape)
+
+        # rollover the current state and store the new data
+        self.buffered_state = np.roll(self.buffered_state, -1, 0)
+        self.buffered_state[-1] = state
+        return self.buffered_state
 
     def current_available_actions(self) -> Tuple[int]:
         """
@@ -47,4 +66,4 @@ class Strategy(object):
         When we start a new episode we need to reset the strategy parameters as well
         :return:
         """
-        pass
+        self.buffered_state = np.zeros(self.buffered_state.shape)

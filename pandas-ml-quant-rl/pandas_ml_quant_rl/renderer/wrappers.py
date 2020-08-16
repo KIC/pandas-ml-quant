@@ -38,7 +38,7 @@ class OnlineRenderer(Renderer):
     def stop(self):
         self.finish_e.set()
 
-    def render(self, mode=None):
+    def render(self, mode=None, min_time_step=1.0):
         if not self.worker.is_alive():
             self.worker.start()
 

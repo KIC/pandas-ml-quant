@@ -14,9 +14,7 @@ env = RandomAssetEnv(
                 features = [
                     lambda df: df["Close"].ta.log_returns()
                 ],
-                labels = [
-                    lambda df: df["Close"].ta.log_returns().shift(-1)
-                ],
+                labels=[],
                 feature_post_processor=[
                     lambda df: df.ta.rnn(60)
                 ],
@@ -35,15 +33,15 @@ class TestEnvironments(TestCase):
 
         _, fresh_train = env.as_train()
         print(fresh_train)
-        print(len(env._features), len(env._labels), env._state_idx)
+        print(len(env._features), env._state_idx)
 
         _, fresh_test = env.as_test()
         print(fresh_test)
-        print(len(env._features), len(env._labels), env._state_idx)
+        print(len(env._features), env._state_idx)
 
         _, fresh_predict = env.as_predict()
         print(fresh_predict)
-        print(len(env._features), len(env._labels), env._state_idx)
+        print(len(env._features), env._state_idx)
 
         print(env.observation_space)
 
