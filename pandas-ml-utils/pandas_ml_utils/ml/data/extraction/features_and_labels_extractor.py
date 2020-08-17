@@ -16,9 +16,7 @@ def extract_feature_labels_weights(
         features_and_labels,
         **kwargs) -> Tuple[Tuple[pd.DataFrame, int], pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     _, features, targets = extract_features(df, features_and_labels, **kwargs)
-    #features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
     labels = get_pandas_object(df, features_and_labels.labels, **kwargs).dropna()
-    #targets = call_if_not_none(get_pandas_object(df, features_and_labels.targets, **kwargs), 'dropna')
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
     gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
 

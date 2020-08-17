@@ -48,5 +48,8 @@ class TestEnvironments(TestCase):
     def test_multi_symbol_env_action(self):
 
         for _ in range(2):
-            print(env.step(env.sample_action()))
+            print(env.step(env.strategy.sample_action()))
 
+    def test_sample_observation_space(self):
+        print(env.observation_space)
+        print(env.observation_space.sample())

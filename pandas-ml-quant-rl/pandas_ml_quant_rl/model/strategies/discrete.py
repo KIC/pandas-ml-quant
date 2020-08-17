@@ -27,6 +27,10 @@ class BuyOpenSellCloseSellOpenBuyClose(Strategy):
         self.max_loos = max_loos
         self.total_return = 0
 
+    def sample_action(self, probs=None):
+        action = np.random.choice(self.action_space.n, p=probs) if probs is not None else self.action_space.sample()
+        return action
+
     def trade_reward(self, action, bar):
         if action == 0:
             reward = -0.00001

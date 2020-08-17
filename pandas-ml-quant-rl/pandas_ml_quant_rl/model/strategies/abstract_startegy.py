@@ -24,6 +24,12 @@ class Strategy(object):
         self.indicators = indicators
         self.buffered_state = np.zeros((buffer, assets, indicators))
 
+    def sample_action(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def current_state(self) -> np.ndarray:
+        return self.buffered_state
+
     def trade_reward(self, action, bar: pd.Series) -> Tuple[np.ndarray, float, bool]:
         """
 
@@ -39,7 +45,7 @@ class Strategy(object):
         the information if we can continue trading or not (i.e. we got bust).
         """
 
-        return self.buffered_state, 0, False
+        return self.current_state(), 0, False
 
     def _roll_state_buffer(self, state: np.ndarray) -> np.ndarray:
         """
@@ -61,9 +67,10 @@ class Strategy(object):
         """
         return self.action_space.shape
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """
         When we start a new episode we need to reset the strategy parameters as well
         :return:
         """
         self.buffered_state = np.zeros(self.buffered_state.shape)
+        return self.current_state()
