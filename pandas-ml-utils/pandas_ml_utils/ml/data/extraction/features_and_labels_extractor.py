@@ -44,7 +44,12 @@ def extract_feature_labels_weights(
 
 
 def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[List, pd.DataFrame, pd.DataFrame]:
-    features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
+    if isinstance(features_and_labels.features, tuple):
+        # allow multiple feature sets i.e. for multi input layered networks
+        features = tuple([get_pandas_object(df, f, **kwargs).dropna() for f in features_and_labels.features])
+    else:
+        features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
+
     targets = call_if_not_none(get_pandas_object(df, features_and_labels.targets, **kwargs), 'dropna')
     common_index = intersection_of_index(features, targets)
 
@@ -53,7 +58,7 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[L
 
     return (
         features_and_labels.label_columns,
-        features.loc[common_index],
+        tuple([f.loc[common_index] for f in features]) if isinstance(features, tuple) else features.loc[common_index],
         loc_if_not_none(targets, common_index)
     )
 
