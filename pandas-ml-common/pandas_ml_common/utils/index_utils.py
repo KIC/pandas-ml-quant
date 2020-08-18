@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import OrderedDict, Callable
-from typing import List
+from typing import List, Iterable
 
 import pandas as pd
 import numpy as np
@@ -103,6 +103,8 @@ def intersection_of_index(*dfs: pd.DataFrame):
 def loc_if_not_none(df, value):
     if df is None:
         return None
+    elif not isinstance(df, PandasObject) and isinstance(df, Iterable):
+        return tuple([loc_if_not_none(f, value) for f in df])
     else:
         return df.loc[value]
 

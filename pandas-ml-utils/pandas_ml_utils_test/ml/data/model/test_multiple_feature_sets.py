@@ -48,5 +48,5 @@ class TestMultiFeatureSet(TestCase):
         self.assertIsInstance(f, tuple)
         print(f)
 
-        # FIXME fit = df.model.fit(model)
+#        fit = df.model.fit(model)
         # FIXME print(fit)

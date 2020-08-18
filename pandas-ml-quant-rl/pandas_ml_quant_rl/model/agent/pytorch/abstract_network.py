@@ -11,23 +11,15 @@ class Network(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x: Union[List, Tuple[np.ndarray, np.ndarray]]):
+    def forward(self, x: Union[List, Tuple[np.ndarray]]):
         if isinstance(x, tuple) and len(x) == 2:
             features_state, strategy_state = x
             # convert tuple space to tensors and forward to the estimate function
-            # FIXME don't rely on two tensors make this a vararg!!
-            env_state_tensor, strategy_state_tensor = T.FloatTensor(x[0]), T.FloatTensor(x[1])
+            tensors = [T.FloatTensor(_x).to(self.device) for _x in x]
         else:
             # we assume we have a list of state tuples and we need to unpack them
-            env_state_tensor, strategy_state_tensor = (
-                T.FloatTensor(np.vstack([t[0] for t in x])),
-                T.FloatTensor(np.vstack([t[1] for t in x]))
-            )
-
-        return self.estimate(
-            T.FloatTensor(env_state_tensor).to(self.device),
-            T.FloatTensor(strategy_state_tensor).to(self.device)
-        )
+            tensors = [T.FloatTensor(np.vstack(_x)).to(self.device) for _x in zip(*x)]
+        return self.estimate(*tensors)
 
     @property
     @lru_cache(1)
@@ -41,5 +33,5 @@ class Network(nn.Module):
 
         return next(iter(devices))
 
-    def estimate(self, feature_state: T.Tensor, portfolio_state: T.Tensor):
+    def estimate(self, *tensors: T.Tensor):
         raise NotImplementedError
