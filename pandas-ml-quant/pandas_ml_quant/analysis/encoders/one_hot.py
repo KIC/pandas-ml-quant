@@ -26,4 +26,3 @@ def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True,
         label_binarizer.fit(range(int(nr_of_classes)))
         return pd.Series(label_binarizer.transform(values).tolist(), index=po.index, name=po.name)
 
-

@@ -15,6 +15,7 @@ class Network(nn.Module):
         if isinstance(x, tuple) and len(x) == 2:
             features_state, strategy_state = x
             # convert tuple space to tensors and forward to the estimate function
+            # FIXME don't rely on two tensors make this a vararg!!
             env_state_tensor, strategy_state_tensor = T.FloatTensor(x[0]), T.FloatTensor(x[1])
         else:
             # we assume we have a list of state tuples and we need to unpack them

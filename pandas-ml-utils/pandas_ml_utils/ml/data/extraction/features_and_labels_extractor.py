@@ -23,7 +23,8 @@ def extract_feature_labels_weights(
     if features_and_labels.label_type is not None:
         labels = labels.astype(features_and_labels.label_type)
 
-    for frame in [features, labels, targets, sample_weights, gross_loss]:
+    # do some sanity check for any non numeric values in any of the data frames
+    for frame in [*(features if isinstance(features, tuple) else [features]), labels, targets, sample_weights, gross_loss]:
         if frame is not None:
             max = frame._.values.max()
 
@@ -32,10 +33,14 @@ def extract_feature_labels_weights(
                 frame.replace([np.inf, -np.inf], np.nan, inplace=True)
                 frame.dropna(inplace=True)
 
+    # now get the common index and return the filtered data frames
     common_index = intersection_of_index(features, labels, targets, sample_weights, gross_loss)
 
     return (
-        (features.loc[common_index], len(df) - len(features) + 1),
+        (
+            tuple([f.loc[common_index] for f in features]) if isinstance(features, tuple) else features.loc[common_index],
+            len(df) - len(features) + 1
+        ),
         labels.loc[common_index],
         loc_if_not_none(targets, common_index),
         loc_if_not_none(sample_weights, common_index),
