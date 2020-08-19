@@ -34,6 +34,9 @@ class ML(object):
     def extract(self, func: callable, *args, **kwargs):
         return call_callable_dynamic_args(func, self.df, *args, **kwargs)
 
+    def max(self):
+        return self.values.max()
+
     def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
         """
         # FIXME add text, can be regex ... dynamic call etc .. .

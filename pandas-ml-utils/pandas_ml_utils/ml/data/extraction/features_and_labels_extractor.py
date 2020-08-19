@@ -5,6 +5,7 @@ import numpy as np
 import logging
 
 from pandas_ml_common import get_pandas_object, Typing
+from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common.utils import intersection_of_index, loc_if_not_none
 from pandas_ml_common.utils.callable_utils import call_if_not_none
 
@@ -24,9 +25,9 @@ def extract_feature_labels_weights(
         labels = labels.astype(features_and_labels.label_type)
 
     # do some sanity check for any non numeric values in any of the data frames
-    for frame in [*(features if isinstance(features, tuple) else [features]), labels, targets, sample_weights, gross_loss]:
+    for frame in [features, labels, targets, sample_weights, gross_loss]:
         if frame is not None:
-            max = frame._.values.max()
+            max = frame._.max()
 
             if np.isscalar(max) and np.isinf(max):
                 _log.warning("features containing infinit number\n", frame[frame.apply(lambda r: np.isinf(r.values).any(), axis=1)])
@@ -51,7 +52,7 @@ def extract_feature_labels_weights(
 def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[List, pd.DataFrame, pd.DataFrame]:
     if isinstance(features_and_labels.features, tuple):
         # allow multiple feature sets i.e. for multi input layered networks
-        features = tuple([get_pandas_object(df, f, **kwargs).dropna() for f in features_and_labels.features])
+        features = MultiFrameDecorator([get_pandas_object(df, f, **kwargs).dropna() for f in features_and_labels.features], True)
     else:
         features = get_pandas_object(df, features_and_labels.features, **kwargs).dropna()
 
@@ -63,7 +64,7 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[L
 
     return (
         features_and_labels.label_columns,
-        tuple([f.loc[common_index] for f in features]) if isinstance(features, tuple) else features.loc[common_index],
+        features.loc[common_index],
         loc_if_not_none(targets, common_index)
     )
 

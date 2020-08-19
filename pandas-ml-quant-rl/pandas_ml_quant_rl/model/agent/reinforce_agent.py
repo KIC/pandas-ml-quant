@@ -151,7 +151,7 @@ class ReinforceAgent(Agent):
 
             # since we can sample infinitely many batches of episodes we need to define an exit condition
             # FIXME think of exit criteria -> propagate it to parent class ! !  ! ! !
-            if iter_no > 20:
+            if iter_no > 3:
                 print("Solved!")
                 break
         #writer.close()

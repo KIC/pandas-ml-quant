@@ -82,20 +82,11 @@ def multi_index_shape(index: pd.MultiIndex):
 
 
 def intersection_of_index(*dfs: pd.DataFrame):
-    intersect_index = None
+    intersect_index = dfs[0].index
 
-    for i in range(0, len(dfs)):
-        if isinstance(dfs[i], tuple):
-            tuple_index_intersection = intersection_of_index(*dfs[i])
-            if intersect_index is None:
-                intersect_index = tuple_index_intersection
-            elif dfs[i] is not None:
-                intersect_index = intersect_index.intersection(tuple_index_intersection)
-        else:
-            if intersect_index is None:
-                intersect_index = dfs[i].index
-            elif dfs[i] is not None:
-                intersect_index = intersect_index.intersection(dfs[i].index)
+    for i in range(1, len(dfs)):
+        if dfs[i] is not None:
+            intersect_index = intersect_index.intersection(dfs[i].index)
 
     return intersect_index
 
@@ -103,8 +94,6 @@ def intersection_of_index(*dfs: pd.DataFrame):
 def loc_if_not_none(df, value):
     if df is None:
         return None
-    elif not isinstance(df, PandasObject) and isinstance(df, Iterable):
-        return tuple([loc_if_not_none(f, value) for f in df])
     else:
         return df.loc[value]
 

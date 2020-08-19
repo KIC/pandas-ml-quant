@@ -6,7 +6,6 @@ import numpy as np
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import loc_if_not_none
 from pandas_ml_utils.ml.data.splitting import Splitter
-from pandas_ml_common.decorator import MultiFrameDecorator
 
 _log = logging.getLogger(__name__)
 
@@ -64,7 +63,7 @@ class DataGenerator(object):
 
     def __init__(self, splitter: Splitter, *frames: Typing.PatchedDataFrame):
         self.splitter = splitter
-        self.frames = [MultiFrameDecorator(f) if isinstance(f, tuple) else f for f in frames]
+        self.frames = frames
 
     def train_test_sampler(self) -> Sampler:
         train_idx, test_idx = self.splitter.train_test_split(self.frames[0].index)
