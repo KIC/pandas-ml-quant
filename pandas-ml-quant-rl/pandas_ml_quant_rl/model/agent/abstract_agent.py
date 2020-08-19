@@ -18,9 +18,6 @@ class Agent(object):
     def fit(self, env: Environment) -> 'Agent':
         raise NotImplementedError
 
-    def test(self, env: Environment):
-        raise NotImplementedError
-
-    def predict(self, env: Environment):
+    def best_action(self, state):
         raise NotImplementedError
 

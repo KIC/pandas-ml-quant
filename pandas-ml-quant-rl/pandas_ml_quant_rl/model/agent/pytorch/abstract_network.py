@@ -13,13 +13,22 @@ class Network(nn.Module):
 
     def forward(self, x: Union[List, Tuple[np.ndarray]]):
         if isinstance(x, tuple) and len(x) == 2:
-            features_state, strategy_state = x
-            # convert tuple space to tensors and forward to the estimate function
-            tensors = [T.FloatTensor(_x).to(self.device) for _x in x]
-        else:
-            # we assume we have a list of state tuples and we need to unpack them
-            tensors = [T.FloatTensor(np.vstack(_x)).to(self.device) for _x in zip(*x)]
-        return self.estimate(*tensors)
+            return self.forward([x])
+
+        return self.estimate(*self._unzip_to_tensor(x))
+
+    def _unzip_to_tensor(self, rows):
+        if len(rows) < 0:
+            return T.FloatTensor(rows).to(self.device)
+
+        columns = []
+        for j in range(len(rows[0])):
+            if isinstance(rows[0][j], tuple):
+                columns.append(self._unzip_to_tensor([row[j] for row in rows]))
+            else:
+                columns.append(T.FloatTensor(np.vstack([row[j] for row in rows])).to(self.device))
+
+        return tuple(columns)
 
     @property
     @lru_cache(1)

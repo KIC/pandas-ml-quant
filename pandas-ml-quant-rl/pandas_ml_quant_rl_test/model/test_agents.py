@@ -3,6 +3,7 @@ from unittest import TestCase
 import torch as T
 import torch.nn as nn
 
+from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
 from pandas_ml_quant_rl.model.agent import ReinforceAgent, Network
@@ -16,14 +17,13 @@ class TestAgents(TestCase):
 
     def test_reinforce_agent(self):
         env = RandomAssetEnv(
-            PostProcessedFeaturesAndLabels(
-                features=[
-                    lambda df: df.ta.candle_category().ta.one_hot_encode_discrete(offset=-15, nr_of_classes=30)
-                ],
+            FeaturesAndLabels(
+                features=
+                    [
+                        lambda df: df.ta.candle_category().ta.one_hot_encode_discrete(offset=-15, nr_of_classes=30).ta.rnn(10)
+                    ],
+
                 labels=[],
-                feature_post_processor=[
-                    lambda df: df.ta.rnn(10)
-                ],
             ),
             ["SPY", "GLD"],
             strategy=BuyOpenSellCloseSellOpenBuyClose(),
