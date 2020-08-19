@@ -39,6 +39,14 @@ class MultiFrameDecorator(object):
         #  in this case we actually do not want the intersection of the index
         #  therefore we would also need to extend: pandas-ml-utils/pandas_ml_utils/__init__.py:16 and add some logic for
         #  fit, predict and backtest
+        #  we might also want to extend the data fetchers to not only return MultiIndex frames but also MultiDecorated
+        #  frames
+
+    def frames(self, copy=True):
+        if copy:
+            return tuple([f.loc[self._index].copy() for f in self._frames])
+        else:
+            return tuple([f.loc[self._index] for f in self._frames])
 
     @property
     def index(self):

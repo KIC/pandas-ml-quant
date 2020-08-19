@@ -1,0 +1,2 @@
+probably we could re use the rendering from tensortrade:
+* https://github.com/tensortrade-org/tensortrade/blob/master/tensortrade/environments/render/matplotlib_trading_chart.py

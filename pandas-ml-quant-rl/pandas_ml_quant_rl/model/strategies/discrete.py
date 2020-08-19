@@ -50,3 +50,6 @@ class BuyOpenSellCloseSellOpenBuyClose(Strategy):
         self.total_return = 0
 
 
+# TODO eventually support stop orders for risk mamagement
+#  reward could also be sharp ratio or sortino ratio
+#  use the log return change of the portfolio net worth, eventually only use excess log returns (demean the return)
