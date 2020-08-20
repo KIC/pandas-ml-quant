@@ -67,6 +67,9 @@ class ReinforceAgent(Agent):
                 # once we have a full batch we 'yield' it. this is done infinitely meaning the training loop needs to
                 # decide when to stop
                 if is_done:
+                    # log reward to tensor board
+                    self.log_episode_reward(episode_reward)
+
                     # store the discounted reward together with all episode state and actions as one sample of a batch
                     # then reset all variables for a new episode
                     batch.append(Episode(reward=episode_reward, observations=observation_hist, actions=action_hist))
