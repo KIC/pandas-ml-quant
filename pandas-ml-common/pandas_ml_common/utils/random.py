@@ -10,3 +10,13 @@ def temp_seed(seed):
         yield
     finally:
         np.random.set_state(state)
+
+
+def normalize_probabilities(probs):
+    if probs is not None:
+        if not isinstance(probs, np.ndarray):
+            probs = np.array(probs)
+        return probs / probs.sum()
+    else:
+        return None
+
