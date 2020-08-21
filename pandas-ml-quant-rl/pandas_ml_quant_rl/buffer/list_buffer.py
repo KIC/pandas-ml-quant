@@ -18,6 +18,9 @@ class ListBuffer(Buffer):
         for i in range(len(row)):
             self.columns[i].append(row[i])
 
+    def sample(self, size, replace=False, p=None) -> np.ndarray:
+        return np.random.choice(self.data, size, replace, p)
+
     def rank_and_cut(self, percentile: Tuple[int, float]) -> 'ListBuffer':
         column, percentile = percentile
         ranks = sorted(range(len(self.columns[column])), key=self.columns[column].__getitem__)
@@ -43,3 +46,5 @@ class ListBuffer(Buffer):
     def valid_buffer(self) -> 'ListBuffer':
         return self
 
+    def __len__(self):
+        return len(self.columns[0])

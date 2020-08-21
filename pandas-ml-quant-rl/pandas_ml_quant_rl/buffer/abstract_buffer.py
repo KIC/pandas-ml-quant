@@ -15,7 +15,7 @@ class Buffer(object):
     def data(self) -> np.ndarray:
         raise NotImplemented()
 
-    def valid_buffer(self) -> 'Buffer':
+    def sample(self, size, replace=False) -> np.ndarray:
         raise NotImplemented()
 
     def add(self, row: np.ndarray) -> 'Buffer':

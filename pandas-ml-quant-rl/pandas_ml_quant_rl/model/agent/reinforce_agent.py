@@ -15,14 +15,16 @@ class ReinforceAgent(Agent):
 
     def __init__(self,
                  network: Network,
-                 exit_criteria: int = -999,  # FIXME think of exit criteria -> propagate it to parent class !
+                 exit_criteria: Callable[[float, int], bool] = lambda _, cnt: cnt > 50,
                  batch_size: int = 32,
                  percentile: int = 70,
                  gamma: float = 0.99,
                  entropy_beta: float = 0.01,
-                 optimizer: Callable[[T.tensor], optim.Optimizer] = lambda params: optim.Adam(params=params, lr=0.01)
+                 optimizer: Callable[[T.tensor], optim.Optimizer] = lambda params: optim.Adam(params=params, lr=0.01),
+                 # FIXME add loss function as well so we can i.e. provide KLdivergence as well
+                 **kwargs
                  ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.network = network
         self.exit_criteria = exit_criteria
         self.batch_size = batch_size
@@ -53,7 +55,7 @@ class ReinforceAgent(Agent):
                 act_probs = softmax(self.network(obs)).data.numpy()[0]
 
                 # decide for a random action (following the probabilities), execute it and collect the reward
-                action = env.strategy.sample_action(act_probs)
+                action = env.sample_action(act_probs)
                 next_obs, reward, is_done, _ = env.step(action)
                 episode_reward += self.gamma ** i * reward
 
@@ -68,7 +70,7 @@ class ReinforceAgent(Agent):
                 # decide when to stop
                 if is_done:
                     # log reward to tensor board
-                    self.log_episode_reward(episode_reward)
+                    self.log_to_tensorboard(episode_reward, i, action_hist)
 
                     # store the discounted reward together with all episode state and actions as one sample of a batch
                     # then reset all variables for a new episode
@@ -115,9 +117,17 @@ class ReinforceAgent(Agent):
             return train_obs, train_act, reward_bound, reward_mean
 
         # we draw batches form a generator process which plays episodes until one batch is full
+        trained_episodes = 0
         for iter_no, sampled_batch in enumerate(iterate_batches()):
-            # we then filter those episids and only those with a reward >= a percentile given as hyper parameter
+            # we then filter those episodes and only those with a reward >= a percentile given as hyper parameter
             obs, acts, reward_bound, reward_mean = filter_batch(sampled_batch)
+            trained_episodes += len(acts)
+
+            # check if we have learned enough
+            if self.exit_criteria(reward_mean, trained_episodes):
+                print(f"Solved! reward: {reward_mean}, episodes: {trained_episodes}")
+                break
+
             # reset optimizer gradients
             self.optimizer.zero_grad()
             # get action probabilities from the policy estimating network
@@ -147,17 +157,8 @@ class ReinforceAgent(Agent):
 
             # log some information
             print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
-                iter_no, loss_v.item(), reward_mean * 100, reward_bound * 100, 0.0))
-            #writer.add_scalar("loss", loss_v.item(), iter_no)
-            #writer.add_scalar("reward_bound", reward_b, iter_no)
-            #writer.add_scalar("reward_mean", reward_m, iter_no)
+                iter_no, loss_v.item(), reward_mean, reward_bound, 0.0))
 
-            # since we can sample infinitely many batches of episodes we need to define an exit condition
-            # FIXME think of exit criteria -> propagate it to parent class ! !  ! ! !
-            if iter_no > 3:
-                print("Solved!")
-                break
-        #writer.close()
         return self
 
     def test(self, env: Environment):

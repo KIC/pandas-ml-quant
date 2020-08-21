@@ -27,30 +27,29 @@ class ArrayBuffer(Buffer):
     def is_full(self):
         return self.cnt >= self.size
 
-    def valid_buffer(self):
-        return self if self.is_full else self._copy(self.buffer[-self.cnt-1:])
-
-    def sort_by_column(self, col: int = 0) -> 'ArrayBuffer':
-        buffer = self._copy(self.buffer[np.argsort(self.buffer[:, col])])
-        return buffer
-
     def rank_and_cut(self, percentile: Tuple[int, float]) -> 'ArrayBuffer':
         column, percentile = percentile
-        sorted_buffer = self.sort_by_column(column)
-        index = int(percentile * (sorted_buffer.size / 100) * 100)
+        sorted_buffer = self._sort_by_column(column)
+        index = int(percentile * (len(sorted_buffer) / 100) * 100)
         return self._copy(sorted_buffer.data[index:])
 
-    def sample(self, size, replace=False, p=None):
-        if not isinstance(p, np.ndarray): p = np.ndarray(p)
-        p = p / p.sum()
-        return np.random.choice(self.buffer, size, replace, p=p)
+    def _sort_by_column(self, col: int = 0) -> 'ArrayBuffer':
+        data = self.buffer if self.is_full else self.buffer[-self.cnt:]
+        buffer = self._copy(self.buffer[np.argsort(data[:, col])])
+        return buffer
+
+    def sample(self, size, replace=False) -> np.ndarray:
+        data = self.buffer if self.is_full else self.buffer[-self.cnt:]
+        return data[np.random.choice(np.arange(len(data)), size, replace)]
 
     def reset(self) -> 'ArrayBuffer':
         return ArrayBuffer(self.buffer.shape)
 
     def _copy(self, buffer):
-        copy = ArrayBuffer(self.buffer.shape)
+        copy = ArrayBuffer(buffer.shape)
         copy.buffer = buffer
-        copy.size = min(len(buffer), self.size)
         copy.cnt = self.cnt
         return copy
+
+    def __len__(self):
+        return min(self.cnt, self.size)

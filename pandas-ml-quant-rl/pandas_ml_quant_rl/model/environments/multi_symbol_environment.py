@@ -7,9 +7,7 @@ import gym
 from pandas_ml_common import pd, np
 from pandas_ml_quant_rl.cache import NoCache
 from pandas_ml_quant_rl.cache.abstract_cache import Cache
-from pandas_ml_quant_rl.renderer.abstract_renderer import Renderer
 from pandas_ml_utils import FeaturesAndLabels
-from pandas_ml_utils.ml.data.extraction import extract_features
 from .abstract_environment import Environment, SpaceUtils
 from ..strategies.abstract_startegy import Strategy
 
@@ -24,19 +22,15 @@ class RandomAssetEnv(Environment):
                  max_steps: int = None,
                  min_training_samples: float = np.inf,
                  use_cache: Cache = NoCache(),
-                 renderer: Renderer = Renderer()
                  ):
-        super().__init__()
+        super().__init__(strategy)
         self.max_steps = math.inf if max_steps is None else max_steps
         self.min_training_samples = min_training_samples
         self.features_and_labels = features_and_labels
         self.pct_train_data = pct_train_data
-        self.strategy = strategy
-        self.renderer = renderer
 
         # define spaces
         self.observation_space = None
-        self.action_space = strategy.action_space
 
         # define execution mode
         self.cache = use_cache
@@ -59,18 +53,16 @@ class RandomAssetEnv(Environment):
         copy.mode = 'train'
         return copy, self._current_state()
 
-    def as_test(self, renderer=None) -> Tuple['RandomAssetEnv', Tuple[pd.DataFrame, np.ndarray]]:
+    def as_test(self) -> Tuple['RandomAssetEnv', Tuple[pd.DataFrame, np.ndarray]]:
         # note that shallow copy is shuffling due to the _init call
         copy = self._shallow_copy()
         copy.mode = 'test'
-        if renderer is not None: copy.renderer = renderer
         return copy, self._current_state()
 
-    def as_predict(self, renderer=None) -> Tuple['RandomAssetEnv', Tuple[pd.DataFrame, np.ndarray]]:
+    def as_predict(self) -> Tuple['RandomAssetEnv', Tuple[pd.DataFrame, np.ndarray]]:
         # note that shallow copy is shuffling due to the _init call
         copy = self._shallow_copy()
         copy.mode = 'predict'
-        if renderer is not None: copy.renderer = renderer
         return copy, self._current_state()
 
     def _shallow_copy(self):
@@ -82,9 +74,11 @@ class RandomAssetEnv(Environment):
             self.pct_train_data,
             self.max_steps,
             self.min_training_samples,
-            self.cache,
-            self.renderer
+            self.cache
         )
+
+    def sample_action(self, probs=None):
+        return self.strategy.sample_action(probs)
 
     def step(self, action) -> Tuple[Tuple[np.ndarray, np.ndarray], float, bool, Dict]:
         old_price_frame = self._current_price_frame()
@@ -96,6 +90,7 @@ class RandomAssetEnv(Environment):
 
         # let the agent execute an action according to our strategy
         strategy_state, reward, game_over = self.strategy.trade_reward(
+            old_price_frame,
             action,
             new_price_frame
         )
@@ -105,16 +100,11 @@ class RandomAssetEnv(Environment):
                     or self._state_idx >= self._last_index \
                     or self._state_idx > (self._start_idx + self.max_steps)
 
-        # push rendering information
-        self.renderer.plot(old_price_frame, action, new_price_frame, reward, self.done)
-
         # return new state reward and done flag
         return self._current_state(strategy_state), reward, self.done, {}
 
     def render(self, mode='human'):
-        import matplotlib.dates as mdates
-        min_time_step = np.diff(mdates.date2num(self._df.index)).min()
-        self.renderer.render(mode, min_time_step)
+        return self.strategy.render(mode)
 
     def reset(self) -> Tuple[np.ndarray, np.ndarray]:
         self.strategy.reset()

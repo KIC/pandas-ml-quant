@@ -4,10 +4,18 @@ import numpy as np
 import pandas as pd
 from gym import Space
 
+from pandas_ml_quant_rl.renderer.abstract_renderer import Renderer
+
 
 class Strategy(object):
 
-    def __init__(self, action_space: Space, buffer: int = 1, assets: int = 1, indicators: int = 1):
+    def __init__(self,
+                 action_space: Space,
+                 buffer: int = 1,
+                 assets: int = 1,
+                 indicators: int = 1,
+                 renderer: Renderer = Renderer()
+                 ):
         """
 
         :param action_space: a gmy space defining the possible actions
@@ -30,7 +38,7 @@ class Strategy(object):
     def current_state(self) -> np.ndarray:
         return self.buffered_state
 
-    def trade_reward(self, action, bar: pd.Series) -> Tuple[np.ndarray, float, bool]:
+    def trade_reward(self, previous_bar: pd.Series, action, bar: pd.Series) -> Tuple[np.ndarray, float, bool]:
         """
 
         :param action:
@@ -74,3 +82,6 @@ class Strategy(object):
         """
         self.buffered_state = np.zeros(self.buffered_state.shape)
         return self.current_state()
+
+    def render(self, mode='human'):
+        return None

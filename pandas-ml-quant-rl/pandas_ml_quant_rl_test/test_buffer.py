@@ -32,6 +32,19 @@ class TestArrayBuffer(TestBuffers, TestCase):
     def test_rank_and_cut(self):
         self.rank_and_cut(self.init_buffer(ArrayBuffer((10, 2))))
 
+    def test_len(self):
+        buffer = ArrayBuffer((10, 2))
+        for i in range(15):
+            buffer.add(np.array([i, 10 - i]))
+            self.assertEqual(min(10, i+1), len(buffer))
+
+    def test_sample(self):
+        buffer = ArrayBuffer((10, 2))
+        for i in range(5):
+            buffer.add(np.array([i, 10 - i]))
+
+        self.assertEqual(40, buffer.sample(5)[:, 1].sum())
+
 
 class TestListBuffer(TestBuffers, TestCase):
 
