@@ -18,7 +18,10 @@ class Buffer(object):
     def sample(self, size, replace=False) -> np.ndarray:
         raise NotImplemented()
 
-    def add(self, row: np.ndarray) -> 'Buffer':
+    def append_args(self, *row) -> 'Buffer':
+        return self.append_row(row)
+
+    def append_row(self, row: np.ndarray) -> 'Buffer':
         raise NotImplemented()
 
     def reset(self) -> 'Buffer':

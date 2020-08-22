@@ -38,6 +38,7 @@ class CartPoleWrappedEnv(Environment):
         if self.auto_render_after_steps is not None and (self._step % self.auto_render_after_steps == 0 or done):
             self.render()
 
+        self._step += 1
         return (state, np.array([])), reward, done, info
 
     def reset(self) -> Tuple[np.ndarray, np.ndarray]:

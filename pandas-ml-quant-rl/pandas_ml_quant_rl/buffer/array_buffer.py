@@ -12,7 +12,7 @@ class ArrayBuffer(Buffer):
         self.size = shape[0]
         self.cnt = 0
 
-    def add(self, row: np.ndarray) -> 'ArrayBuffer':
+    def append_row(self, row: np.ndarray) -> 'ArrayBuffer':
         assert row.shape == self.buffer.shape[1:]
         self.buffer = np.roll(self.buffer, -1, 0)
         self.buffer[-1] = row

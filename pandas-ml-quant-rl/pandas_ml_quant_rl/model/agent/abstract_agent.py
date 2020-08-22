@@ -16,7 +16,7 @@ class Agent(object):
         self._cumulative_reward_ma = None
         self._episodes = 0
 
-    def log_to_tensorboard(self, cumulative_reward, nr_of_steps=None, action_hist=None, epsilon=None):
+    def log_to_tensorboard(self, cumulative_reward, nr_of_steps=None, action_hist=None, epsilon=None, loss=None):
         # log rewards
         if self._cumulative_reward_ma is None:
             self._cumulative_reward_ma = cumulative_reward
@@ -59,4 +59,5 @@ class Agent(object):
 
     def best_action(self, state):
         raise NotImplementedError
+
 

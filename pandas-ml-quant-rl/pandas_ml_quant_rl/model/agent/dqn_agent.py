@@ -21,12 +21,15 @@ class DQNAgent(Agent):
                  batch_size: int = 32,
                  percentile: int = 0,
                  gamma: float = 0.99,
-                 epsilon: float = 0.5,
+                 epsilon: float = 1.0,
+                 epsilon_decay: float = 0.99,
+                 min_epsilon: float = 0.01,
                  nr_episodes_update_target: int = 10,
                  optimizer: Callable[[T.tensor], optim.Optimizer] = lambda params: optim.Adam(params=params, lr=0.01),
-                 objective = nn.MSELoss(),
+                 objective=nn.MSELoss(),
+                 **kwargs
                  ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.network = network()
         self.target_network = network()
         self.replay_buffer = replay_buffer
@@ -36,16 +39,18 @@ class DQNAgent(Agent):
         self.nr_episodes_update_target = nr_episodes_update_target
         self.gamma = gamma
         self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.min_epsilon = min_epsilon
         self.optimizer = optimizer(self.network.parameters())
         self.objective = objective
 
     def fit(self, env: Environment) -> 'ReinforceAgent':
         self._copy_weights()
-        episode_reward = 0
+        episodes = 0
 
-        while not self.exit_criteria(self._episodes, episode_reward):
-            cumulative_reward = 0
+        while True:
             state = env.reset()
+            episode_reward = 0
             nr_setps = 0
             done = False
 
@@ -57,11 +62,11 @@ class DQNAgent(Agent):
                     action = env.sample_action()
                 else:
                     with T.no_grad():
-                        action = self.network(state).data.numpy()[0].argmax()
+                        action = self.network(state).cpu().detach().numpy()[0].argmax()
 
                 new_state, reward, done, info = env.step(action)
-                self.replay_buffer.add(np.array([state, action, reward, new_state]))
-                cumulative_reward += reward
+                self.replay_buffer.append_row(np.array([state, action, reward, new_state]))
+                episode_reward += reward
                 state = new_state
 
                 if len(self.replay_buffer) >= self.batch_size:
@@ -70,22 +75,25 @@ class DQNAgent(Agent):
 
                     # get the current Q values from the network
                     current_q_values = self.network(experiences[:, 0])\
-                        .gather(dim=1, index=T.LongTensor(experiences[:, 1].astype(float)).unsqueeze(-1))
+                        .gather(dim=1, index=T.LongTensor(experiences[:, 1].astype(float)).to(self.network.device).unsqueeze(-1))
 
                     # get the target Q values for the "label"
                     if not done:
                         target_q_values = self.gamma * self.target_network(experiences[:, 3]).max(dim=1).values
                     else:
-                        target_q_values = T.FloatTensor(experiences[:, 2].astype(float))
+                        target_q_values = T.FloatTensor(experiences[:, 2].astype(float)).to(self.network.device)
 
                     loss = self.objective(current_q_values, target_q_values)
                     self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
 
+                    # decay epsilon
+                    self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
+
                 if done:
                     self.log_to_tensorboard(
-                        cumulative_reward,
+                        episode_reward,
                         nr_setps,
                         epsilon=self.epsilon,
                         action_hist=experiences[:, 1] if experiences is not None else None
@@ -96,6 +104,12 @@ class DQNAgent(Agent):
 
             if self._episodes % self.nr_episodes_update_target == 0:
                 self._copy_weights()
+
+            if self.exit_criteria(episodes, episode_reward):
+                print(f"Solved {episode_reward} in {episodes}")
+                break
+
+            episodes += 1
 
         return self
 
