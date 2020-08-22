@@ -19,9 +19,8 @@ class ReinforceAgent(Agent):
                  batch_size: int = 32,
                  percentile: int = 70,
                  gamma: float = 0.99,
-                 entropy_beta: float = 0.01,
                  optimizer: Callable[[T.tensor], optim.Optimizer] = lambda params: optim.Adam(params=params, lr=0.01),
-                 # FIXME add loss function as well so we can i.e. provide KLdivergence as well
+                 objective = nn.CrossEntropyLoss(),
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -30,12 +29,11 @@ class ReinforceAgent(Agent):
         self.batch_size = batch_size
         self.percentile = percentile
         self.gamma = gamma
-        self.entropy_beta = entropy_beta
         self.optimizer = optimizer(network.parameters())
+        self.objective = objective
 
     def fit(self, env: Environment):
         Episode = namedtuple('Episode', field_names=['reward', 'observations', 'actions'])
-        objective = nn.CrossEntropyLoss()
         softmax = nn.Softmax(dim=1)
 
         # play BATCH_SIZE episodes using random actions and store all trajectories
@@ -52,7 +50,7 @@ class ReinforceAgent(Agent):
             while True:
                 # use network to get probabilities of  actions
                 # then convert the result to numpy and get rid of the batch dimension
-                act_probs = softmax(self.network(obs)).data.numpy()[0]
+                act_probs = softmax(self.network(obs)).cpu().detach().numpy()[0]
 
                 # decide for a random action (following the probabilities), execute it and collect the reward
                 action = env.sample_action(act_probs)
@@ -137,10 +135,10 @@ class ReinforceAgent(Agent):
             # each batch of episodes!
             # NOTE the CrossEntropyLoss expects raw logits as input (raw probabilities for each action)
             # and an integer of the correct action. if the labels would be one hot encoded we would need an argmax!
-            loss_v = objective(action_scores_v, T.LongTensor(acts).to(self.network.device))
+            loss = self.objective(action_scores_v, T.LongTensor(acts).to(self.network.device))
 
             # calculate the gradients and update the weights in the network
-            loss_v.backward()
+            loss.backward()
             self.optimizer.step()
 
             """
@@ -157,7 +155,7 @@ class ReinforceAgent(Agent):
 
             # log some information
             print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f performance=%.2f" % (
-                iter_no, loss_v.item(), reward_mean, reward_bound, 0.0))
+                iter_no, loss.item(), reward_mean, reward_bound, 0.0))
 
         return self
 
