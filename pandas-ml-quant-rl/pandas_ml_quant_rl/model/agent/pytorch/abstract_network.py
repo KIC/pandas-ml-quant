@@ -6,7 +6,7 @@ import torch as T
 import torch.nn as nn
 
 
-class Network(nn.Module):
+class PolicyNetwork(nn.Module):
 
     def __init__(self):
         super().__init__()
@@ -15,7 +15,7 @@ class Network(nn.Module):
         if isinstance(x, tuple) and len(x) == 2:
             return self.forward([x])
 
-        return self.estimate(*self._unzip_to_tensor(x))
+        return self.estimate_action(*self._unzip_to_tensor(x))
 
     def _unzip_to_tensor(self, rows):
         if len(rows) < 0:
@@ -42,5 +42,5 @@ class Network(nn.Module):
 
         return next(iter(devices))
 
-    def estimate(self, *tensors: T.Tensor):
+    def estimate_action(self, *tensors: T.Tensor):
         raise NotImplementedError

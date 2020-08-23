@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from .abstract_agent import Agent
-from .pytorch.abstract_network import Network
+from .pytorch.abstract_network import PolicyNetwork
 from .pytorch.losses import LogProbLoss
 from .utils import discount_rewards
 from ..environments.abstract_environment import Environment
@@ -18,7 +18,7 @@ from ...buffer.list_buffer import ListBuffer
 class ReinforceAgent(Agent):
 
     def __init__(self,
-                 network: Network,
+                 network: PolicyNetwork,
                  exit_criteria: Callable[[float, int], bool] = lambda _, cnt: cnt > 50,
                  batch_size: int = 32,
                  percentile: int = 70,
@@ -41,7 +41,8 @@ class ReinforceAgent(Agent):
     def fit(self, env: Environment) -> 'ReinforceAgent':
         # Set up replay buffer
         batch_buffer = ListBuffer(["reward", "action", "state"])
-        max_reward = -np.inf
+        ema_factor = 1 / 21  # 20 episodes average
+        mean_episode_reward = None
         episode_counter = 0
         batch_counter = 0
         total_rewards = 0
@@ -85,7 +86,10 @@ class ReinforceAgent(Agent):
                     batch_counter += 1
 
                     # monitor highest achieved reward
-                    if episode_reward > max_reward: max_reward = episode_reward
+                    if mean_episode_reward is not None:
+                        mean_episode_reward = episode_reward * ema_factor + (mean_episode_reward * (1 - ema_factor))
+                    else:
+                        mean_episode_reward = episode_reward
 
                     # after each episode log some information
                     if self.verbose:
@@ -124,8 +128,8 @@ class ReinforceAgent(Agent):
                         batch_counter = 0
 
             # check if we stop training
-            if self.exit_criteria(episode_reward, episode_counter):
-                print(f"Reward {max_reward} in {episode_counter} episodes")
+            if self.exit_criteria(mean_episode_reward, episode_counter):
+                print(f"Solved {mean_episode_reward} in {episode_counter} episodes")
                 break
 
         return self

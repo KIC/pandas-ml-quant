@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from .abstract_agent import Agent
-from .pytorch.abstract_network import Network
+from .pytorch.abstract_network import PolicyNetwork
 from ..environments.abstract_environment import Environment
 from ...buffer.abstract_buffer import Buffer
 from ...buffer.array_buffer import ArrayBuffer
@@ -15,7 +15,7 @@ from ...buffer.array_buffer import ArrayBuffer
 class DQNAgent(Agent):
 
     def __init__(self,
-                 network: Callable[[],Network],
+                 network: Callable[[], PolicyNetwork],
                  exit_criteria: Callable[[float, int], bool] = lambda total_reward, cnt: cnt > 50 or total_reward < -0.2,
                  replay_buffer: Buffer = ArrayBuffer((1000, 4), dtype=object),
                  batch_size: int = 32,
@@ -45,20 +45,24 @@ class DQNAgent(Agent):
         self.objective = objective
 
     def fit(self, env: Environment) -> 'ReinforceAgent':
+        epsilon = self.epsilon
         self._copy_weights()
-        episodes = 0
+        ema_factor = 1 / 21  # 20 episodes average
+        mean_episode_reward = None
+        copy_target_cnt = 0
+        nr_of_episodes = 0
 
         while True:
             state = env.reset()
+            episode_action_counter = 0
             episode_reward = 0
-            nr_setps = 0
             done = False
 
             while not done:
                 experiences = None
 
                 # sample action
-                if np.random.random() < self.epsilon:
+                if np.random.random() < epsilon:
                     action = env.sample_action()
                 else:
                     with T.no_grad():
@@ -89,29 +93,34 @@ class DQNAgent(Agent):
                     self.optimizer.step()
 
                     # decay epsilon
-                    self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
+                    epsilon = max(self.min_epsilon, epsilon ** nr_of_episodes)
 
                 if done:
+                    if mean_episode_reward is not None:
+                        mean_episode_reward = episode_reward * ema_factor + (mean_episode_reward * (1 - ema_factor))
+                    else:
+                        mean_episode_reward = episode_reward
+
+                    if episode_reward > max_episode_reward: max_episode_reward = episode_reward
+                    episode_action_counter += 1
+
+                    if self._episodes % self.nr_episodes_update_target == 0:
+                        self._copy_weights()
+                        copy_target_cnt += 1
+
                     self.log_to_tensorboard(
                         episode_reward,
-                        nr_setps,
-                        epsilon=self.epsilon,
-                        action_hist=experiences[:, 1] if experiences is not None else None
+                        episode_action_counter,
+                        action_hist=experiences[:, 1] if experiences is not None else None,
+                        scalars={
+                            "epsilon": epsilon,
+                            "target copy": copy_target_cnt
+                        }
                     )
-                    break
 
-                nr_setps += 1
-
-            if self._episodes % self.nr_episodes_update_target == 0:
-                self._copy_weights()
-
-            if self.exit_criteria(episodes, episode_reward):
-                print(f"Solved {episode_reward} in {episodes}")
-                break
-
-            episodes += 1
-
-        return self
+                    if self.exit_criteria(mean_episode_reward, nr_of_episodes):
+                        print(f"Solved {max_episode_reward} in {nr_of_episodes} episodes")
+                        return self
 
     def _copy_weights(self):
         self.target_network.load_state_dict(self.network.state_dict())

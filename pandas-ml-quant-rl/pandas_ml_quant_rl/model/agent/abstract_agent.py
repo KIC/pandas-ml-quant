@@ -16,7 +16,7 @@ class Agent(object):
         self._cumulative_reward_ma = None
         self._episodes = 0
 
-    def log_to_tensorboard(self, cumulative_reward, nr_of_steps=None, action_hist=None, epsilon=None, loss=None):
+    def log_to_tensorboard(self, cumulative_reward, nr_of_steps=None, action_hist=None, scalars=None):
         # log rewards
         if self._cumulative_reward_ma is None:
             self._cumulative_reward_ma = cumulative_reward
@@ -43,8 +43,9 @@ class Agent(object):
             )
 
         # log epsilon
-        if epsilon is not None:
-            self.tensorboard_writer.add_scalar("epsilon", epsilon, self._episodes)
+        if scalars is not None:
+            for item, number in scalars.items():
+                self.tensorboard_writer.add_scalar(item, number, self._episodes)
 
         # flush data and increase steps
         self.tensorboard_writer.flush()

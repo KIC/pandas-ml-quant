@@ -8,7 +8,7 @@ from pandas_ml_quant_rl.model.strategies.discrete import LongOnly
 from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
-from pandas_ml_quant_rl.model.agent import ReinforceAgent, Network, DQNAgent
+from pandas_ml_quant_rl.model.agent import ReinforceAgent, PolicyNetwork, DQNAgent
 from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
 from pandas_ml_quant_rl.model.strategies import BuyOpenSellCloseSellOpenBuyClose, LongShortSwing
 from pandas_ml_quant_rl_test.config import load_symbol
@@ -33,7 +33,7 @@ env = RandomAssetEnv(
 )
 
 
-class Net(Network):
+class Net(PolicyNetwork):
 
     def __init__(self, nr_features, nr_portfolio_states, nr_actions):
         super().__init__()
@@ -41,7 +41,7 @@ class Net(Network):
         self.input2 = nn.Sequential(Reshape(nr_portfolio_states), nn.Linear(nr_portfolio_states, 2))
         self.output = nn.Linear(34, nr_actions)
 
-    def estimate(self, feature_state: T.Tensor, portfolio_state: T.Tensor):
+    def estimate_action(self, feature_state: T.Tensor, portfolio_state: T.Tensor):
         x1 = F.relu(self.input1(feature_state))
         x2 = F.tanh(self.input2(portfolio_state))
         return self.output(T.cat([x1, x2], dim=1))
