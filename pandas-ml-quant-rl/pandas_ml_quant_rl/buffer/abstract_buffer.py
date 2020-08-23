@@ -1,21 +1,10 @@
-from typing import Tuple
+from typing import Tuple, List
 import numpy as np
 
 
 class Buffer(object):
 
-    def rank_and_cut(self, percentile: Tuple[int, float]) -> 'Buffer':
-        raise NotImplemented()
-
-    @property
-    def is_full(self) -> bool:
-        raise NotImplemented()
-
-    @property
-    def data(self) -> np.ndarray:
-        raise NotImplemented()
-
-    def sample(self, size, replace=False) -> np.ndarray:
+    def sample(self, size) -> Tuple[List, ...]:
         raise NotImplemented()
 
     def append_args(self, *row) -> 'Buffer':
@@ -25,4 +14,11 @@ class Buffer(object):
         raise NotImplemented()
 
     def reset(self) -> 'Buffer':
+        raise NotImplemented()
+
+    def __getitem__(self, item):
+        # return the column requested
+        raise NotImplemented()
+
+    def __len__(self):
         raise NotImplemented()

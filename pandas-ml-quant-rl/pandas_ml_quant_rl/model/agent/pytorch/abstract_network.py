@@ -13,20 +13,31 @@ class PolicyNetwork(nn.Module):
 
     def forward(self, x: Union[List, Tuple[np.ndarray]]):
         if isinstance(x, tuple) and len(x) == 2:
+            # single sample
             return self.forward([x])
-
-        return self.estimate_action(*self._unzip_to_tensor(x))
+        else:
+            # batch of samples
+            return self.estimate_action(*self._unzip_to_tensor(x))
 
     def _unzip_to_tensor(self, rows):
+        # unzip a batch of samples
         if len(rows) < 0:
-            return T.FloatTensor(rows).to(self.device)
+            # in case of an empty batch return an empty tensor
+            return T.FloatTensor([]).to(self.device)
 
         columns = []
-        for j in range(len(rows[0])):
+        nr_of_rows = len(rows)
+        nr_of_columns = len(rows[0])
+
+        for j in range(nr_of_columns):
             if isinstance(rows[0][j], tuple):
-                columns.append(self._unzip_to_tensor([row[j] for row in rows]))
+                # if in the first row a column is a tuple we need to unnest these tuples: [([...], [...]), ...]
+                list_of_tuples = [row[j] for row in rows]
+                columns.append(self._unzip_to_tensor(list_of_tuples))
             else:
-                columns.append(T.FloatTensor(np.vstack([row[j] for row in rows])).to(self.device))
+                # the values in this column is not a tuple: [[...], ...] so we can stack all of then
+                list_of_values = [row[j] for row in rows]
+                columns.append(T.FloatTensor(np.vstack(list_of_values)).to(self.device))
 
         return tuple(columns)
 

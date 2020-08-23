@@ -88,7 +88,9 @@ class LongOnly(Strategy):
 
     def trade_reward(self, previous_bar, action, bar) -> Tuple[np.ndarray, float, bool]:
         # FIXME ....
-        pass
+        reward = 0
+        row_to_buffer = np.array([[reward]])
+        return self._roll_state_buffer(row_to_buffer), reward, self.total_return < self.max_loos
 
     def reset(self):
         super().reset()
