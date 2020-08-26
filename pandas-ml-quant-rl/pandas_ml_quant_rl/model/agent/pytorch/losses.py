@@ -14,6 +14,27 @@ class LogProbLoss(nn.Module):
         return -selected_logprobs.mean()
 
 
+class QuantileHuberLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.tau = None
+
+    def huber_loss(self, x, k=1.0):
+        return T.where(x.abs() < k, 0.5 * x.pow(2), k * (x.abs() - 0.5 * k))
+
+    def forward(self, input, target):
+        assert input.ndim == 3, "expected shape (batch, quantile, action)"
+        if self.tau is None:
+            batch, quantile, action = input.shape
+            self.tau = T.FloatTensor([i / quantile for i in range(1, quantile + 1)]).to(input.device)
+
+        td_error = target - input
+        huber_loss = self.huber_loss(td_error)
+        loss = huber_loss * (self.tau - (td_error.detach() < 0).float()).abs()
+        loss = loss.mean()
+        return loss
+
+
 
 class EntropyLoss(nn.Module):
 

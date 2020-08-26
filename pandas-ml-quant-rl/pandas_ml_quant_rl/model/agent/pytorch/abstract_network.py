@@ -11,13 +11,14 @@ class PolicyNetwork(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x: Union[List, Tuple[np.ndarray]]):
-        if isinstance(x, tuple) and len(x) == 2:
+    def forward(self, x: Union[List, Tuple[np.ndarray]], action=None):
+        if isinstance(x, tuple):
             # single sample
-            return self.forward([x])
+            return self.forward([x], [action] if action is not None else None)
         else:
             # batch of samples
-            return self.estimate_action(*self._unzip_to_tensor(x))
+            state = self._unzip_to_tensor(x)
+            return self.get_state_value(state) if action is None else self.get_value_for(state, action)
 
     def _unzip_to_tensor(self, rows):
         # unzip a batch of samples
@@ -53,5 +54,8 @@ class PolicyNetwork(nn.Module):
 
         return next(iter(devices))
 
-    def estimate_action(self, *tensors: T.Tensor):
-        raise NotImplementedError
+    def get_value_for(self, states: Tuple[List[np.ndarray], ...], action: List) -> T.tensor:
+        raise NotImplementedError()
+
+    def get_state_value(self, states: Tuple[List[np.ndarray], ...]) -> Tuple[T.tensor, T.tensor]:
+        raise NotImplementedError()

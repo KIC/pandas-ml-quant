@@ -40,6 +40,8 @@ class ReinforceAgent(Agent):
 
     def fit(self, env: Environment) -> 'ReinforceAgent':
         # Set up replay buffer
+        net = self.network.train()
+        device = net.device
         batch_buffer = ListBuffer(["reward", "action", "state"])
         ema_factor = 1 / 21  # 20 episodes weighted average
         mean_episode_reward = None
@@ -57,7 +59,7 @@ class ReinforceAgent(Agent):
 
                 while not done:
                     # Get action probabilities and convert to numpy array
-                    action_probs = self.network(s_0)[0].cpu().detach().numpy()
+                    action_probs = net(s_0)[0].cpu().detach().numpy()
                     # choose action based on probabilities
                     action = env.sample_action(action_probs)
                     # execute action in the environment
@@ -113,9 +115,9 @@ class ReinforceAgent(Agent):
                             # Calculate loss
                             self.optimizer.zero_grad()
                             loss = self.objective(
-                                self.network(states),
-                                T.LongTensor(actions).to(self.network.device),
-                                T.FloatTensor(rewards).to(self.network.device)
+                                net(states),
+                                T.LongTensor(actions).to(device),
+                                T.FloatTensor(rewards).to(device)
                             )
 
                             # Calculate gradients
@@ -139,10 +141,8 @@ class ReinforceAgent(Agent):
 
         return self
 
-    def test(self, env: Environment):
-        raise NotImplementedError
+    def best_action(self, state):
+        return self.network.eval()(state)[0].cpu().detach().numpy().argmax()
 
-    def predict(self, env: Environment):
-        raise NotImplementedError
 
 

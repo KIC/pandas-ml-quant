@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 
 import numpy as np
 import torch as T
@@ -7,6 +7,7 @@ import torch.optim as optim
 
 from .abstract_agent import Agent
 from .pytorch.abstract_network import PolicyNetwork
+from .pytorch.torch_utils import grow_same_ndim
 from ..environments.abstract_environment import Environment
 from ...buffer.abstract_buffer import Buffer
 from ...buffer.list_buffer import ListBuffer
@@ -48,7 +49,9 @@ class DQNAgent(Agent):
 
     def fit(self, env: Environment) -> 'ReinforceAgent':
         self._copy_weights()
-        replay_buffer =  ListBuffer(["state", "action", "reward", "state prime"], max_size=self.replay_buffer_size)
+        net = self.network.train()
+        device = net.device
+        replay_buffer =  ListBuffer(["state", "action", "reward", "state prime", "done"], max_size=self.replay_buffer_size)
         epsilon = self.epsilon
         ema_factor = 1 / 21  # 20 episodes weighted average
         mean_episode_reward = None
@@ -65,19 +68,17 @@ class DQNAgent(Agent):
                 done = False
 
                 while not done:
-                    experiences = None
-
                     # sample action
                     if np.random.random() < epsilon:
                         action = env.sample_action()
                     else:
                         with T.no_grad():
-                            action = self.network(state).cpu().detach().numpy()[0].argmax()
+                            action = net(state)[1].cpu().detach().item()
 
                     new_state, reward, done, info = env.step(action)
 
                     # we only append non final state to the replay buffer as we would need to filter them out later
-                    replay_buffer.append_args(state, action, reward, new_state if not done else None)
+                    replay_buffer.append_args(state, action, reward, new_state, done)
                     episode_action_counter += 1
                     episode_reward += reward
                     state = new_state
@@ -87,25 +88,25 @@ class DQNAgent(Agent):
                         nr_of_batches += 1
 
                         # sample experiences from the replay buffer
-                        states, actions, rewards, next_states = replay_buffer.sample(self.batch_size)
+                        states, actions, rewards, next_states, dones = replay_buffer.sample(self.batch_size)
 
                         # get the current Q values from the network
-                        current_q_values = self.network(states)\
-                            .gather(dim=1, index=T.LongTensor(actions).to(self.network.device).unsqueeze(-1))
+                        current_q_values = net(states, actions)
 
                         # get the target Q values for the "label"
-                        non_final_next_states = [s for s in next_states if s is not None]
-                        next_state_values = T.zeros(self.batch_size, device=self.network.device)
-                        non_final_mask = T.BoolTensor(list(map(lambda s: s is not None, next_states))).to(self.network.device)
-                        next_state_values[non_final_mask] = self.target_network(non_final_next_states).max(dim=1)[0].detach()
-                        target_q_values = (next_state_values * self.gamma) + T.FloatTensor(rewards)
+                        next_state_values = self.target_network(next_states)[0].detach()
+                        rewards = T.FloatTensor(rewards)
+                        dones = T.FloatTensor(dones)
+
+                        next_state_values, rewards, dones = grow_same_ndim(next_state_values, rewards, dones)
+                        target_q_values = rewards + (self.gamma * next_state_values * (1 - dones))
 
                         # back propagate and clamp overshooting gradients
                         loss = self.objective(current_q_values, target_q_values.unsqueeze(1))
                         self.optimizer.zero_grad()
                         loss.backward()
 
-                        for param in self.network.parameters():
+                        for param in net.parameters():
                             param.grad.data.clamp_(-1, 1)
                         self.optimizer.step()
 
@@ -155,3 +156,6 @@ class DQNAgent(Agent):
     def _copy_weights(self):
         self.target_network.load_state_dict(self.network.state_dict())
         self.target_network.eval()
+
+    def best_action(self, state):
+        return self.network.eval()(state)[1].cpu().detach().item()

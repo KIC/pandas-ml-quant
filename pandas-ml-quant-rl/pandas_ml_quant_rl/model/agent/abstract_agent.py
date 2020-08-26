@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 from ..environments.abstract_environment import Environment
@@ -57,6 +59,27 @@ class Agent(object):
 
     def fit(self, env: Environment) -> 'Agent':
         raise NotImplementedError
+
+    def play_episode(self, env: Environment, render=True) -> List[float]:
+        """
+        let the agent play one episode from what he has learned
+        :param env: the environment the agent should play
+        :param render: whether to render each action or not
+        :return: the rewards collected playing this episode
+        """
+        net = self.network.eval()
+        state = env.reset()
+        rewards = []
+        done = False
+
+        while not done:
+            action = self.best_action(state)
+            state, reward, done, info = env.step(action)
+            rewards.append(reward)
+            if render:
+                env.render()
+
+        return rewards
 
     def best_action(self, state):
         raise NotImplementedError
