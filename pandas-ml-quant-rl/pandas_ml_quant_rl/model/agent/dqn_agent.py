@@ -95,8 +95,8 @@ class DQNAgent(Agent):
 
                         # get the target Q values for the "label"
                         next_state_values = self.target_network(next_states)[0].detach()
-                        rewards = T.FloatTensor(rewards)
-                        dones = T.FloatTensor(dones)
+                        rewards = T.FloatTensor(rewards).to(device)
+                        dones = T.FloatTensor(dones).to(device)
 
                         next_state_values, rewards, dones = grow_same_ndim(next_state_values, rewards, dones)
                         target_q_values = rewards + (self.gamma * next_state_values * (1 - dones))
@@ -122,8 +122,10 @@ class DQNAgent(Agent):
                         else:
                             mean_episode_reward = episode_reward
 
-                        # after n episodes we update our target network
-                        if self._episodes % self.nr_episodes_update_target == 0:
+                        # after n episodes we update our target network or perform a soft update
+                        if self.nr_episodes_update_target < 0:
+                            self._soft_update_weights()
+                        elif self._episodes % self.nr_episodes_update_target == 0:
                             self._copy_weights()
                             copy_target_cnt += 1
 
@@ -156,6 +158,14 @@ class DQNAgent(Agent):
     def _copy_weights(self):
         self.target_network.load_state_dict(self.network.state_dict())
         self.target_network.eval()
+
+    def _soft_update_weights(self):
+        local_model = self.network
+        target_model = self.target_network.eval()
+        TAU = self.nr_episodes_update_target
+
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(TAU * local_param.data + (1.0 - TAU)*target_param.data)
 
     def best_action(self, state):
         return self.network.eval()(state)[1].cpu().detach().item()
