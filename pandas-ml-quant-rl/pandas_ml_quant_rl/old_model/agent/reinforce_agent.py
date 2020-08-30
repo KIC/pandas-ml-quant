@@ -1,17 +1,15 @@
 import itertools
-from collections import namedtuple
 from typing import Callable
 
 import numpy as np
 import torch as T
-import torch.nn as nn
 import torch.optim as optim
 
 from .abstract_agent import Agent
 from .pytorch.abstract_network import PolicyNetwork
 from .pytorch.losses import LogProbLoss
 from .utils import discount_rewards
-from ..environments.abstract_environment import Environment
+from pandas_ml_quant_rl.environments import Environment
 from ...buffer.list_buffer import ListBuffer
 
 
@@ -141,7 +139,7 @@ class ReinforceAgent(Agent):
 
         return self
 
-    def best_action(self, state):
+    def pick_action(self, state):
         return self.network.eval()(state)[0].cpu().detach().numpy().argmax()
 
 

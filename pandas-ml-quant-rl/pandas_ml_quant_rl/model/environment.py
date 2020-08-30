@@ -1,8 +1,11 @@
+from typing import Dict
 from typing import Tuple
 
+import gym
 import numpy as np
 import pandas as pd
 from gym import Space
+from matplotlib.figure import Figure
 
 from pandas_ml_quant_rl.renderer.abstract_renderer import Renderer
 
@@ -33,7 +36,7 @@ class Strategy(object):
         self.buffered_state = np.zeros((buffer, assets, indicators))
 
     def sample_action(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def current_state(self) -> np.ndarray:
         return self.buffered_state
@@ -85,3 +88,49 @@ class Strategy(object):
 
     def render(self, mode='human'):
         return None
+
+
+class Environment(gym.Env):
+
+    def __init__(self, strategy: Strategy):
+        super().__init__()
+        self.strategy = strategy
+        self.action_space = strategy.action_space
+
+    def sample_action(self, probs=None):
+        return self.strategy.sample_action(probs)
+
+    def execute_action(self, action, render_on_axis=None) -> Tuple[Tuple[np.ndarray, np.ndarray], float, bool, Dict]:
+        if render_on_axis is not None: self.render(render_on_axis)
+        return self.step(action)
+
+    def render(self, mode) -> Figure:
+        import matplotlib
+
+        if mode == 'matplotlib':
+            import matplotlib.pyplot as plt
+            return plt.imshow(self.get_screen())
+        elif isinstance(mode, matplotlib.axes.Axes):
+            ax = mode
+            ax.clear()
+            ax.imshow(self.get_screen())
+            return ax
+
+    def step(self, action) -> Tuple[Tuple[np.ndarray, np.ndarray], float, bool, Dict]:
+        raise NotImplementedError()
+
+    def as_train(self) -> Tuple['Environment', Tuple[np.ndarray, np.ndarray]]:
+        raise NotImplementedError()
+
+    def as_test(self, renderer=None) -> Tuple['Environment', Tuple[np.ndarray, np.ndarray]]:
+        raise NotImplementedError()
+
+    def as_predict(self, renderer=None) -> Tuple['Environment', Tuple[np.ndarray, np.ndarray]]:
+        raise NotImplementedError()
+
+    def reset(self) -> Tuple[np.ndarray, np.ndarray]:
+        raise NotImplementedError()
+
+    def get_screen(self):
+        raise NotImplementedError()
+

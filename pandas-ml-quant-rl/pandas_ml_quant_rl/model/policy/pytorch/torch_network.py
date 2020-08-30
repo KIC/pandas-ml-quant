@@ -11,13 +11,17 @@ class PolicyNetwork(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x: Union[List, Tuple[np.ndarray]], action=None):
+    def forward(self, x: Union[List, Tuple[np.ndarray]], action=None, render_axis=None):
         if isinstance(x, tuple):
             # single sample
-            return self.forward([x], [action] if action is not None else None)
+            return self.forward([x], [action] if action is not None else None, render_axis)
         else:
             # batch of samples
             state = self._unzip_to_tensor(x)
+            if render_axis is not None:
+                with T.no_grad():
+                    self.render(state, render_axis)
+
             return self.get_state_value(state) if action is None else self.get_value_for(state, action)
 
     def _unzip_to_tensor(self, rows):
@@ -59,3 +63,6 @@ class PolicyNetwork(nn.Module):
 
     def get_state_value(self, states: Tuple[List[np.ndarray], ...]) -> Tuple[T.tensor, T.tensor]:
         raise NotImplementedError()
+
+    def render(self, state, ax):
+        pass

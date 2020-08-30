@@ -8,8 +8,8 @@ from pandas_ml_common import pd, np
 from pandas_ml_quant_rl.cache import NoCache
 from pandas_ml_quant_rl.cache.abstract_cache import Cache
 from pandas_ml_utils import FeaturesAndLabels
-from .abstract_environment import Environment, SpaceUtils
-from ..strategies.abstract_startegy import Strategy
+from pandas_ml_quant_rl.model.environment import Environment, Strategy
+from .utils import  SpaceUtils
 
 
 class RandomAssetEnv(Environment):

@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.environments import RandomAssetEnv
 from pandas_ml_quant_rl.model.strategies.discrete import BuyOpenSellCloseSellOpenBuyClose
 from pandas_ml_quant_rl_test.config import load_symbol
 from pandas_ml_utils import FeaturesAndLabels

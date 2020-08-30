@@ -6,11 +6,9 @@ from torch.functional import F
 
 from pandas_ml_quant_rl.model.strategies.discrete import LongOnly
 from pandas_ml_utils import FeaturesAndLabels
-from pandas_ml_quant import np, PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
 from pandas_ml_quant_rl.model.agent import ReinforceAgent, PolicyNetwork, DQNAgent
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
-from pandas_ml_quant_rl.model.strategies import BuyOpenSellCloseSellOpenBuyClose, LongShortSwing
+from pandas_ml_quant_rl.environments import RandomAssetEnv
 from pandas_ml_quant_rl_test.config import load_symbol
 from pandas_ml_utils.pytorch import Reshape
 

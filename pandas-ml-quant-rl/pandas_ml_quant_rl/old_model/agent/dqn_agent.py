@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable
 
 import numpy as np
 import torch as T
@@ -8,8 +8,7 @@ import torch.optim as optim
 from .abstract_agent import Agent
 from .pytorch.abstract_network import PolicyNetwork
 from .pytorch.torch_utils import grow_same_ndim
-from ..environments.abstract_environment import Environment
-from ...buffer.abstract_buffer import Buffer
+from pandas_ml_quant_rl.environments import Environment
 from ...buffer.list_buffer import ListBuffer
 
 
@@ -47,11 +46,12 @@ class DQNAgent(Agent):
         self.objective = objective
         self.verbose = verbose
 
-    def fit(self, env: Environment) -> 'ReinforceAgent':
+    def fit(self, env: Environment, render_nr_actions=0, render_env=True, render_policy=True, figsize=(20, 8)) -> 'ReinforceAgent':
+        fig, ax = Agent.create_plot(render_env + render_policy, figsize) if render_nr_actions else (None, None)
         self._copy_weights()
         net = self.network.train()
         device = net.device
-        replay_buffer =  ListBuffer(["state", "action", "reward", "state prime", "done"], max_size=self.replay_buffer_size)
+        replay_buffer = ListBuffer(["state", "action", "reward", "state prime", "done"], max_size=self.replay_buffer_size)
         epsilon = self.epsilon
         ema_factor = 1 / 21  # 20 episodes weighted average
         mean_episode_reward = None
@@ -63,19 +63,28 @@ class DQNAgent(Agent):
         try:
             while True:
                 state = env.reset()
+                new_episode = True
                 episode_action_counter = 0
                 episode_reward = 0
                 done = False
 
                 while not done:
-                    # sample action
-                    if np.random.random() < epsilon:
-                        action = env.sample_action()
-                    else:
-                        with T.no_grad():
-                            action = net(state)[1].cpu().detach().item()
+                    # rendering
+                    if (render_nr_actions < 0 and new_episode) or (render_nr_actions > 0 and episode_action_counter % render_nr_actions == 0):
+                        fig.suptitle(f"mean reward: {mean_episode_reward}")
 
+                        if render_env:
+                            env.render(ax[0])
+                        if render_policy:
+                            with T.no_grad():
+                                net(state, render_axis=ax[-1])
+
+                        fig.canvas.draw()
+
+                    # sample and execute action
+                    action = self.pick_action(env, state, epsilon)
                     new_state, reward, done, info = env.step(action)
+                    new_episode = False
 
                     # we only append non final state to the replay buffer as we would need to filter them out later
                     replay_buffer.append_args(state, action, reward, new_state, done)
@@ -94,21 +103,10 @@ class DQNAgent(Agent):
                         current_q_values = net(states, actions)
 
                         # get the target Q values for the "label"
-                        next_state_values = self.target_network(next_states)[0].detach()
-                        rewards = T.FloatTensor(rewards).to(device)
-                        dones = T.FloatTensor(dones).to(device)
-
-                        next_state_values, rewards, dones = grow_same_ndim(next_state_values, rewards, dones)
-                        target_q_values = rewards + (self.gamma * next_state_values * (1 - dones))
+                        target_q_values = self._calc_target_q_values(next_states, rewards, dones, device)
 
                         # back propagate and clamp overshooting gradients
-                        loss = self.objective(current_q_values, target_q_values.unsqueeze(1))
-                        self.optimizer.zero_grad()
-                        loss.backward()
-
-                        for param in net.parameters():
-                            param.grad.data.clamp_(-1, 1)
-                        self.optimizer.step()
+                        self._backprop(current_q_values, target_q_values)
 
                         # decay epsilon after each batch of episodes
                         epsilon = self.min_epsilon + (self.epsilon - self.min_epsilon) * np.exp(-1. * nr_of_batches / self.epsilon_decay)
@@ -116,7 +114,7 @@ class DQNAgent(Agent):
                     if done:
                         nr_of_episodes += 1
 
-                        # calculate the mean reward
+                        # calculate the mean reward -> TODO should be part of super
                         if mean_episode_reward is not None:
                             mean_episode_reward = episode_reward * ema_factor + (mean_episode_reward * (1 - ema_factor))
                         else:
@@ -153,7 +151,32 @@ class DQNAgent(Agent):
             # allow interruption
             raise e
 
+        if fig is not None:
+            import matplotlib.pyplot as plt
+            plt.close(fig)
+
+        self.network.eval()
         return self
+
+    def _calc_target_q_values(self, next_states, rewards, dones, device):
+        next_state_values = self.target_network(next_states)[0].detach()
+        rewards = T.FloatTensor(rewards).to(device)
+        dones = T.FloatTensor(dones).to(device)
+
+        next_state_values, rewards, dones = grow_same_ndim(next_state_values, rewards, dones)
+        target_q_values = rewards + (self.gamma * next_state_values * (1 - dones))
+        return target_q_values
+
+    def _backprop(self, current_q_values, target_q_values):
+        input, target = grow_same_ndim(current_q_values, target_q_values)
+        loss = self.objective(input, target)
+        self.optimizer.zero_grad()
+        loss.backward()
+
+        for param in self.network.parameters():
+            param.grad.data.clamp_(-1, 1)
+
+        self.optimizer.step()
 
     def _copy_weights(self):
         self.target_network.load_state_dict(self.network.state_dict())
@@ -167,5 +190,24 @@ class DQNAgent(Agent):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(TAU * local_param.data + (1.0 - TAU)*target_param.data)
 
-    def best_action(self, state):
-        return self.network.eval()(state)[1].cpu().detach().item()
+    def pick_action(self, env, state, epsilon=None, probs=None):
+        if epsilon is not None and np.random.random() < epsilon:
+            action = env.sample_action(probs)
+        else:
+            with T.no_grad():
+                action = self.network(state)[1].cpu().detach().item()
+
+        # TODO do the rendering here! -> however rendering should be part of super
+        #  if (render_nr_actions < 0 and new_episode) or (
+        #          render_nr_actions > 0 and episode_action_counter % render_nr_actions == 0):
+        #      fig.suptitle(f"mean reward: {mean_episode_reward}")
+        #
+        #      if render_env:
+        #          env.render(ax[0])
+        #      if render_policy:
+        #          with T.no_grad():
+        #              net(state, render_axis=ax[-1])
+        #
+        #      fig.canvas.draw()
+        #
+        return action

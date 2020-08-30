@@ -1,13 +1,8 @@
 from time import sleep
-from unittest import TestCase
-
-import gym.spaces as spaces
-import matplotlib.pyplot as plt
-import numpy as np
 
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
 from pandas_ml_quant_rl.cache import FileCache
-from pandas_ml_quant_rl.model.environments.multi_symbol_environment import RandomAssetEnv
+from pandas_ml_quant_rl.environments import RandomAssetEnv
 from pandas_ml_quant_rl.model.strategies.discrete import BuyOpenSellCloseSellOpenBuyClose
 from pandas_ml_quant_rl.renderer import CandleStickRenderer, OnlineRenderer
 from pandas_ml_quant_rl_test.config import load_symbol

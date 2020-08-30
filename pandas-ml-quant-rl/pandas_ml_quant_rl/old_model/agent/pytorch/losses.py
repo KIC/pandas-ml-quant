@@ -14,6 +14,16 @@ class LogProbLoss(nn.Module):
         return -selected_logprobs.mean()
 
 
+class PostSoftmaxCrossEntropyLoss(nn.Module):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.objective = nn.NLLLoss(*args, **kwargs)
+
+    def forward(self, input, target):
+        return self.objective(T.log(input), T.log(target))
+
+
 class QuantileHuberLoss(nn.Module):
     def __init__(self):
         super().__init__()

@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Iterable, Tuple
 
 import numpy as np
 
-from ..environments.abstract_environment import Environment
+from pandas_ml_quant_rl.environments import Environment
 from ...wrapper.tensorboardX import EasySummaryWriter
 
 
@@ -12,6 +12,21 @@ class Agent(object):
     def load(filename) -> 'Agent':
         # FIXME implement load method
         pass
+
+    @staticmethod
+    def create_plot(nr_of_subplots, figsize=(25, 20)) -> Tuple['Figure', List]:
+        if nr_of_subplots > 0:
+            import matplotlib.pyplot as plt
+
+            if isinstance(nr_of_subplots, tuple):
+                fig, ax = plt.subplots(*nr_of_subplots, figsize=figsize)
+            else:
+                fig, ax = plt.subplots(1, nr_of_subplots, figsize=figsize)
+
+            plt.tight_layout()
+            return fig, ax if isinstance(ax, Iterable) else [ax]
+        else:
+            return None, None
 
     def __init__(self, **kwargs):
         self.tensorboard_writer = EasySummaryWriter(self.__class__.__name__, **kwargs)
@@ -57,8 +72,8 @@ class Agent(object):
         # FIXME implement save method
         pass
 
-    def fit(self, env: Environment) -> 'Agent':
-        raise NotImplementedError
+    def fit(self, env: Environment, render_nr_actions=0, render_env=True, render_policy=True, figsize=(28, 8)) -> 'Agent':
+        raise NotImplementedError()
 
     def play_episode(self, env: Environment, render=True) -> List[float]:
         """
@@ -73,7 +88,7 @@ class Agent(object):
         done = False
 
         while not done:
-            action = self.best_action(state)
+            action = self.pick_action(state)
             state, reward, done, info = env.step(action)
             rewards.append(reward)
             if render:
@@ -81,7 +96,5 @@ class Agent(object):
 
         return rewards
 
-    def best_action(self, state):
-        raise NotImplementedError
-
-
+    def pick_action(self, env, state, epsilon=None, probs=None):
+        raise NotImplementedError()
