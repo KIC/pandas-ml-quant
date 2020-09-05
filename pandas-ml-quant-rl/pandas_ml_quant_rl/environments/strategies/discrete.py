@@ -1,9 +1,9 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
-
-from .abstract_startegy import Strategy
 from gym.spaces import Discrete
+
+from pandas_ml_quant_rl.model.environment import Strategy
 
 
 class BuyOpenSellCloseSellOpenBuyClose(Strategy):

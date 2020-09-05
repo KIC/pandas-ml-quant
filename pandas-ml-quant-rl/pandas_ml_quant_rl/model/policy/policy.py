@@ -17,9 +17,6 @@ class Policy(object):
     def reset(self):
         pass
 
-    def render(self, state, axis):
-        pass
-
     def choose_action(self, env, state, render_on_axis=None):
         pass
 

@@ -29,15 +29,25 @@ class Agent(object):
 
     def learn_to_play(self, env: Environment, policy: Policy, exit_criteria: Callable[[float, int], bool]):
         policy.reset()
-        return self.play_util(env.as_train(), policy.train(), exit_criteria)
+        return self._play_util(env.as_train(), policy.train(), exit_criteria)
 
-    def play_util(self, env: Environment, policy: Policy, exit_criteria: Callable[[float, int], bool]):
+    def play_one_episode(self, env: Environment, policy: Policy):
+        episode_reward = self._play_episode(env.as_predict(), policy.eval())
+        if self.fig is not None:
+            import matplotlib.pyplot as plt
+            self.fig.suptitle(f"reward {episode_reward}")
+            self.fig.canvas.draw()
+            plt.close(self.fig)
+
+        return episode_reward
+
+    def _play_util(self, env: Environment, policy: Policy, exit_criteria: Callable[[float, int], bool]):
         total_reward_ma = None
         total_reward = 0
         episodes = 0
 
         while True:
-            episode_reward = self.play_episode(env, policy)
+            episode_reward = self._play_episode(env, policy)
             total_reward += episode_reward
             episodes += 1
 
@@ -60,7 +70,7 @@ class Agent(object):
 
         return total_reward_ma
 
-    def play_episode(self, env: Environment, policy: Policy):
+    def _play_episode(self, env: Environment, policy: Policy):
         # initialize our episode
         state = env.reset()
         episode_reward = 0
@@ -91,6 +101,43 @@ class Agent(object):
             env.render(self.ax[0])
             policy.choose_action(env, state, self.ax[-1])
 
-        # execute None action in env to trigger last rendering frame
         return episode_reward
 
+# TODO add tensorboard logging
+# todo add log chart for action space entropy
+#         self.tensorboard_writer = EasySummaryWriter(self.__class__.__name__, **kwargs)
+#    def log_to_tensorboard(self, cumulative_reward, nr_of_steps=None, action_hist=None, scalars=None):
+#        # log rewards
+#        if self._cumulative_reward_ma is None:
+#            self._cumulative_reward_ma = cumulative_reward
+#        else:
+#            self._cumulative_reward_ma = cumulative_reward * (2 / 21) + (self._cumulative_reward_ma * (1 - 2 / 21))
+#
+#        self.tensorboard_writer.add_scalars(
+#            "reward",
+#            {"reward": cumulative_reward, "ma": self._cumulative_reward_ma},
+#            self._episodes
+#        )
+#
+#        # log nuber of steps per episode
+#        if nr_of_steps is not None:
+#            self.tensorboard_writer.add_scalar("nr of steps", nr_of_steps, self._episodes)
+#
+#        # log actions
+#        if action_hist is not None:
+#            action, counts = np.unique(action_hist, return_counts=True)
+#            self.tensorboard_writer.add_scalars(
+#                "action counts",
+#                {str(a): c for a, c in zip(action, counts)},
+#                self._episodes
+#            )
+#
+#        # log epsilon
+#        if scalars is not None:
+#            for item, number in scalars.items():
+#                self.tensorboard_writer.add_scalar(item, number, self._episodes)
+#
+#        # flush data and increase steps
+#        self.tensorboard_writer.flush()
+#        self._episodes += 1
+#

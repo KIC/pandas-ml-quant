@@ -1,2 +1,2 @@
-from .layers import Reshape, KerasLikeLSTM
-from .loss import MultiObjectiveLoss
+from .layers import Reshape, KerasLikeLSTM, ResidualLayer
+from .loss import MultiObjectiveLoss, CrossEntropyLoss

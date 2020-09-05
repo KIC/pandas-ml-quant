@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Iterable
 
 import pandas as pd
 from sklearn.preprocessing import LabelBinarizer
@@ -6,7 +6,7 @@ from sklearn.preprocessing import LabelBinarizer
 from pandas_ml_common.utils import has_indexed_columns
 
 
-def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True, nr_of_classes=None, offset=None) -> Union[pd.Series, pd.DataFrame]:
+def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True, nr_of_classes=None, offset=None, expand=False) -> Union[pd.Series, pd.DataFrame]:
     if has_indexed_columns(po):
         return pd.DataFrame([ta_one_hot_encode_discrete(po[col]) for col in po.columns]).T
     else:
@@ -24,5 +24,10 @@ def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True,
 
         label_binarizer = LabelBinarizer()
         label_binarizer.fit(range(int(nr_of_classes)))
-        return pd.Series(label_binarizer.transform(values).tolist(), index=po.index, name=po.name)
+
+        if expand:
+            columns = expand if isinstance(expand, Iterable) else None
+            return pd.DataFrame(label_binarizer.transform(values), index=po.index, columns=columns)
+        else:
+            return pd.Series(label_binarizer.transform(values).tolist(), index=po.index, name=po.name)
 

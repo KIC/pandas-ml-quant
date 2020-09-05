@@ -17,6 +17,13 @@ def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
 
 
+def flatten_multi_column_index(df: pd.DataFrame):
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.tolist()
+
+    return df
+
+
 def add_multi_index(df, head, inplace=False):
     df = df if inplace else df.copy()
     df.columns = pd.MultiIndex.from_product([[head], df.columns.tolist()])

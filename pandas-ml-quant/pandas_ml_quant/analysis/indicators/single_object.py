@@ -126,3 +126,52 @@ def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
         res[i] = _np.hstack([p[:-1], err / period])
 
     return _pd.DataFrame(res, index=df.index, columns=[*[f'b{b}' for b in range(0, degree)], "mse"])
+
+
+def ta_sharpe_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=False):
+    returns = df if is_returns else df.pct_change()
+    mean_returns = returns.rolling(period).mean()
+    sigma = returns.rolling(period).std(ddof=ddof)
+    return (mean_returns - risk_free) / sigma
+
+
+def ta_sortino_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=False):
+    returns = df if is_returns else df.pct_change()
+    mean_returns = returns.rolling(period).mean()
+    sigma = returns.clip(upper=risk_free).rolling(period).std(ddof=ddof)
+    return (mean_returns - risk_free) / sigma
+
+def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
+    if has_indexed_columns(df):
+        res = _pd.DataFrame({}, index=df.index)
+        for col in df.columns.to_list():
+            d = ta_draw_down(df[col], return_dates, return_duration)
+            d.columns = _pd.MultiIndex.from_product([[col], d.columns])
+            res = res.join(d)
+
+        res.columns = _pd.MultiIndex.from_tuples(res.columns.to_list())
+        return res
+    else:
+        ds = df
+        pmin_pmax = (ds.diff(-1) > 0).astype(int).diff()  # <- -1 indicates pmin, +1 indicates pmax
+        pmax = pmin_pmax[pmin_pmax == 1]
+        pmin = pmin_pmax[pmin_pmax == -1]
+
+        if pmin.index[0] < pmax.index[0]:
+            pmin = pmin.drop(pmin.index[0])
+
+        if pmin.index[-1] < pmax.index[-1]:
+            pmax = pmax.drop(pmax.index[-1])
+
+        dd = (_np.array(ds[pmin.index]) - _np.array(ds[pmax.index])) / _np.array(ds[pmax.index])
+        d = {'drawdown': dd}
+
+        if return_dates:
+            d['d_start'] = pmax.index
+            d['d_end'] = pmin.index
+
+        if return_duration:
+            dur = [_np.busday_count(p1.date(), p2.date()) for p1, p2 in zip(pmax.index, pmin.index)]
+            d['duration'] = dur
+
+        return _pd.DataFrame({}, index=df.index).join(_pd.DataFrame(d, index=pmax.index)).fillna(0)

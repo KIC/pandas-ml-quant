@@ -1,1 +1,1 @@
-from .discrete import BuyOpenSellCloseSellOpenBuyClose, LongShortSwing
+from .discrete import BuyOpenSellCloseSellOpenBuyClose, LongOnly

@@ -38,3 +38,17 @@ class KerasLikeLSTM(nn.Module):
         else:
             # only return last dimension
             return out[:, -1]
+
+
+class ResidualLayer(nn.Module):
+
+    def __init__(self, input_size, output_size, activation):
+        super().__init__()
+        self.l1 = nn.Linear(input_size, output_size)
+        self.l2 = nn.Linear(output_size, output_size)
+        self.activation = activation
+
+    def forward(self, x):
+        x1 = self.activation(self.l1(x))
+        x2 = self.activation(self.l2(x1))
+        return x1 + x2
