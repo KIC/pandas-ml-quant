@@ -56,6 +56,8 @@ def call_callable_dynamic_args(func, *args, **kwargs):
             return func(*call_args)
     except StopIteration as s:
         raise s
+    except KeyError as ke:
+        raise ke
     except Exception as e:
         try:
             source = inspect.getsource(func)

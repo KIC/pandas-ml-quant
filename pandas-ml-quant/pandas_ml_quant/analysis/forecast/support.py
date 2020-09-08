@@ -155,6 +155,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
 
     return accumulated, line_lookup_table
 
+
 def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=None):
     # TODO implement this paper: http://www.meacse.org/ijcar/archives/128.pdf
     if has_indexed_columns(df):

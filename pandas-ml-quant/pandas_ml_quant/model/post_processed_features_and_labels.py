@@ -9,7 +9,7 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
     def __init__(self,
                  features: Typing._Selector,
                  feature_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]],
-                 labels: Typing._Selector,
+                 labels: Typing._Selector = [],
                  labels_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
                  sample_weights: Typing._Selector = None,
                  sample_weights_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,

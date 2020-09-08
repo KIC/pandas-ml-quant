@@ -1,0 +1,6 @@
+tensorboardX
+yfinance
+tables
+torch
+ptan
+gym

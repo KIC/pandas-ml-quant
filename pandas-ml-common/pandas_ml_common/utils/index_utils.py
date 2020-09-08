@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import OrderedDict, Callable
-from typing import List
+from typing import List, Iterable
 
 import pandas as pd
 import numpy as np
@@ -15,6 +15,13 @@ _log = logging.getLogger(__name__)
 
 def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
+
+
+def flatten_multi_column_index(df: pd.DataFrame):
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.tolist()
+
+    return df
 
 
 def add_multi_index(df, head, inplace=False):

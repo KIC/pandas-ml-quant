@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import pandas as pd
 
 import pandas_ml_quant.analysis as analysis
@@ -6,9 +8,25 @@ from pandas_ml_quant.df.plot import TaPlot
 
 
 class TechnicalAnalysis(object):
+    info = {}
 
     def __init__(self, df: pd.DataFrame):
         self.df = df
+
+    def subplots(self, rows=2, figsize=(25, 10)):
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+
+        _, axes = plt.subplots(rows, 1,
+                            sharex=True,
+                            gridspec_kw={"height_ratios": [3, *([1] * (rows - 1))]},
+                            figsize=figsize)
+
+        for ax in axes if isinstance(axes, Iterable) else [axes]:
+            ax.xaxis_date()
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
+
+        return axes
 
     def plot(self, rows=2, cols=1, figsize=(18, 10), main_height_ratio=4):
         return TaPlot(self.df, figsize, rows, cols, main_height_ratio)
@@ -30,7 +48,9 @@ def wrapper(func):
 for indicator_functions in [analysis, optimized_strategies]:
     for indicator_function in dir(indicator_functions):
         if indicator_function.startswith("ta_"):
-            setattr(TechnicalAnalysis, indicator_function[3:], wrapper(getattr(indicator_functions, indicator_function)))
+            func = getattr(indicator_functions, indicator_function)
+            setattr(TechnicalAnalysis, indicator_function[3:], wrapper(func))
+            TechnicalAnalysis.info[indicator_function] = func.__module__
 
 
 

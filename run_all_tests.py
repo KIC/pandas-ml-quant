@@ -1,6 +1,10 @@
 import unittest
 import sys
 import os
+import matplotlib
+
+
+matplotlib.use('Agg')
 
 
 if __name__ == "__main__":

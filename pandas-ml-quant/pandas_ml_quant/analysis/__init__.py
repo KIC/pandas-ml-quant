@@ -6,3 +6,4 @@ from .filters import *
 from .forecast import *
 from .covariances import *
 from .normalizer import *
+from .alias import *

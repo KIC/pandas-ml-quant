@@ -16,3 +16,4 @@ __temp__.*
 private/
 mount.sh
 streamlit_apps/models/
+*.kic

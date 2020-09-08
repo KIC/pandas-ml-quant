@@ -24,13 +24,13 @@ def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
             return pd.Series(rescaled, name=df.name, index=df.index)
 
 
-def ta_returns(df: Typing.PatchedPandas):
-    return _wcs("return", df.pct_change())
+def ta_returns(df: Typing.PatchedPandas, period=1):
+    return _wcs("return", df.pct_change(periods=period))
 
 
-def ta_log_returns(df: Typing.PatchedPandas):
+def ta_log_returns(df: Typing.PatchedPandas, period=1):
     current = df
-    lagged = df.shift(1)
+    lagged = df.shift(period)
 
     return _wcs("log_return", np.log(current) - np.log(lagged))
 
@@ -70,6 +70,11 @@ def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
 def ta_performance(df: Typing.PatchedPandas):
     delta = df.pct_change() + 1
     return delta.cumprod()
+
+
+def ta_sma_price_ratio(df: Typing.Series, period=14, log=False):
+    from .labels.continuous import ta_future_pct_to_current_mean
+    return ta_future_pct_to_current_mean(df, 0, period, log)
 
 
 def _ta_adaptive_normalisation():

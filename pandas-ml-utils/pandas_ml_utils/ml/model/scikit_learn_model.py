@@ -88,4 +88,4 @@ class SkModel(Model):
             print("Data was not in RNN shape")
             return arr3d
         else:
-            return arr3d.reshape(arr3d.shape[0], arr3d.shape[1] * arr3d.shape[2])
+            return arr3d.reshape(arr3d.shape[0], np.array(arr3d.shape[1:]).prod())

@@ -11,6 +11,7 @@ _log = logging.getLogger(__name__)
 
 
 class Sampler(object):
+
     def __init__(self,
                  train: List[Typing.PatchedDataFrame],
                  test: List[Typing.PatchedDataFrame],

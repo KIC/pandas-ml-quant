@@ -62,7 +62,7 @@ def ta_candle_category(df: _pd.DataFrame, open="Open", high="High", low="Low", c
             5. upper shadow > lower shadow  && shadows > body
 
     :param df: data frame containing the open, high, low, close data
-    :return: integer number of category: 2 * 3 * 8 = 48
+    :return: integer number of category: 2 * 3 * 5 = 30
     """
 
     df = df.copy()
