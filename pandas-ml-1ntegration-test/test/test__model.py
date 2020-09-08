@@ -11,7 +11,7 @@ from stable_baselines import PPO2
 from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
-from pandas_ml_quant_rl.model.rl_trading_agent import TradingAgentGym
+
 from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel, Constant
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
@@ -260,56 +260,4 @@ class TestModel(TestCase):
         target_predictions = prediction.map_prediction_to_target()
         print(target_predictions)
         self.assertEqual(9, len(target_predictions))
-
-    def test_reinformcement(self):
-        # given a data frame
-        df = DF_TEST.copy()
-
-        # and a trading agent
-        class ARGym(TradingAgentGym):
-
-            def calculate_trade_reward(self, portfolio_performance_log):
-                return portfolio_performance_log["net"].iloc[-1]
-
-            def next_observation(self, idx, features, labels, targets, weights=None, gross_loss=None):
-                return features
-
-        # when we fit the agent
-        fit = df.model.fit(
-            ReinforcementModel(
-                lambda: PPO2('MlpLstmPolicy',
-                             DummyVecEnv([lambda: ARGym((28, 2), initial_capital=100000)]),
-                             nminibatches=1),
-                FeaturesAndLabels(
-                    features=extract_with_post_processor(
-                        [
-                            lambda df: df.ta.atr(),
-                            lambda df: df["Close"].ta.trix(),
-                        ],
-                        lambda df: df.ta.rnn(28)
-                    ),
-                    targets=[
-                        lambda df: df["Close"]
-                    ],
-                    labels=[Constant(0)],
-                )
-            ),
-            RandomSequences(0.1, 0.7, max_folds=None),
-            total_timesteps=128 * 2,
-            verbose=1,
-            render='system'
-        )
-
-        print(fit.test_summary.df[PREDICTION_COLUMN_NAME])
-
-        prediction = df.model.predict(fit.model, tail=3)
-        print(prediction[PREDICTION_COLUMN_NAME])
-        self.assertEqual(3, len(prediction))
-        self.assertGreater(len(fit.model.reward_history), 0)
-        self.assertGreater(len(fit.model.reward_history[0]), 1)
-        self.assertGreater(len(fit.model.reward_history[0][1]), 1)
-        backtest = df.model.backtest(fit.model).df
-        print(backtest[PREDICTION_COLUMN_NAME])
-        self.assertEqual(3, len(prediction))
-
 
