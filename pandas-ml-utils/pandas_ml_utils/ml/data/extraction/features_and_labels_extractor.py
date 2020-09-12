@@ -71,12 +71,3 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[L
 
 def extract(features_and_labels, df, extractor, *args, **kwargs):
     return features_and_labels(df, extractor, *args, **kwargs)
-
-
-def extract_with_post_processor(list, postprocessor: Callable):
-    def extractor(df, **kwargs):
-        extraction = get_pandas_object(df, list, **kwargs)
-        return get_pandas_object(extraction, postprocessor, **kwargs)
-
-    return extractor
-

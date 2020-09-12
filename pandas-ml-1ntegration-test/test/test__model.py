@@ -7,15 +7,11 @@ from keras.layers import Dense, Reshape
 from keras.optimizers import Adam
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
-from stable_baselines import PPO2
-from stable_baselines.common.vec_env import DummyVecEnv
 
 import pandas_ml_quant
-
-from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, ReinforcementModel, Constant
+from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
-from pandas_ml_utils.ml.data.extraction import extract_with_post_processor
-from pandas_ml_utils.ml.data.splitting import RandomSplits, RandomSequences, NaiveSplitter
+from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
 from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from test.config import DF_TEST
@@ -135,11 +131,12 @@ class TestModel(TestCase):
         fit = df.model.fit(
             KerasModel(
                 model_provider,
-                FeaturesAndLabels(
-                    features=extract_with_post_processor([
+                PostProcessedFeaturesAndLabels(
+                    features=[
                         lambda df: df["Close"].ta.rsi(),
                         lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).rename("RelVolume")
-                    ], lambda df: df.ta.rnn(28)),
+                    ],
+                    feature_post_processor=lambda df: df.ta.rnn(28),
                     labels=[
                         lambda df: (df["Close"] > df["Open"]).shift(-1),
                     ],
@@ -192,8 +189,8 @@ class TestModel(TestCase):
         fit = df.model.fit(
             SkModel(
                 MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, max_iter=2),
-                FeaturesAndLabels(
-                    features=extract_with_post_processor(
+                PostProcessedFeaturesAndLabels(
+                    features=
                         [
                             lambda df: df["Close"].ta.trix(),
                             lambda df: df["Close"].ta.ppo(),
@@ -201,8 +198,7 @@ class TestModel(TestCase):
                             lambda df: df["Close"].ta.macd(),
                             lambda df: df.ta.adx(),
                         ],
-                        lambda df: df.ta.rnn(range(10))
-                    ),
+                    feature_post_processor=lambda df: df.ta.rnn(range(10)),
                     labels=[
                         lambda df: df["Close"].ta.sma(period=60) \
                             .ta.cross(df["Close"].ta.sma(period=20)) \
@@ -226,8 +222,8 @@ class TestModel(TestCase):
         fit = df.model.fit(
             SkModel(
                 MLPClassifier(activation='tanh', hidden_layer_sizes=(60, 50), random_state=42, warm_start=True, max_iter=2),
-                FeaturesAndLabels(
-                    features=extract_with_post_processor(
+                PostProcessedFeaturesAndLabels(
+                    features=
                         [
                             lambda df: df["Close"].ta.macd()._[['macd.*', 'signal.*']],
                             lambda df: df.ta.adx()._[['+DI', '-DM', '+DM']],
@@ -236,8 +232,7 @@ class TestModel(TestCase):
                             lambda df: df.ta.atr(),
                             lambda df: df["Close"].ta.trix(),
                         ],
-                        lambda df: df.ta.rnn(280)
-                    ),
+                    feature_post_processor=lambda df: df.ta.rnn(280),
                     labels=[
                         lambda df: df["Close"].ta.future_bband_quantile(include_mean=False).ta.one_hot_encode_discrete()
                     ],

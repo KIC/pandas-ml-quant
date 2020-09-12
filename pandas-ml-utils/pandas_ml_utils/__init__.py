@@ -5,7 +5,7 @@ from pandas_ml_utils.ml.summary import *
 from pandas_ml_common import *
 from pandas_ml_utils.df.model import Model as DfModelExtension
 from pandas_ml_utils.ml.data import *
-from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
+from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.model import *
 
 _log = logging.getLogger(__name__)
