@@ -9,7 +9,6 @@ from qpsolvers import solve_qp
 from statsmodels.stats.correlation_tools import cov_nearest
 
 
-
 _log = logging.getLogger(__name__)
 
 
