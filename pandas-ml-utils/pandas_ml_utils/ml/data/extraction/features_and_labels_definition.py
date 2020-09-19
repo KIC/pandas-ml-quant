@@ -249,7 +249,7 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
                         return p
 
                 return [insp(p) if callable(p) else p if isinstance(p, (bool, int, float, str)) else repr(p) for p in
-                        params]
+                        (params if isinstance(params, (List, Tuple)) else [params])]
 
         return f'PostProcessedFeaturesAndLabels(' \
                f'\t{source(self._raw[0][0])}, ' \

@@ -37,7 +37,7 @@ def wrapper(func):
     def wrapped(quant, *args, **kwargs):
         if isinstance(quant.df.index, pd.MultiIndex):
             # we need to call the function for each top level item and join the result back
-            raise ValueError("not implemented")
+            raise ValueError("MultiIndex row not implemented")
 
         return func(quant.df, *args, **kwargs)
 

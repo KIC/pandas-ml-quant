@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from test.config import DF_TEST
 
 
@@ -51,6 +51,19 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
 
         self.assertEqual(len(features), 3)
 
-    def test_extraction(self):
+    def test_post_processing(self):
+        df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20)})
 
-        pass
+        (features, _), labels, targets, weights, gross_loss = df._.extract(
+            PostProcessedFeaturesAndLabels(
+                features=["a"],
+                feature_post_processor=lambda df: df * 2,
+                labels=["b"],
+                labels_post_processor=lambda df: df.loc[df["b"] % 2 == 0]
+            )
+        )
+
+        self.assertEqual(len(features), 10)
+        self.assertEqual(len(labels), 10)
+        self.assertEqual(labels.values.sum().item(), 90)
+

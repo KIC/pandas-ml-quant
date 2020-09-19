@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from pandas_ml_common import Typing, has_indexed_columns
 from pandas_ml_common.utils import ReScaler
@@ -80,3 +81,32 @@ def ta_sma_price_ratio(df: Typing.Series, period=14, log=False):
 def _ta_adaptive_normalisation():
     # TODO implement .papers/Adaptive Normalization.pdf
     pass
+
+
+def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform"):
+    # normalizer can be one of minmax01, minmax-11, uniform, standard or callable
+    def ecdf(v):
+        shape = v.shape
+        x = v.flatten()
+        x = np.sort(x)
+        return ((np.searchsorted(x, v, side='right') + 1) / len(v)).reshape(shape)
+
+    def scaler(row):
+        values = row._.values
+        values_2d = values.reshape(-1, 1)
+
+        if normalizer == 'minmax01':
+            return MinMaxScaler().fit(values_2d).transform(values_2d).reshape(values.shape)
+        elif normalizer == 'minmax-11':
+            return MinMaxScaler(feature_range=(-1, 1)).fit(values_2d).transform(values_2d).reshape(values.shape)
+        elif normalizer == 'standard':
+            # (value - mean) / std
+            return values - values.mean() / np.std(values)
+        elif normalizer == 'uniform':
+            return ecdf(values_2d).reshape(values.shape)
+        elif callable(normalizer):
+            return normalizer(row)
+        else:
+            raise ValueError('unknown normalizer need to one of: [minmax01, minmax-11, uniform, standard, callable(r)]')
+
+    return df.apply(scaler, axis=1, result_type='broadcast')
