@@ -5,6 +5,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from pandas_ml_common import Typing, has_indexed_columns
 from pandas_ml_common.utils import ReScaler
+from pandas_ml_common.utils.normalization import ecdf
 from pandas_ml_quant.analysis import filters as _f
 from pandas_ml_quant.utils import with_column_suffix as _wcs
 
@@ -85,12 +86,6 @@ def _ta_adaptive_normalisation():
 
 def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform"):
     # normalizer can be one of minmax01, minmax-11, uniform, standard or callable
-    def ecdf(v):
-        shape = v.shape
-        x = v.flatten()
-        x = np.sort(x)
-        return ((np.searchsorted(x, v, side='right') + 1) / len(v)).reshape(shape)
-
     def scaler(row):
         values = row._.values
         values_2d = values.reshape(-1, 1)

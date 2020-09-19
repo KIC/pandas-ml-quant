@@ -4,6 +4,8 @@ from typing import Tuple as _Tuple
 import numpy as _np
 import pandas as _pd
 
+from pandas_ml_common.utils import unpack_nested_arrays
+
 
 class ReScaler(object):
 
@@ -32,3 +34,12 @@ class ReScaler(object):
             else:
                 return _np.clip(self.rescale(args[0]), self.range[1], self.range[0])
 
+
+def ecdf(v):
+    if isinstance(v, (_pd.DataFrame, _pd.Series)):
+        v = unpack_nested_arrays(v)
+
+    shape = v.shape
+    x = v.flatten()
+    x = _np.sort(x)
+    return ((_np.searchsorted(x, v, side='right') + 1) / len(v)).reshape(shape)
