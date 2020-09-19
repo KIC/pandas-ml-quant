@@ -1,8 +1,10 @@
 from unittest import TestCase
 
+import numpy as np
+
 import pandas_ml_quant
 from pandas_ml_common.utils.serialization_utils import serialize, deserialize
-from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
@@ -119,3 +121,24 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         # we have 2 labels each one hot encoded to 10 values
         self.assertEqual((6463, 2, 3), labels._.values.shape)
 
+    def test_feature_post_processing_pipeline(self):
+        df = DF_TEST.copy()
+
+        (features, min_samples), labels, targets, weights, gross_loss = df._.extract(
+            PostProcessedFeaturesAndLabels(
+                features=[
+                    lambda df: df._["Close"].ta.log_returns()
+                ],
+                feature_post_processor=[
+                    lambda df: df.flatten_columns(),
+                    lambda df: df.ta.rnn(2),
+                    lambda df: df.ta.normalize_row(normalizer='uniform'),
+                ],
+                labels=[
+                    lambda df: df._["Close"].ta.log_returns().shift(-1)
+                ]
+            )
+        )
+
+        self.assertEqual((6760, 2, 1), features._.values.shape)
+        np.testing.assert_array_almost_equal(features[-1:].values, np.array([[1.5, 1.0]]))
