@@ -3,10 +3,16 @@ import logging
 import numpy as np
 import pandas as pd
 
+from pandas_ml_common.utils.index_utils import unique_level_rows
+
 _log = logging.getLogger(__name__)
 
 
 def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
+    # in case of multiple assets stacked on top of each other
+    if isinstance(df, pd.DataFrame) and isinstance(df.index, pd.MultiIndex):
+        return [unpack_nested_arrays(df.loc[group]) for group in unique_level_rows(df)]
+
     # get raw values
     values = df.values
     res = None

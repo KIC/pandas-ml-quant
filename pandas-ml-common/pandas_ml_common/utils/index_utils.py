@@ -24,9 +24,16 @@ def flatten_multi_column_index(df: pd.DataFrame):
     return df
 
 
-def add_multi_index(df, head, inplace=False):
+def add_multi_index(df, head, inplace=False, axis=1):
     df = df if inplace else df.copy()
-    df.columns = pd.MultiIndex.from_product([[head], df.columns.tolist()])
+
+    if axis == 0:
+        df.index = pd.MultiIndex.from_product([[head], df.index.tolist()])
+    elif axis == 1:
+        df.columns = pd.MultiIndex.from_product([[head], df.columns.tolist()])
+    else:
+        raise ValueError("illegal axis, expected 0|1")
+
     return df
 
 

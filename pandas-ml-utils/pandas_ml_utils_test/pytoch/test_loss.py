@@ -6,7 +6,8 @@ from torch.optim import Adam
 from pandas_ml_utils import PytorchModel, FeaturesAndLabels
 from pandas_ml_utils import pd, np
 from pandas_ml_utils.ml.data.splitting import NaiveSplitter
-from pandas_ml_utils.pytorch.loss import MultiObjectiveLoss
+from pandas_ml_utils.pytorch.loss import MultiObjectiveLoss, RegularizedLoss
+from pandas_ml_utils.pytorch.layers import RegularizedLayer
 
 
 class TestLoss(TestCase):
@@ -55,4 +56,21 @@ class TestLoss(TestCase):
 
         print(fit.test_summary.df)
 
+    def test_regularized_loss(self):
 
+        class TestModel(nn.Module):
+
+            def __init__(self):
+                super().__init__()
+                self.net = nn.Sequential(
+                    RegularizedLayer(nn.Linear(10, 2)),
+                    nn.ReLU()
+                )
+
+            def forward(self, x):
+                return self.net(x)
+
+        m = TestModel()
+        RegularizedLoss(m.parameters(), nn.MSELoss(reduction='none'))
+
+        # FIXME allow PytorchModel loss with parameters

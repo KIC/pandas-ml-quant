@@ -4,6 +4,7 @@ import pandas as pd
 
 import pandas_ml_quant.analysis as analysis
 import pandas_ml_quant.trading.strategy.optimized as optimized_strategies
+from pandas_ml_common.utils import unique_level_rows, add_multi_index
 from pandas_ml_quant.df.plot import TaPlot
 
 
@@ -36,8 +37,10 @@ class TechnicalAnalysis(object):
 def wrapper(func):
     def wrapped(quant, *args, **kwargs):
         if isinstance(quant.df.index, pd.MultiIndex):
-            # we need to call the function for each top level item and join the result back
-            raise ValueError("MultiIndex row not implemented")
+            return pd.concat(
+                [add_multi_index(func(quant.df.loc[group], *args, **kwargs), group, True, 0) for group in unique_level_rows(quant.df)],
+                axis=0
+            )
 
         return func(quant.df, *args, **kwargs)
 

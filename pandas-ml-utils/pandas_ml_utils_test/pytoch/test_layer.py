@@ -1,8 +1,8 @@
 from unittest import TestCase
 
 import torch as t
-
-from pandas_ml_utils.pytorch.layers import KerasLikeLSTM
+import torch.nn as nn
+from pandas_ml_utils.pytorch.layers import KerasLikeLSTM, RegularizedLayer
 
 
 class TestPytorchLayer(TestCase):
@@ -15,3 +15,18 @@ class TestPytorchLayer(TestCase):
         self.assertEqual((1, 2), lstm(data).shape)
         self.assertEqual((1, 10, 2), lstm2(data).shape)
 
+    def test_regularizer_wrapper(self):
+        m = nn.Sequential(
+            nn.Linear(10, 2),
+            nn.ReLU(),
+            RegularizedLayer(nn.Linear(2, 1), 0.01),
+            nn.ReLU(),
+            nn.Linear(2, 55, bias=False),
+        )
+
+        # print(list(m.parameters()))
+        regularized = [p for p in m.parameters() if hasattr(p, "_regularizers")]
+        print(regularized)
+
+        self.assertEqual(len(list(m.parameters())), 5)
+        self.assertEqual(len(regularized), 1)
