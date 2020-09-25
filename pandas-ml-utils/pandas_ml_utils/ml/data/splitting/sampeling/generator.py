@@ -57,7 +57,7 @@ class Sampler(object):
 
 
 class DataGenerator(object):
-    # the idea is to pass a yielding data generator to the "fit" method instad of x/y values
+    # the idea is to pass a yielding data generator to the "fit" method instead of x/y values
     # the cross validation loop goes as default implementation into to Model class.
     # this way each model can implement cross validation on their own and we can use the data generator for the gym
 

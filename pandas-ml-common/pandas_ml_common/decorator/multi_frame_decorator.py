@@ -34,14 +34,7 @@ class MultiFrameDecorator(object):
     def __init__(self, frames: Tuple[Typing.PatchedDataFrame], use_index_intersection=False):
         self._frames = frames
         self._index = intersection_of_index(*frames) if use_index_intersection else frames[0].index
-        # TODO later we want the MultiFrameDecorator to also be a possible Use Case to fit a model on multiple frames of
-        #  the same kind. i.e. MultiFrameDecorator([spy, gld]).model.fit(...)
-        #  in this case we actually do not want the intersection of the index
-        #  therefore we would also need to extend: pandas-ml-utils/pandas_ml_utils/__init__.py:16 and add some logic for
-        #  fit, predict and backtest
-        #  we might also want to extend the data fetchers to not only return MultiIndex frames but also MultiDecorated
-        #  frames
-
+        
     def frames(self, copy=True):
         if copy:
             return tuple([f.loc[self._index].copy() for f in self._frames])
