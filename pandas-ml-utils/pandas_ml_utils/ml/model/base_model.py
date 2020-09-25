@@ -5,9 +5,9 @@ from typing import Callable, Tuple
 import dill as pickle
 import numpy as np
 
-from pandas_ml_common import Typing
+from pandas_ml_common import Typing, Sampler
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
-from pandas_ml_utils.ml.data.splitting.sampeling import Sampler
+from pandas_ml_utils.ml.data.splitting.sampeling import Sampler as OldSampler
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -92,7 +92,7 @@ class Model(object):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def fit(self, sampler: Sampler, **kwargs) -> float:
+    def fit(self, sampler: OldSampler, **kwargs) -> float:
         """
         draws folds from the data generator as long as it yields new data and fits the model to one fold
 

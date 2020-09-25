@@ -6,6 +6,7 @@ from typing import Callable, Dict, TYPE_CHECKING
 
 import pandas as pd
 
+from pandas_ml_common import Sampler, NumpySampler
 from pandas_ml_common.utils import merge_kwargs, to_pandas
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 
 def fit(df: pd.DataFrame,
         model_provider: Callable[[int], Model],
-        training_data_splitter: Splitter = RandomSplits(),
+        training_data_splitter: Splitter = RandomSplits(),  # FIXME even this changes to training splitter and cross validator
         hyper_parameter_space: Dict = None,
         **kwargs
         ) -> Fit:
@@ -56,7 +57,7 @@ def fit(df: pd.DataFrame,
     #train = (features.loc[train_idx], labels.loc[train_idx], loc_if_not_none(weights, train_idx))
     #test = (features.loc[test_idx], labels.loc[test_idx], loc_if_not_none(weights, test_idx))
 
-    # FIXME eventually perform a hyper parameter optimization first
+    # TODO eventually perform a hyper parameter optimization first
     #if hyper_parameter_space is not None:
     #    # next isolate hyperopt parameters and constants only used for hyper parameter tuning like early stopping
     #    constants = {}
@@ -72,11 +73,15 @@ def fit(df: pd.DataFrame,
     #                                hyperopt_params,
     #                                constants,
     #                                model_provider,
-    #                                None, # FIXME Ecross_validation,
+    #                                None, # TODO cross_validation,
     #                                train,
     #                                test)
 
     # finally train the model with eventually tuned hyper parameters
+    # FIXME sampler = Sampler(features, labels, targets, weights, gross_loss,
+    #                         splitter=training_data_splitter,
+    #                         cross_validation=cross_validatator,
+    #                         epochs=epochs
     sampler = DataGenerator(training_data_splitter, features, labels, targets, weights, gross_loss).train_test_sampler()
     model.fit(sampler, **kwargs)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
@@ -122,7 +127,7 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
     if samples > 1:
         print(f"draw {samples} samples")
 
-    sampler = DataGenerator(DummySplitter(samples), features, None, targets, None).complete_samples()
+    sampler = NumpySampler(Sampler(features, None, targets, None, splitter=None, epochs=samples))
     predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=columns)
@@ -134,7 +139,7 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
     (features, _), labels, targets, weights, gross_loss =\
         extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    sampler = DataGenerator(DummySplitter(1), features, labels, targets, None).complete_samples()
+    sampler = NumpySampler(Sampler(features, labels, targets, None, splitter=None, epochs=1))
     predictions = model.predict(sampler, **kwargs)
 
     y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)

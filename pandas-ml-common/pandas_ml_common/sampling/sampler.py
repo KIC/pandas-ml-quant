@@ -1,6 +1,7 @@
 import logging
 from typing import Callable, Tuple, Generator, List, Union
 
+import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils.index_utils import intersection_of_index, loc_if_not_none, unique_level_rows
@@ -153,3 +154,31 @@ class Sampler(object):
 
                 yield train_idx, test_idx
 
+
+class NumpySampler(object):
+
+    def __init__(self, sampler: Sampler):
+        self.sampler = sampler
+
+    @property
+    def nr_of_cross_validation_folds(self):
+        return self.sampler.nr_of_cross_validation_folds
+
+    def sample_cross_validation(
+            self,
+            on_epoch: Callable = None,
+            on_fold: Callable = None
+    ) -> Generator[Tuple[int, List[np.ndarray], List[np.ndarray]], None, None]:
+        for fold, train, test in self.sampler.sample_cross_validation(on_epoch=on_epoch, on_fold=on_fold):
+            yield (
+                fold,
+                tuple([t._.values if t is not None else None for t in train]),
+                tuple([t._.values if t is not None else None for t in test])
+            )
+
+    def sample(self, on_epoch: Callable = None) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
+        for train, test in self.sampler.sample(on_epoch=on_epoch):
+            yield (
+                tuple([t._.values if t is not None else None for t in train]),
+                tuple([t._.values if t is not None else None for t in test])
+            )
