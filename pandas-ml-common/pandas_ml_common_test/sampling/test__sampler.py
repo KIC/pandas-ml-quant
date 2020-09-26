@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import Sampler
+from pandas_ml_common import Sampler, NumpySampler
 from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common_test.config import TEST_MUTLI_INDEX_ROW_DF, TEST_DF
 
@@ -103,7 +103,11 @@ class TestSampler(TestCase):
         self.assertEqual(2, len(test[0]))
         self.assertIsNone(train[1])
 
+        # epochs are the most oter dimension, assert that we have all frames per epoch
+        # and that the frames are equal in each epoch
         pd.testing.assert_frame_equal(samples[0][1][0], samples[2][1][0])
+        pd.testing.assert_frame_equal(samples[1][1][0], samples[3][1][0])
+
         with np.testing.assert_raises(AssertionError):
             np.testing.assert_array_equal(samples[0][1][0].values, samples[1][1][0].values)
 
@@ -123,3 +127,29 @@ class TestSampler(TestCase):
             with np.testing.assert_raises(AssertionError):
                 np.testing.assert_array_equal(samples[0][1][0].values, samples[i][1][0].values)
 
+    def test_full_epoch(self):
+        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x: (x[:-3], x[-3:]), epochs=2)
+        samples = list(sampler.sample_full_epochs())
+
+        self.assertEqual(2, len(samples))
+        pd.testing.assert_frame_equal(samples[0][0][0], pd.concat([TEST_MUTLI_INDEX_ROW_DF.loc[["A"]][:-3], TEST_MUTLI_INDEX_ROW_DF.loc[["B"]][:-3]], axis=0))
+        pd.testing.assert_frame_equal(samples[0][0][0], samples[1][0][0])
+        pd.testing.assert_frame_equal(samples[0][1][0], samples[1][1][0])
+
+    def test_numpy_simple(self):
+        sampler = NumpySampler(Sampler(TEST_DF, splitter=lambda x: (x[:-3], x[-3:]), epochs=2))
+        samples = list(sampler.sample_full_epochs())
+
+        self.assertEqual(2, len(samples))
+        self.assertIsInstance(samples[0], tuple)
+        self.assertIsInstance(samples[0][1][0], np.ndarray)
+        self.assertEqual((3, 6), samples[0][1][0].shape)
+
+    def test_numpy(self):
+        sampler = NumpySampler(Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x: (x[:-3], x[-3:]), epochs=2))
+        samples = list(sampler.sample_full_epochs())
+
+        self.assertEqual(2, len(samples))
+        self.assertIsInstance(samples[0], tuple)
+        self.assertIsInstance(samples[0][1][0], np.ndarray)
+        self.assertEqual((6, 6), samples[0][1][0].shape)
