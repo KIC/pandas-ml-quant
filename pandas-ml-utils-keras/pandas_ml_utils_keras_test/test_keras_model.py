@@ -89,6 +89,10 @@ class TestKerasModel(TestAbstractModel, TestCase):
             os.remove(temp)
 
     @unittest.skip("not focus on keras atm")
+    def test_multi_sample_regressor(self):
+        pass
+
+    @unittest.skip("not focus on keras atm")
     def test_multindex_row(self):
         pass
 
