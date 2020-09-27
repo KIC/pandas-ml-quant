@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import torch as t
 import torch.nn as nn
-from pandas_ml_utils.pytorch.layers import KerasLikeLSTM, RegularizedLayer
+from pandas_ml_utils_torch.layers import KerasLikeLSTM, RegularizedLayer
 
 
 class TestPytorchLayer(TestCase):

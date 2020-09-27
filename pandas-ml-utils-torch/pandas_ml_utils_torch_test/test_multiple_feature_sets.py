@@ -5,7 +5,7 @@ from torch.optim import Adam
 
 from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_utils import pd
-from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
+from pandas_ml_utils_torch import PytorchModel
 from pandas_ml_utils import FeaturesAndLabels
 
 

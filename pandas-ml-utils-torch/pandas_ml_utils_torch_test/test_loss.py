@@ -3,11 +3,12 @@ from unittest import TestCase
 import torch.nn as nn
 from torch.optim import Adam
 
-from pandas_ml_utils import PytorchModel, FeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils_torch import PytorchModel
 from pandas_ml_utils import pd, np
 from pandas_ml_utils.ml.data.splitting import NaiveSplitter
-from pandas_ml_utils.pytorch.loss import MultiObjectiveLoss, RegularizedLoss
-from pandas_ml_utils.pytorch.layers import RegularizedLayer
+from pandas_ml_utils_torch.loss import MultiObjectiveLoss, RegularizedLoss
+from pandas_ml_utils_torch.layers import RegularizedLayer
 
 
 class TestLoss(TestCase):

@@ -14,7 +14,7 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import merge_kwargs, suitable_kwargs
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-from .base_model import Model
+from pandas_ml_utils import Model
 
 _log = logging.getLogger(__name__)
 
