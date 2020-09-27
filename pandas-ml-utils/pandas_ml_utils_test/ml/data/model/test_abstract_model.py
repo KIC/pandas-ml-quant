@@ -134,6 +134,20 @@ class TestAbstractModel(object):
         prediction = df.model.predict(fit.model, samples=2)
         np.testing.assert_array_almost_equal(prediction.iloc[:, 0]._.values, np.concatenate([df[["b"]].values, df[["b"]].values], axis=1), 1)
 
+    def test_multindex_row(self):
+        """given some toy regression data while we provide a multiindex for the rows"""
+        df = pd.DataFrame({
+            "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
+            "b": [-2.0, 1.0, 4.0, 7.0, 10.0, 13.0, -2.0, 1.0, 4.0, 7.0, 10.0, 13.0]
+        }, index=pd.MultiIndex.from_product([["A", "B"], range(6)]))
+
+        """and a model"""
+        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+
+        """when we fit the model"""
+        fit = df.model.fit(model, RandomSplits(0.3), verbose=0, epochs=500)
+        print(fit.training_summary.df)
+
     # Abstract methods
     def provide_regression_model(self, features_and_labels) -> Model:
         pass

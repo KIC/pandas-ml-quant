@@ -1,0 +1,3 @@
+tensorflow<2
+keras
+keras-rl

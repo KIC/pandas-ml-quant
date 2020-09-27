@@ -141,6 +141,7 @@ def ta_sortino_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=Fal
     sigma = returns.clip(upper=risk_free).rolling(period).std(ddof=ddof)
     return (mean_returns - risk_free) / sigma
 
+
 def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
     if has_indexed_columns(df):
         res = _pd.DataFrame({}, index=df.index)
@@ -175,3 +176,15 @@ def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
             d['duration'] = dur
 
         return _pd.DataFrame({}, index=df.index).join(_pd.DataFrame(d, index=pmax.index)).fillna(0)
+
+
+def ta_ma_decompose(df: Typing.PatchedPandas, period=50, boost_ma=10):
+    ma = _sma(df, period=period)
+    base = ma.pct_change() * boost_ma
+    ratio = df / ma - 1
+
+    if isinstance(ratio, Typing.Series):
+        ratio.name = f'{df.name}_ma_ratio'
+
+    return base.to_frame().join(ratio)
+

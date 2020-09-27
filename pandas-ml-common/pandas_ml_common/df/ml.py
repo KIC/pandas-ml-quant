@@ -35,7 +35,8 @@ class ML(object):
         return call_callable_dynamic_args(func, self.df, *args, **kwargs)
 
     def max(self):
-        return self.values.max()
+        values = self.values
+        return max([v.max() for v in values]) if isinstance(values, list) else values.max()
 
     def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
         """
