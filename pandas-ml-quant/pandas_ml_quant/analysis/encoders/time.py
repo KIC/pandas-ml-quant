@@ -8,7 +8,7 @@ def ta_decimal_year(df: _t.PatchedPandas):
     return (df.index.strftime("%j").astype(float) - 1) / 366 + df.index.strftime("%Y").astype(float)
 
 
-def ta_sinusoidial_week_day(po: _t.PatchedPandas):
+def ta_sinusoidal_week_day(po: _t.PatchedPandas):
     if not isinstance(po.index, _pd.DatetimeIndex):
         df = po.copy()
         df.index = _pd.to_datetime(df.index)
@@ -18,7 +18,7 @@ def ta_sinusoidial_week_day(po: _t.PatchedPandas):
     return _np.sin(2 * _np.pi * (df.index.dayofweek / 6.0)).to_series(index=po.index, name="dow")
 
 
-def ta_sinusoidial_week(po: _t.PatchedPandas):
+def ta_sinusoidal_week(po: _t.PatchedPandas):
     if not isinstance(po.index, _pd.DatetimeIndex):
         df = po.copy()
         df.index = _pd.to_datetime(df.index)
