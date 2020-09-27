@@ -8,11 +8,12 @@ import tensorflow_probability as tfp
 
 import pandas_ml_utils as pmu
 from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_quant.keras.time_2_vec import Time2Vec
-from pandas_ml_quant.keras.time_2_vec import tf_Time2Vec as Time2Vec
 from pandas_ml_quant_test.config import DF_TEST
-from pandas_ml_utils.keras.callbacks import plot_losses
 from pandas_ml_utils.ml.summary import RegressionSummary
+from pandas_ml_utils_keras import KerasModel
+from pandas_ml_utils_keras.callbacks import plot_losses
+from pandas_ml_utils_keras.layers import Time2Vec
+from pandas_ml_utils_keras.layers import tf_Time2Vec as Time2Vec
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 print(pmu.__version__)
@@ -54,7 +55,7 @@ class TestTensorflowProbability(TestCase):
         model_provider()
 
         fit = df.model.fit(
-            pmu.KerasModel(
+            KerasModel(
                 model_provider,
                 features_and_labels,
                 summary_provider=RegressionSummary,

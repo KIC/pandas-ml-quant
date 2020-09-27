@@ -9,11 +9,12 @@ from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 import pandas_ml_quant
-from pandas_ml_utils import FeaturesAndLabels, SkModel, KerasModel, PostProcessedFeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels, SkModel, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
 from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
+from pandas_ml_utils_keras import KerasModel
 from test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
