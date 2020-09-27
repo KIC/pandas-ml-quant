@@ -1,7 +1,7 @@
 import torch as t
 import torch.nn as nn
 
-from pandas_ml_utils.pytorch.loss import CrossEntropyLoss
+from pandas_ml_utils_torch.loss import CrossEntropyLoss
 
 
 class DifferentiableArgmax(nn.Module):

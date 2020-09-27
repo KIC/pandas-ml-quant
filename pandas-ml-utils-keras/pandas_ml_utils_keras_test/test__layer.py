@@ -7,10 +7,10 @@ from keras.layers import Dense
 from keras.optimizers import SGD
 
 import pandas_ml_utils as pmu
+from pandas_ml_common.utils import ReScaler
 from pandas_ml_quant import pd, np
-from pandas_ml_quant.analysis.encoders import ReScaler
-from pandas_ml_quant.keras.layers import LinearRegressionLayer, LPPLLayer, NormalDistributionLayer
-from pandas_ml_quant.keras.loss import mdn_cost
+from pandas_ml_utils_keras.layers import NormalDistributionLayer, LinearRegressionLayer, LPPLLayer
+from pandas_ml_utils_keras.loss import mdn_cost
 from pandas_ml_quant_test.config import DF_TEST
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""

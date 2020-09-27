@@ -6,9 +6,8 @@ import numpy as np
 from keras import backend as K
 
 from pandas_ml_common.utils.numpy_utils import one_hot
-from pandas_ml_quant.keras.loss import tailed_categorical_crossentropy, DifferentiableArgmax, \
-    normal_penalized_crossentropy, \
-    parabolic_crossentropy
+from pandas_ml_utils_keras.loss import DifferentiableArgmax, parabolic_crossentropy, tailed_categorical_crossentropy, \
+    normal_penalized_crossentropy
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 

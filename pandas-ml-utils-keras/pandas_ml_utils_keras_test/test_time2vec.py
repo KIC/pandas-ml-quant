@@ -1,16 +1,20 @@
 import os
+import unittest
 from unittest import TestCase
 
 from keras import Sequential
 from keras.layers import Dense, LSTM
 
 import pandas_ml_utils as pmu
-from pandas_ml_quant.keras.time_2_vec import Time2Vec, tf_Time2Vec
-from pandas_ml_quant_test.config import DF_TEST
+import pandas_ml_quant as pmq
 import tensorflow as tf
+
+from pandas_ml_utils_keras.layers import Time2Vec, tf_Time2Vec
+from pandas_ml_quant_test.config import DF_TEST
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 print(pmu.__version__)
+print(pmq.__version__)
 
 
 class TestTime2Vec(TestCase):
@@ -28,6 +32,7 @@ class TestTime2Vec(TestCase):
 
         model.fit(x, y, epochs=2, verbose=1)
 
+    @unittest.skip("not focus on keras atm")
     def test_time_to_vec_3d(self):
         # FIXME
         df = DF_TEST.copy()
@@ -55,6 +60,7 @@ class TestTime2Vec(TestCase):
 
         model.fit(x, y, epochs=2, verbose=1)
 
+    @unittest.skip("not focus on keras atm")
     def test_tf_time_to_vec(self):
         df = DF_TEST.copy()
         model = tf.keras.models.Sequential()

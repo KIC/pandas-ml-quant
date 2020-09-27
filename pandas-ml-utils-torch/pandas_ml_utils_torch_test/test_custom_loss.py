@@ -1,16 +1,16 @@
 from unittest import TestCase
 
-import numpy as np
 import torch as t
 import torch.nn as nn
 from torch.optim import Adam
 
 from pandas_ml_common.utils.numpy_utils import one_hot
-from pandas_ml_quant import PostProcessedFeaturesAndLabels
-from pandas_ml_quant.pytorch.loss import SoftDTW, DifferentiableArgmax, ParabolicPenaltyLoss, TailedCategoricalCrossentropyLoss
+from pandas_ml_quant import np
 from pandas_ml_quant_test.config import DF_TEST
-from pandas_ml_utils import AutoEncoderModel
-from pandas_ml_utils.ml.model.pytoch_model import PytorchModel
+from pandas_ml_utils import AutoEncoderModel, PostProcessedFeaturesAndLabels
+from pandas_ml_utils_torch import PytorchModel
+from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, \
+    DifferentiableArgmax
 
 
 class TestCustomLoss(TestCase):
