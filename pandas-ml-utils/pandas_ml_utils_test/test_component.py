@@ -4,9 +4,9 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold
 
+from pandas_ml_common import naive_splitter, random_splitter
 from pandas_ml_utils import FeaturesAndLabels, SkModel
 from pandas_ml_utils.constants import *
-from pandas_ml_utils.ml.data.splitting import NaiveSplitter, RandomSplits
 from pandas_ml_utils_test.config import DF_NOTES
 
 
@@ -24,7 +24,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            NaiveSplitter()
+            naive_splitter()
         )
 
         print(fit)
@@ -57,7 +57,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            RandomSplits(cross_validation=KFold(3, random_state=42).split)
+            random_splitter(cross_validation=KFold(3, random_state=42).split)
         )
 
         print(fit)
@@ -82,7 +82,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            NaiveSplitter()
+            naive_splitter()
         )
 
         # should not thro an error

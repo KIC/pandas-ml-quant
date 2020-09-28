@@ -1,17 +1,30 @@
 import os
+from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Dict
 
 import dill as pickle
 import numpy as np
+import pandas as pd
 
-from pandas_ml_common import Typing, Sampler
+from pandas_ml_common import Typing, Sampler, NumpySampler
+from pandas_ml_common.utils import to_pandas
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
-from pandas_ml_utils.ml.data.splitting.sampeling import Sampler as OldSampler
 from pandas_ml_utils.ml.summary import Summary
 
 
-class Model(object):
+class _Model(object):
+
+    @abstractmethod
+    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        raise NotImplemented
+
+    @abstractmethod
+    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
+
+
+class Model(_Model):
     """
     Represents a statistical or ML model and holds the necessary information how to interpret the columns of a
     pandas *DataFrame* ( :class:`.FeaturesAndLabels` ). Currently available implementations are:
@@ -53,7 +66,6 @@ class Model(object):
         """
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
-        self._validation_indices = []
         self._history = []
         self.kwargs = kwargs
 
@@ -65,9 +77,12 @@ class Model(object):
     def summary_provider(self):
         return self._summary_provider
 
-    @property
-    def validation_indices(self):
-        return self._validation_indices
+    def fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        self._history, training_prediction, test_prediction = self._fit(sampler, **kwargs)
+        return training_prediction, test_prediction
+
+    def predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        return self._predict(sampler)
 
     def __getitem__(self, item):
         """
@@ -92,23 +107,6 @@ class Model(object):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def fit(self, sampler: OldSampler, **kwargs) -> float:
-        """
-        draws folds from the data generator as long as it yields new data and fits the model to one fold
-
-        :param sampler: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling.Sampler`
-        :return: returns the average loss over oll folds
-        """
-
-        # sample: train[features, labels, target, weights], test[features, labels, target, weights]
-        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
-                  for i, s in enumerate(sampler.sample())]
-
-        self._history = losses
-
-        # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
-        return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
-
     def plot_loss(self, figsize=(8, 6), secondary_y=False, **kwargs):
         """
         plot a diagram of the training and validation losses per fold
@@ -126,6 +124,99 @@ class Model(object):
         plt.legend(loc='upper right')
         return fig, ax
 
+    def __call__(self, *args, **kwargs):
+        """
+        returns a copy pf the model with eventually different configuration (kwargs). This is useful for hyper paramter
+        tuning or for MultiModels
+
+        :param args:
+        :param kwargs: arguments which are eventually provided by hyperopt or by different targets
+        :return:
+        """
+        if not kwargs:
+            return deepcopy(self)
+        else:
+            raise ValueError(f"construction of model with new parameters is not supported\n{type(self)}: {kwargs}")
+
+
+class NumpyModel(Model):
+
+    def __init__(self,
+                 features_and_labels: FeaturesAndLabels,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(features_and_labels, summary_provider, **kwargs)
+        self.labels_columns = None
+
+    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        # remember the label column names for reconstruction
+        self.labels_columns = sampler.frames[1].columns.tolist()
+
+        # wrap sampler into a numpy sampler and fit each epoch
+        nr_epochs = sampler.epochs
+        nr_folds = sampler.nr_of_cross_validation_folds
+        numpy_sampler = NumpySampler(sampler)
+
+        # init result holder data structures
+        losses = {(fold, train_test): [] for fold in range(-1, nr_folds) for train_test in range(2)}
+        test_predictions, train_predictions = [], []
+
+        for fold, train_idx, train, test_idx, test in numpy_sampler.sample_cross_validation():
+            if fold < 0:
+                train_predict, train_loss, test_predict, test_loss = self._fold_epoch(train, test, nr_epochs, **kwargs)
+                train_predictions.append(to_pandas(train_predict, train_idx, self.labels_columns))
+                test_predictions.append(to_pandas(test_predict, test_idx, self.labels_columns))
+            else:
+                train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
+
+            # append losses
+            losses[(fold, 0)].append(train_loss)
+            losses[(fold, 1)].append(test_loss)
+
+        # reconstruct pandas data frames
+        df_losses = pd.DataFrame(losses, columns=pd.MultiIndex.from_tuples(losses.keys()))
+        df_train_prediction = pd.concat(train_predictions, axis=0)
+        df_test_prediction = pd.concat(test_predictions, axis=0)
+
+        return df_losses, df_train_prediction, df_test_prediction
+
+    @abstractmethod
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
+        raise NotImplemented
+
+    @abstractmethod
+    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
+
+    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        ns = NumpySampler(sampler)
+        prediction = np.array([self._predict_epoch(t[0], **kwargs) for (t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+        return to_pandas(prediction, sampler.frames[0].index, self.labels_columns)
+
+    @abstractmethod
+    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        raise NotImplemented
+
+
+class OldCheese(object):
+
+    def fit(self, sampler, **kwargs) -> float:
+        """
+        draws folds from the data generator as long as it yields new data and fits the model to one fold
+
+        :param sampler: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling.Sampler`
+        :return: returns the average loss over oll folds
+        """
+
+        # sample: train[features, labels, target, weights], test[features, labels, target, weights]
+        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
+                  for i, s in enumerate(sampler.sample())]
+
+        self._history = losses
+
+        # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
+        return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
+
     def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
         """
         predict as many samples as we can sample from the sampler
@@ -134,7 +225,7 @@ class Model(object):
         :return:
         """
         # make shape (rows, samples, ...)
-        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
+        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample_full_epochs()]).swapaxes(0, 1)
 
     def fit_fold(self,
                  fold_nr: int,
@@ -164,18 +255,3 @@ class Model(object):
         """
 
         pass
-
-    def __call__(self, *args, **kwargs):
-        """
-        returns a copy pf the model with eventually different configuration (kwargs). This is useful for hyper paramter
-        tuning or for MultiModels
-
-        :param args:
-        :param kwargs: arguments which are eventually provided by hyperopt or by different targets
-        :return:
-        """
-        if not kwargs:
-            return deepcopy(self)
-        else:
-            raise ValueError(f"construction of model with new parameters is not supported\n{type(self)}: {kwargs}")
-

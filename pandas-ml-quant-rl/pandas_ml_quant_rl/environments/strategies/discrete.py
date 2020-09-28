@@ -58,7 +58,7 @@ class LongOnly(Strategy):
                  ):
         # we have 4 actions hold, buy, sell, swing
         super().__init__(Discrete(4), buffer=1, assets=1, indicators=1)
-        if max_holding_period is not None: raise NotImplemented()  # FIXME implement max holding period and eventuall also implement something like stop loss orders
+        if max_holding_period is not None: raise NotImplemented  # FIXME implement max holding period and eventuall also implement something like stop loss orders
         self.buy_col = buy
         self.sell_col = sell
         self.max_loos = max_loos
@@ -109,7 +109,7 @@ class LongShortSwing(Strategy):
                  ):
         # we have 4 actions hold, buy, sell, swing
         super().__init__(Discrete(4), buffer=1, assets=1, indicators=1)
-        if max_holding_period is not None: raise NotImplemented()  # FIXME implement max holding period and eventuall also implement something like stop loss orders
+        if max_holding_period is not None: raise NotImplemented  # FIXME implement max holding period and eventuall also implement something like stop loss orders
         self.buy_col = buy
         self.sell_col = sell
         self.max_loos = max_loos

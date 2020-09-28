@@ -2,9 +2,8 @@ import os
 import tempfile
 import uuid
 
-from pandas_ml_common import pd, np
+from pandas_ml_common import pd, np, naive_splitter, random_splitter
 from pandas_ml_utils import FeaturesAndLabels, Model, AutoEncoderModel
-from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
 
 
 class TestAbstractModel(object):
@@ -21,7 +20,7 @@ class TestAbstractModel(object):
         model = self.provide_classification_model(FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int))
 
         """when we fit the model"""
-        fit = df.model.fit(model, NaiveSplitter(0.49), verbose=0, epochs=1500)
+        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=1500)
         print(fit.training_summary.df)
 
         prediction = df.model.predict(fit.model)
@@ -48,7 +47,7 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, RandomSplits(0.3), verbose=0, epochs=500)
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
         print(fit.training_summary.df)
 
         """then we can predict"""
@@ -77,7 +76,7 @@ class TestAbstractModel(object):
         })
 
         """when we fit the model"""
-        fit = df.model.fit(model, NaiveSplitter(0.49), verbose=0, epochs=500)
+        fit = df.model.fit(model, random_splitter(0.49), verbose=0, epochs=500)
         print(fit.training_summary.df)
 
         """then we can encoder"""
@@ -127,7 +126,7 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, RandomSplits(0.3), verbose=0, epochs=500)
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
         print(fit.training_summary.df)
 
         """then we can predict"""
@@ -145,8 +144,40 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, RandomSplits(0.3), verbose=0, epochs=500)
-        print(fit.training_summary.df)
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
+        prediction = df.model.predict(fit.model)
+
+        """then we get a prediction for A and B rows"""
+        self.assertEqual(8, len(fit.training_summary.df))
+        self.assertEqual(4, len(fit.training_summary.df.loc["A"]))
+        self.assertEqual(4, len(fit.training_summary.df.loc["B"]))
+
+        self.assertEqual(4, len(fit.test_summary.df))
+        self.assertEqual(2, len(fit.test_summary.df.loc["A"]))
+        self.assertEqual(2, len(fit.test_summary.df.loc["B"]))
+
+        self.assertEqual(6, len(prediction.loc["A"]))
+        self.assertEqual(6, len(prediction.loc["B"]))
+        np.testing.assert_array_almost_equal(prediction.iloc[:, 0].values, df["b"].values, 1)
+
+    def test_multindex_row_multi_samples(self):
+        """given some toy regression data while we provide a multiindex for the rows"""
+        df = pd.DataFrame({
+            "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
+            "b": [-2.0, 1.0, 4.0, 7.0, 10.0, 13.0, -2.0, 1.0, 4.0, 7.0, 10.0, 13.0]
+        }, index=pd.MultiIndex.from_product([["A", "B"], range(6)]))
+
+        """and a model"""
+        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+
+        """when we fit the model"""
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
+
+        self.assertEqual(8, len(fit.training_summary.df))
+        self.assertEqual(4, len(fit.test_summary.df))
+
+        prediction = df.model.predict(fit.model, samples=2)
+        self.assertEqual((12, 2), prediction.iloc[:, 0]._.values.shape)
 
     # Abstract methods
     def provide_regression_model(self, features_and_labels) -> Model:

@@ -1,3 +1,2 @@
 twine
-keras
-tensorflow<2
+scikit-learn

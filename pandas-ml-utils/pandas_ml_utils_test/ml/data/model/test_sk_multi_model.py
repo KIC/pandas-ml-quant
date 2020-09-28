@@ -2,10 +2,9 @@ from unittest import TestCase
 
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 
-from pandas_ml_common import np, pd
+from pandas_ml_common import np, pd, naive_splitter
 from pandas_ml_utils import SkModel, FeaturesAndLabels, MultiModel, MultiModelSummary, ClassificationSummary
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
-from pandas_ml_utils.ml.data.splitting import NaiveSplitter
 
 
 class TestSkMultiModel(TestCase):
@@ -33,7 +32,7 @@ class TestSkMultiModel(TestCase):
             summary_provider=MultiModelSummary
         )
 
-        fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)
+        fit = df.model.fit(model, naive_splitter(0.49), epochs=1500, verbose=True)
         print(fit.training_summary._repr_html_()[:100])
 
         pdf = df.model.predict(fit.model, tail=2)
@@ -63,7 +62,7 @@ class TestSkMultiModel(TestCase):
             summary_provider=MultiModelSummary
         )
 
-        fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)
+        fit = df.model.fit(model, naive_splitter(0.49), epochs=1500, verbose=True)
         print(fit.training_summary._repr_html_()[:100])
 
         self.assertEqual(4, len(fit.training_summary.df[PREDICTION_COLUMN_NAME, "c_0"]))
@@ -99,7 +98,7 @@ class TestSkMultiModel(TestCase):
             model_index_variable="index"
         )
 
-        fit = df.model.fit(model, NaiveSplitter(0.49), epochs=1500, verbose=True)
+        fit = df.model.fit(model, naive_splitter(0.49), epochs=1500, verbose=True)
         print(fit.training_summary.df)
 
         self.assertEqual(4, len(fit.training_summary.df[PREDICTION_COLUMN_NAME, "c1"]))

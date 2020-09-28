@@ -16,7 +16,7 @@ def extract_feature_labels_weights(
         df: Typing.PatchedDataFrame,
         features_and_labels,
         **kwargs) -> Tuple[Tuple[pd.DataFrame, int], pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    _, features, targets = extract_features(df, features_and_labels, **kwargs)
+    features, targets = extract_features(df, features_and_labels, **kwargs)
     labels = get_pandas_object(df, features_and_labels.labels, **kwargs).dropna()
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
     gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
@@ -49,7 +49,7 @@ def extract_feature_labels_weights(
     )
 
 
-def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[List, pd.DataFrame, pd.DataFrame]:
+def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame]:
     if isinstance(features_and_labels.features, tuple):
         # allow multiple feature sets i.e. for multi input layered networks
         features = MultiFrameDecorator([get_pandas_object(df, f, **kwargs).dropna() for f in features_and_labels.features], True)
@@ -63,7 +63,6 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[L
         raise ValueError("not enough data!")
 
     return (
-        features_and_labels.label_columns,
         features.loc[common_index],
         loc_if_not_none(targets, common_index)
     )

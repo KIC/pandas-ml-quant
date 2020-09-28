@@ -1,10 +1,23 @@
 from unittest import TestCase
 
 from pandas_ml_utils import pd, np
-from pandas_ml_utils.ml.data.splitting import RandomSplits
+from pandas_ml_common.sampling import naive_splitter, random_splitter, dummy_splitter
 
 
 class TestTrainTestData(TestCase):
+
+    def test_naive_splitter(self):
+        """given"""
+        df = pd.DataFrame({"featureA": [1, 2, 3, 4, 5],
+                           "labelA": [1, 2, 3, 4, 5]})
+
+        """when"""
+        train_ix, test_ix = naive_splitter(0.3)(df.index)
+
+        """then"""
+        print(train_ix, test_ix)
+        self.assertListEqual([0, 1, 2], train_ix.tolist())
+        self.assertListEqual([3, 4], test_ix.tolist())
 
     def test_no_training_data(self):
         """given"""
@@ -12,10 +25,12 @@ class TestTrainTestData(TestCase):
                            "labelA": [1,2,3,4,5]})
 
         """when"""
-        train_ix, test_ix = RandomSplits(0).train_test_split(df.index)
+        train_ix, test_ix = random_splitter(0)(df.index)
+        train_ix2, test_ix2 = dummy_splitter(df.index)
 
         """then"""
         np.testing.assert_array_almost_equal(train_ix.values, df.index.values)
+        np.testing.assert_array_almost_equal(train_ix.values, train_ix2.values)
         self.assertEqual(0, len(test_ix))
 
     def test_make_training_data(self):
@@ -24,7 +39,7 @@ class TestTrainTestData(TestCase):
                            "labelA": [1, 2, 3, 4, 5]})
 
         """when"""
-        train_ix, test_ix = RandomSplits(test_size=0.5).train_test_split(df.index)
+        train_ix, test_ix = random_splitter(test_size=0.5)(df.index)
 
         """then"""
         self.assertEqual(2, len(train_ix))
@@ -36,7 +51,7 @@ class TestTrainTestData(TestCase):
                            "labelA": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
 
         """when"""
-        train_ix, test_ix = RandomSplits(test_size=0.6, youngest_size=0.25).train_test_split(df.index)
+        train_ix, test_ix = random_splitter(test_size=0.6, youngest_size=0.25)(df.index)
 
         "then"
         self.assertEqual(6, len(test_ix))

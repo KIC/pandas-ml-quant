@@ -66,16 +66,9 @@ class FeaturesAndLabels(object):
 
         # set after fit
         self._min_required_samples = None
-        self._label_columns = None
 
     def set_min_required_samples(self, min_required: int):
         self._min_required_samples = min_required
-
-        return self
-
-    def set_label_columns(self, column_names, over_write=False) -> 'FeaturesAndLabels':
-        if not self._label_columns or over_write:
-            self._label_columns = column_names
 
         return self
 
@@ -106,10 +99,6 @@ class FeaturesAndLabels(object):
     @property
     def min_required_samples(self) -> Union[int, Callable[[Any], int]]:
         return self._min_required_samples
-
-    @property
-    def label_columns(self):
-        return self._label_columns
 
     @property
     def kwargs(self):

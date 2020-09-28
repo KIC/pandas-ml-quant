@@ -8,12 +8,10 @@ from typing import List, Callable, Union, Tuple
 import numpy as np
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
-from ..data.splitting.sampeling import Sampler
-from ..data.splitting.sampeling.extract_multi_model_label import ExtractMultiMultiModelSampler
 from ..data.extraction import FeaturesAndLabels
+from ..data.splitting.sampeling.extract_multi_model_label import ExtractMultiMultiModelSampler
 
 _log = logging.getLogger(__name__)
 
@@ -80,7 +78,7 @@ class MultiModel(Model):
     def models_iter(nr_of_models):
         return range(nr_of_models) if isinstance(nr_of_models, int) else nr_of_models
 
-    def fit(self, sampler: Sampler, **kwargs) -> float:
+    def fit(self, sampler: 'Sampler', **kwargs) -> float:
         sub_model_losses = []
         nr_of_models = self.nr_models
 

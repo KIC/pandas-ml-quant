@@ -182,11 +182,13 @@ class NumpySampler(object):
             self,
             on_epoch: Callable = None,
             on_fold: Callable = None
-    ) -> Generator[Tuple[int, List[np.ndarray], List[np.ndarray]], None, None]:
+    ) -> Generator[Tuple[int, pd.Index, List[np.ndarray], pd.Index, List[np.ndarray]], None, None]:
         for fold, train, test in self.sampler.sample_cross_validation(on_epoch=on_epoch, on_fold=on_fold):
             yield (
                 fold,
+                train[0].index,
                 tuple([NumpySampler._to_numpy(t) for t in train]),
+                test[0].index,
                 tuple([NumpySampler._to_numpy(t) for t in test])
             )
 
@@ -206,7 +208,7 @@ class NumpySampler(object):
 
     @staticmethod
     def _to_numpy(df):
-        if df is None:
+        if df is None or len(df) <= 0:
             return None
 
         values = df._.values

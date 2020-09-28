@@ -7,7 +7,6 @@ import numpy as np
 from pandas_ml_common import Typing
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import Model
-from ..data.splitting.sampeling import Sampler
 
 _log = logging.getLogger(__name__)
 
@@ -60,7 +59,7 @@ class AutoEncoderModel(Model):
         copy._features_and_labels = fnl_copy
         return copy
 
-    def fit(self, sampler: Sampler, **kwargs) -> float:
+    def fit(self, sampler: 'Sampler', **kwargs) -> float:
         loss = self.trainable_model.fit(sampler, **kwargs)
         self._history = self.trainable_model._history
         return loss

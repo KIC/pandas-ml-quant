@@ -1,18 +1,17 @@
-from typing import Callable, Tuple, Dict, Union, Iterable
+from typing import Callable, Tuple, Dict, Union, Iterable, List
 
-from pandas_ml_common import Typing
+from pandas_ml_common import Typing, naive_splitter
 from pandas_ml_common.utils import has_indexed_columns, merge_kwargs
 from pandas_ml_utils.ml.data.analysis import feature_selection
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
-from pandas_ml_utils.ml.data.splitting import Splitter, RandomSplits
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
 from pandas_ml_utils.ml.model import Model as MlModel
 from pandas_ml_utils.ml.summary import Summary
 
 
-class Model(object):
+class DfModelPatch(object):
 
     def __init__(self, df: Typing.PatchedDataFrame):
         self.df = df
@@ -41,11 +40,21 @@ class Model(object):
 
     def fit(self,
             model_provider: Callable[[], MlModel],
-            training_data_splitter: Splitter = RandomSplits(),
+            training_data_splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),
+            training_samples_filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
+            cross_validation: Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]] = None,
             hyper_parameter_space: Dict = None,
             **kwargs
             ) -> Fit:
-        return fit(self.df, model_provider, training_data_splitter, hyper_parameter_space, **kwargs)
+        return fit(
+            self.df,
+            model_provider,
+            training_data_splitter,
+            training_samples_filter,
+            cross_validation,
+            hyper_parameter_space,
+            **kwargs
+        )
 
     def backtest(self,
                  model: MlModel,
@@ -59,4 +68,3 @@ class Model(object):
                 samples: int = 1,
                 **kwargs) -> Typing.PatchedDataFrame:
         return predict(self.df, model, tail=tail, samples=samples, **kwargs)
-

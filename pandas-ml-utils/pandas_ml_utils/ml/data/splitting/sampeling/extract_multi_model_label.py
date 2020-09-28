@@ -2,16 +2,15 @@ from typing import Tuple, List, Generator
 
 import numpy as np
 
-from pandas_ml_utils.ml.data.splitting.sampeling import Sampler
 
 
 def _get(arr, i):
     return arr[i] if arr is not None else None
 
 
-class ExtractMultiMultiModelSampler(Sampler):
+class ExtractMultiMultiModelSampler(object):
 
-    def __init__(self, start_index, nr_models, sampler: Sampler):
+    def __init__(self, start_index, nr_models, sampler: 'Sampler'):
         super().__init__(sampler.train, sampler.test, None)
         self.__cross_validation = sampler._cross_validation
         self.start_index = start_index

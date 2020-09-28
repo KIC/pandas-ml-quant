@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import logging
 from time import perf_counter
-from typing import Callable, Dict, TYPE_CHECKING
+from typing import Callable, Dict, TYPE_CHECKING, Union, Tuple, List
 
 import pandas as pd
 
-from pandas_ml_common import Sampler, NumpySampler
-from pandas_ml_common.utils import merge_kwargs, to_pandas
-from pandas_ml_utils.constants import *
+from pandas_ml_common import Sampler, Typing
+from pandas_ml_common.utils import merge_kwargs
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
-from pandas_ml_utils.ml.data.reconstruction import assemble_prediction_frame
-from pandas_ml_utils.ml.data.splitting import DummySplitter, Splitter
-from pandas_ml_utils.ml.data.splitting.random_splits import RandomSplits
-from pandas_ml_utils.ml.data.splitting.sampeling import DataGenerator
+from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
@@ -27,7 +23,9 @@ if TYPE_CHECKING:
 
 def fit(df: pd.DataFrame,
         model_provider: Callable[[int], Model],
-        training_data_splitter: Splitter = RandomSplits(),  # FIXME even this changes to training splitter and cross validator
+        training_data_splitter,
+        training_samples_filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
+        cross_validation: Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]] = None,
         hyper_parameter_space: Dict = None,
         **kwargs
         ) -> Fit:
@@ -82,28 +80,25 @@ def fit(df: pd.DataFrame,
     #                         splitter=training_data_splitter,
     #                         cross_validation=cross_validatator,
     #                         epochs=epochs
-    sampler = DataGenerator(training_data_splitter, features, labels, targets, weights, gross_loss).train_test_sampler()
-    model.fit(sampler, **kwargs)
+    sampler = Sampler(
+        features, labels, targets, weights, gross_loss,
+        splitter=training_data_splitter,
+        training_samples_filter=training_samples_filter,
+        cross_validation=cross_validation
+    )
+
+    df_train_prediction, df_test_prediction = model.fit(sampler, **kwargs)
     _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
     # assemble result objects
-    train_sampler, train_idx = sampler.training()
-    test_sampler, test_idx = sampler.validation()
-
     try:
-        prediction = (to_pandas(model.predict(train_sampler, **kwargs), train_idx, labels.columns),
-                      to_pandas(model.predict(test_sampler, **kwargs), test_idx, labels.columns))
-
         # get training and test data tuples of the provided frames
-        features, labels, targets, weights, gross_loss = sampler[0], sampler[1], sampler[2], sampler[3], sampler[4]
-        df_train, df_test = [
-            _assemble_result_frame(targets[i], prediction[i], labels[i], gross_loss[i], weights[i], features[i])
-            for i in range(2)]
+        features, labels, targets, weights, gross_loss = sampler.frames
+        df_train = assemble_result_frame(targets, df_train_prediction, labels, gross_loss, weights, features)
+        df_test = assemble_result_frame(targets, df_test_prediction, labels, gross_loss, weights, features)
 
         # update model properties and return the fit
-        model._validation_indices = test_idx
         model.features_and_labels.set_min_required_samples(min_required_samples)
-        model.features_and_labels.set_label_columns(labels[0].columns.tolist())
         model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
 
         return Fit(model, model.summary_provider(df_train, model, **kwargs), model.summary_provider(df_test, model, **kwargs), trails, **kwargs)
@@ -122,16 +117,15 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
             _log.warning("could not determine the minimum required data from the model")
 
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    columns, features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
+    features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
 
     if samples > 1:
         print(f"draw {samples} samples")
 
-    sampler = NumpySampler(Sampler(features, None, targets, None, splitter=None, epochs=samples))
+    sampler = Sampler(features, None, targets, None, splitter=None, epochs=samples)
     predictions = model.predict(sampler, **kwargs)
 
-    y_hat = to_pandas(predictions, index=features.index, columns=columns)
-    return _assemble_result_frame(targets, y_hat, None, None, None, features)
+    return assemble_result_frame(targets, predictions, None, None, None, features)
 
 
 def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = None, **kwargs) -> Summary:
@@ -139,22 +133,13 @@ def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.Data
     (features, _), labels, targets, weights, gross_loss =\
         extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    sampler = NumpySampler(Sampler(features, labels, targets, None, splitter=None, epochs=1))
+    sampler = Sampler(features, labels, targets, None, splitter=None, epochs=1)
     predictions = model.predict(sampler, **kwargs)
 
-    y_hat = to_pandas(predictions, index=features.index, columns=labels.columns)
-    df_backtest = _assemble_result_frame(targets, y_hat, labels, gross_loss, weights, features)
+    df_backtest = assemble_result_frame(targets, predictions, labels, gross_loss, weights, features)
     return (summary_provider or model.summary_provider)(df_backtest, model, **kwargs)
 
 
-def _assemble_result_frame(targets, prediction, labels, gross_loss, weights, features):
-    return assemble_prediction_frame(
-        {TARGET_COLUMN_NAME: targets,
-         PREDICTION_COLUMN_NAME: prediction,
-         LABEL_COLUMN_NAME: labels,
-         GROSS_LOSS_COLUMN_NAME: gross_loss,
-         SAMPLE_WEIGHTS_COLUMN_NAME: weights,
-         FEATURE_COLUMN_NAME: features})
 
 
 

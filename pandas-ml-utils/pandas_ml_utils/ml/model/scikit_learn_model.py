@@ -8,16 +8,17 @@ import numpy as np
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 
-from pandas_ml_common import Typing
+from pandas_ml_common import Typing, Sampler, NumpySampler
+from pandas_ml_common.utils import to_pandas
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-from .base_model import Model
+from .base_model import NumpyModel
 
 _log = logging.getLogger(__name__)
 ConvergenceWarning('ignore')
 
 
-class SkModel(Model):
+class SkModel(NumpyModel):
 
     def __init__(self,
                  skit_model,
@@ -26,14 +27,24 @@ class SkModel(Model):
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.skit_model = skit_model
+        self.labels_columns = None
         self.label_shape = None
 
-    def fit_fold(self,
-                 fold_nr: int,
-                 x: np.ndarray, y: np.ndarray,
-                 x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
+        if nr_epochs is None or nr_epochs > 1:
+            # FIXME we need tu use Skit.partial_fit
+            raise NotImplementedError("FIXME we need to use Skit.partial_fit")
+        else:
+            train_loss, test_loss = self.__fit_model(train[0], train[1])
+            train_prediction = self._predict_epoch(train[0])
+            test_prediction = self._predict_epoch(test[0])
+
+            return train_prediction, train_loss, test_prediction, test_loss
+
+    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplementedError("FIXME we need o train a cross validation model")
+
+    def __fit_model(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # shape correction if needed
         x = SkModel.reshape_rnn_as_ar(x)
         y = y.reshape((len(x), -1)) if y.ndim > 1 and y.shape[1] == 1 else y
@@ -47,7 +58,7 @@ class SkModel(Model):
             loss_curve = getattr(self.skit_model, 'loss_curve_', [])
             return np.array(loss_curve), np.array([])
         else:
-            prediction = self.predict_sample(x)
+            prediction = self._predict_epoch(x)
             if isinstance(self.skit_model, LogisticRegression)\
             or type(self.skit_model).__name__.endswith("Classifier")\
             or type(self.skit_model).__name__.endswith("SVC"):
@@ -63,7 +74,7 @@ class SkModel(Model):
                 from sklearn.metrics import mean_squared_error
                 return np.array(mean_squared_error(prediction, y).mean()), np.array([])
 
-    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):
             y_hat = self.skit_model.predict_proba(SkModel.reshape_rnn_as_ar(x))
             binary_classifier = len(self.label_shape) == 1 or self.label_shape[1] == 1

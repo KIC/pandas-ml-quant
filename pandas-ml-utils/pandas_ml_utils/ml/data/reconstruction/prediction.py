@@ -3,6 +3,17 @@ from typing import Dict
 # make sure to import monkey patched data frame
 from pandas_ml_common import pd, np, get_pandas_object
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, TARGET_COLUMN_NAME
+from pandas_ml_utils.constants import *
+
+
+def assemble_result_frame(targets, prediction, labels, gross_loss, weights, features):
+    return assemble_prediction_frame(
+        {TARGET_COLUMN_NAME: targets,
+         PREDICTION_COLUMN_NAME: prediction,
+         LABEL_COLUMN_NAME: labels,
+         GROSS_LOSS_COLUMN_NAME: gross_loss,
+         SAMPLE_WEIGHTS_COLUMN_NAME: weights,
+         FEATURE_COLUMN_NAME: features})
 
 
 def assemble_prediction_frame(frames: Dict[str, pd.DataFrame]):
