@@ -161,15 +161,23 @@ class NumpyModel(Model):
         losses = {(fold, train_test): [] for fold in range(-1, nr_folds) for train_test in range(2)}
         test_predictions, train_predictions = [], []
 
-        for fold, train_idx, train, test_idx, test in numpy_sampler.sample_cross_validation():
+        for epoch, fold, train_idx, train, test_idx, test in numpy_sampler.sample_cross_validation():
             if fold < 0:
                 # train a plain (not cross validated mode) or merge a cross validated model
                 train_predict, train_loss, test_predict, test_loss = self._fold_epoch(train, test, nr_epochs, **kwargs)
+                # FIXME instead of returning predictions retun losses only and call predict here ... self._predict_epoch()
+                #  assemble frames only if epoch is last epoch -> sampler might need to return epoch as well
                 train_predictions.append(to_pandas(train_predict, train_idx, self.labels_columns))
                 test_predictions.append(to_pandas(test_predict, test_idx, self.labels_columns))
             else:
                 # train one fold of a cross validation model
                 train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
+
+            if epoch >= nr_epochs:
+                # FIXME this is the last epoch
+                #train_predictions.append(to_pandas(self._predict_epoch(train), train_idx, self.labels_columns))
+                #test_predictions.append(to_pandas(self._predict_epoch(test), test_idx, self.labels_columns))
+                pass
 
             # append losses
             if isinstance(train_loss, Iterable):
@@ -196,7 +204,7 @@ class NumpyModel(Model):
 
     def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
         ns = NumpySampler(sampler)
-        prediction = np.array([self._predict_epoch(t[0], **kwargs) for (t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+        prediction = np.array([self._predict_epoch(t[0], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
         return to_pandas(prediction, sampler.frames[0].index, self.labels_columns)
 
     @abstractmethod

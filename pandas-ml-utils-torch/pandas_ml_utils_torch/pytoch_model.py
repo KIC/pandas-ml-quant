@@ -13,12 +13,13 @@ from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-from pandas_ml_utils import Model
+from pandas_ml_utils import NumpyModel
+
 
 _log = logging.getLogger(__name__)
 
 
-class PytorchModel(Model):
+class PytorchModel(NumpyModel):
 
     if TYPE_CHECKING:
         from torch.nn import Module, _Loss
@@ -40,12 +41,26 @@ class PytorchModel(Model):
         self.module = None
         self.log_once = LogOnce().log
 
-    def fit_fold(self,
-                 fold_nr: int,
-                 x: np.ndarray, y: np.ndarray,
-                 x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight: np.ndarray, sample_weight_val: np.ndarray,
-                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
+        if nr_epochs is None or nr_epochs > 1:
+            # FIXME remo move epoch loop
+            raise NotImplementedError("FIXME move epoch loop")
+        else:
+            train_loss, test_loss = self.__fit_model(-1, train[0], train[1], test[0], test[1], train[3], test[3], **kwargs)
+            train_prediction = self._predict_epoch(train[0])
+            test_prediction = self._predict_epoch(test[0])
+
+            return train_prediction, train_loss, test_prediction, test_loss
+
+    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
+
+    def __fit_model(self,
+                    fold_nr: int,
+                    x: np.ndarray, y: np.ndarray,
+                    x_val: np.ndarray, y_val: np.ndarray,
+                    sample_weight: np.ndarray, sample_weight_val: np.ndarray,
+                    **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         # import specifics
         from torch.autograd import Variable
         import torch as t
@@ -177,7 +192,7 @@ class PytorchModel(Model):
 
         return loss
 
-    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         # import specifics
         import torch as t
 

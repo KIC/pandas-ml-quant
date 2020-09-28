@@ -64,7 +64,7 @@ class Sampler(object):
             self,
             on_epoch: Callable = None,
             on_fold: Callable = None
-    ) -> Generator[Tuple[int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
+    ) -> Generator[Tuple[int, int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
         """
         Samples training data and test data from the given data frames using cross validation. For each fold
         a separate model should be trained. All fold models then might be averaged together or only the best one might
@@ -77,8 +77,8 @@ class Sampler(object):
 
         if self.cross_validation is None:
             # simply wrapping the sample generator to return the same data structure as if it would be cross validated
-            for train_data, test_data in self.sample(on_epoch):
-                yield -1, train_data, test_data
+            for epoch, train_data, test_data in self.sample(on_epoch):
+                yield epoch, -1, train_data, test_data
         else:
             # here we only need one epoch for each frame!
             row_frame_folds = [(train_idx, test_idx, list(enumerate(self.cross_validation(train_idx))))
@@ -99,21 +99,23 @@ class Sampler(object):
                             on_fold()
 
                         yield (
+                            epoch,
                             f,
                             [loc_if_not_none(f, train_idx[cv_train_idx]) for f in self.frames],
                             [loc_if_not_none(f, train_idx[cv_val_idx]) for f in self.frames]
                         )
 
                     yield (
+                        epoch,
                         -1,
                         [loc_if_not_none(f, train_idx) for f in self.frames],
                         [loc_if_not_none(f, test_idx) for f in self.frames]
                     )
 
-    def sample_full_epochs(self) -> Generator[Tuple[List[pd.DataFrame], List[pd.DataFrame]], None, None]:
+    def sample_full_epochs(self) -> Generator[Tuple[int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
         return self.sample(full_epoch=True)
 
-    def sample(self, full_epoch: bool = False, on_epoch: Callable = None) -> Generator[Tuple[List[pd.DataFrame], List[pd.DataFrame]], None, None]:
+    def sample(self, full_epoch: bool = False, on_epoch: Callable = None) -> Generator[Tuple[int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
         """
         Samples training data and test data from the given data frames
 
@@ -124,6 +126,7 @@ class Sampler(object):
         """
         for epoch, train_idx, test_idx in self._sample(self.common_index, self.epochs, full_epoch, on_epoch):
             yield (
+                epoch,
                 [loc_if_not_none(f, train_idx) for f in self.frames],
                 [loc_if_not_none(f, test_idx) for f in self.frames]
             )
@@ -182,9 +185,10 @@ class NumpySampler(object):
             self,
             on_epoch: Callable = None,
             on_fold: Callable = None
-    ) -> Generator[Tuple[int, pd.Index, List[np.ndarray], pd.Index, List[np.ndarray]], None, None]:
-        for fold, train, test in self.sampler.sample_cross_validation(on_epoch=on_epoch, on_fold=on_fold):
+    ) -> Generator[Tuple[int, int, pd.Index, List[np.ndarray], pd.Index, List[np.ndarray]], None, None]:
+        for epoch, fold, train, test in self.sampler.sample_cross_validation(on_epoch=on_epoch, on_fold=on_fold):
             yield (
+                epoch,
                 fold,
                 train[0].index,
                 tuple([NumpySampler._to_numpy(t) for t in train]),
@@ -192,16 +196,18 @@ class NumpySampler(object):
                 tuple([NumpySampler._to_numpy(t) for t in test])
             )
 
-    def sample_full_epochs(self) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
-        for train, test in self.sampler.sample_full_epochs():
+    def sample_full_epochs(self) -> Generator[Tuple[int, List[np.ndarray], List[np.ndarray]], None, None]:
+        for epoch, train, test in self.sampler.sample_full_epochs():
             yield (
+                epoch,
                 tuple([NumpySampler._to_numpy(t) for t in train]),
                 tuple([NumpySampler._to_numpy(t) for t in test])
             )
 
-    def sample(self, full_epoch: bool = False, on_epoch: Callable = None) -> Generator[Tuple[List[np.ndarray], List[np.ndarray]], None, None]:
-        for train, test in self.sampler.sample(full_epoch=full_epoch, on_epoch=on_epoch):
+    def sample(self, full_epoch: bool = False, on_epoch: Callable = None) -> Generator[Tuple[int, List[np.ndarray], List[np.ndarray]], None, None]:
+        for epoch, train, test in self.sampler.sample(full_epoch=full_epoch, on_epoch=on_epoch):
             yield (
+                epoch,
                 tuple([NumpySampler._to_numpy(t) for t in train]),
                 tuple([NumpySampler._to_numpy(t) for t in test])
             )

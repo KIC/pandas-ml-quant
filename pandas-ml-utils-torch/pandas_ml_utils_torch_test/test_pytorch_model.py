@@ -150,4 +150,4 @@ class TestPytorchModel(TestAbstractModel, TestCase):
 
         fit = df.model.fit(model, on_epoch=[PytorchModel.Callbacks.early_stopping(patience=3, tolerance=-100)], restore_best_weights=True)
         print(fit.model._history)
-        self.assertEqual(4, len(fit.model._history[0][0]))
+        self.assertEqual(4, len(fit.model._history))
