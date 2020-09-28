@@ -186,12 +186,12 @@ class TestIndicator(TestCase):
             0.001)
 
     def test_ta_sinusoidial_weekday(self):
-        me = ta_sinusoidial_week_day(DF_TEST["Close"])[-1:]
+        me = ta_sinusoidal_week_day(DF_TEST["Close"])[-1:]
 
         np.testing.assert_almost_equal(me.values[0], 1.2246467991473532e-16, 6)
 
     def test_ta_sinusoidial_week(self):
-        me = ta_sinusoidial_week(DF_TEST["Close"])
+        me = ta_sinusoidal_week(DF_TEST["Close"])
 
         np.testing.assert_almost_equal(me.values[-1], -0.35460488704253595, 4)
         np.testing.assert_almost_equal(me.loc["2017-01-03"], 0.12053668025532306, 4)
