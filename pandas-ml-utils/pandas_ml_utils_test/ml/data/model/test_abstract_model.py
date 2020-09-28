@@ -178,6 +178,8 @@ class TestAbstractModel(object):
 
         prediction = df.model.predict(fit.model, samples=2)
         self.assertEqual((12, 2), prediction.iloc[:, 0]._.values.shape)
+        self.assertEqual(2, fit.model._history.shape[1])
+        self.assertGreater(fit.model._history.shape[0], 2)
 
     # Abstract methods
     def provide_regression_model(self, features_and_labels) -> Model:

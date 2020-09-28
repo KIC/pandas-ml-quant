@@ -34,9 +34,7 @@ class SkModel(NumpyModel):
         raise NotImplemented
 
     def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
-        #raise NotImplementedError("FIXME we need to train a cross validation model")
-        self.__fit_model(train[0], train[1])
-        return 0, 0  # FIXME fix losses
+        return self.__fit_model(train[0], train[1])
 
     def __fit_model(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # shape correction if needed
@@ -50,7 +48,7 @@ class SkModel(NumpyModel):
 
         if getattr(self.skit_model, 'loss_', None):
             loss_curve = getattr(self.skit_model, 'loss_curve_', [])
-            return np.array(loss_curve), np.array([])
+            return np.array(loss_curve), np.array([np.nan] * len(loss_curve))
         else:
             prediction = self._predict_epoch(x)
             if isinstance(self.skit_model, LogisticRegression)\
@@ -58,15 +56,15 @@ class SkModel(NumpyModel):
             or type(self.skit_model).__name__.endswith("SVC"):
                 from sklearn.metrics import log_loss
                 try:
-                    return np.array(log_loss(prediction > 0.5, y).mean()), np.array([])
+                    return np.array(log_loss(prediction > 0.5, y).mean()), np.array([np.nan])
                 except ValueError as e:
                     if "contains only one label" in str(e):
-                        return np.array([-100]), np.array([])
+                        return np.array([-100]), np.array([np.nan])
                     else:
                         raise e
             else:
                 from sklearn.metrics import mean_squared_error
-                return np.array(mean_squared_error(prediction, y).mean()), np.array([])
+                return np.array(mean_squared_error(prediction, y).mean()), np.array([np.nan])
 
     def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):
