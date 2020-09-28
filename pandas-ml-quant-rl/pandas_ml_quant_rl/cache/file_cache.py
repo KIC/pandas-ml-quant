@@ -34,7 +34,7 @@ class FileCache(Cache):
             if len(features) == len(fkeys):
                 features = MultiFrameDecorator(features)
             else:
-                _, features, _ = extract_features(df, features_and_labels)
+                features, _ = extract_features(df, features_and_labels)
                 for fk, f in zip(fkeys, features.frames()):
                     self.file_cache[fk] = f
         else:
@@ -42,7 +42,7 @@ class FileCache(Cache):
                 features = self.file_cache[fkey]
             else:
                 print(f"fetch data for: {symbol}")
-                _, features, _ = extract_features(df, features_and_labels)
+                features, _ = extract_features(df, features_and_labels)
                 self.file_cache[fkey] = features
 
         return features._.values, features.index
