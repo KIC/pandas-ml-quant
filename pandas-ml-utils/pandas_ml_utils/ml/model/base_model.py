@@ -1,7 +1,7 @@
 import os
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Tuple, Dict
+from typing import Callable, Tuple, Dict, Iterable
 
 import dill as pickle
 import numpy as np
@@ -163,15 +163,21 @@ class NumpyModel(Model):
 
         for fold, train_idx, train, test_idx, test in numpy_sampler.sample_cross_validation():
             if fold < 0:
+                # train a plain (not cross validated mode) or merge a cross validated model
                 train_predict, train_loss, test_predict, test_loss = self._fold_epoch(train, test, nr_epochs, **kwargs)
                 train_predictions.append(to_pandas(train_predict, train_idx, self.labels_columns))
                 test_predictions.append(to_pandas(test_predict, test_idx, self.labels_columns))
             else:
+                # train one fold of a cross validation model
                 train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
 
             # append losses
-            losses[(fold, 0)].append(train_loss)
-            losses[(fold, 1)].append(test_loss)
+            if isinstance(train_loss, Iterable):
+                losses[(fold, 0)].extend(train_loss)
+                losses[(fold, 1)].extend(test_loss)
+            else:
+                losses[(fold, 0)].append(train_loss)
+                losses[(fold, 1)].append(test_loss)
 
         # reconstruct pandas data frames
         df_losses = pd.DataFrame(losses, columns=pd.MultiIndex.from_tuples(losses.keys()))

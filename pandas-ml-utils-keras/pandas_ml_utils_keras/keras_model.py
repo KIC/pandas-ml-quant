@@ -14,12 +14,12 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import merge_kwargs, suitable_kwargs
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-from pandas_ml_utils import Model
+from pandas_ml_utils import NumpyModel
 
 _log = logging.getLogger(__name__)
 
 
-class KerasModel(Model):
+class KerasModel(NumpyModel):
     # eventually we need to save and load the weights of the keras model individually by using `__getstate__`
     #  `__setstate__` like described here: http://zachmoshe.com/2017/04/03/pickling-keras-models.html
     if TYPE_CHECKING:
@@ -85,7 +85,21 @@ class KerasModel(Model):
         self.callbacks = callbacks
         self.history = None
 
-    def fit_fold(self,
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
+        if nr_epochs is None or nr_epochs > 1:
+            # FIXME remo move epoch loop
+            raise NotImplementedError("FIXME move epoch loop")
+        else:
+            train_loss, test_loss = self.__fit_model(-1, train[0], train[1], test[0], test[1], train[3], test[3], **kwargs)
+            train_prediction = self._predict_epoch(train[0])
+            test_prediction = self._predict_epoch(test[0])
+
+            return train_prediction, train_loss, test_prediction, test_loss
+
+    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
+
+    def __fit_model(self,
                  fold_nr: int,
                  x: np.ndarray, y: np.ndarray,
                  x_val: np.ndarray, y_val: np.ndarray,
@@ -118,7 +132,7 @@ class KerasModel(Model):
 
         return np.array(fit_history.history['loss']), np.array(fit_history.history['val_loss'])
 
-    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         return self._exec_within_session(self.keras_model.predict, x)
 
     def get_weights(self):

@@ -56,6 +56,7 @@ class TestKerasModel(TestAbstractModel, TestCase):
         model = KerasModel(
             model_provider,
             features_and_labels,
+            epochs=200
         )
 
         return model
