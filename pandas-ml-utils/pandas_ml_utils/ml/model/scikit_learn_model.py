@@ -42,7 +42,8 @@ class SkModel(NumpyModel):
             return train_prediction, train_loss, test_prediction, test_loss
 
     def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplementedError("FIXME we need o train a cross validation model")
+        #raise NotImplementedError("FIXME we need to train a cross validation model")
+        return self.__fit_model(train[0], train[1])
 
     def __fit_model(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # shape correction if needed

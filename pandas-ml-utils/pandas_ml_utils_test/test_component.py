@@ -57,7 +57,8 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            random_splitter(cross_validation=KFold(3, random_state=42).split)
+            training_data_splitter=random_splitter(),
+            cross_validation=KFold(3, random_state=42)
         )
 
         print(fit)

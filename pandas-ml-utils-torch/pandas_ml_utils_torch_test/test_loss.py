@@ -6,7 +6,7 @@ from torch.optim import Adam
 from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils_torch import PytorchModel
 from pandas_ml_utils import pd, np
-from pandas_ml_utils.ml.data.splitting import NaiveSplitter
+from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_utils_torch.loss import MultiObjectiveLoss, RegularizedLoss
 from pandas_ml_utils_torch.layers import RegularizedLayer
 
@@ -52,7 +52,7 @@ class TestLoss(TestCase):
                                            on_epoch=lambda criterion, epoch: criterion.update_weights((0, 1.1))),
                 Adam
             ),
-            NaiveSplitter(0.5)
+            naive_splitter(0.5)
         )
 
         print(fit.test_summary.df)
