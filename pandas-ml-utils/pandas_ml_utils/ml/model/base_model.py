@@ -154,6 +154,7 @@ class NumpyModel(Model):
 
         # wrap sampler into a numpy sampler and fit each epoch
         nr_epochs = sampler.epochs
+        last_epoch = nr_epochs - 1
         nr_folds = sampler.nr_of_cross_validation_folds
         numpy_sampler = NumpySampler(sampler)
 
@@ -162,22 +163,16 @@ class NumpyModel(Model):
         test_predictions, train_predictions = [], []
 
         for epoch, fold, train_idx, train, test_idx, test in numpy_sampler.sample_cross_validation():
-            if fold < 0:
-                # train a plain (not cross validated mode) or merge a cross validated model
-                train_predict, train_loss, test_predict, test_loss = self._fold_epoch(train, test, nr_epochs, **kwargs)
-                # FIXME instead of returning predictions retun losses only and call predict here ... self._predict_epoch()
-                #  assemble frames only if epoch is last epoch -> sampler might need to return epoch as well
-                train_predictions.append(to_pandas(train_predict, train_idx, self.labels_columns))
-                test_predictions.append(to_pandas(test_predict, test_idx, self.labels_columns))
+            if fold < 0 < nr_folds:
+                # merge a cross validated model
+                train_loss, test_loss = self._fold_epoch(train, test, nr_epochs, **kwargs)
             else:
-                # train one fold of a cross validation model
+                # train one fold of an eventually cross validation model
                 train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
 
-            if epoch >= nr_epochs:
-                # FIXME this is the last epoch
-                #train_predictions.append(to_pandas(self._predict_epoch(train), train_idx, self.labels_columns))
-                #test_predictions.append(to_pandas(self._predict_epoch(test), test_idx, self.labels_columns))
-                pass
+            if epoch >= last_epoch:
+                train_predictions.append(to_pandas(self._predict_epoch(train[0]), train_idx, self.labels_columns))
+                test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
 
             # append losses
             if isinstance(train_loss, Iterable):
@@ -195,7 +190,7 @@ class NumpyModel(Model):
         return df_losses, df_train_prediction, df_test_prediction
 
     @abstractmethod
-    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
         raise NotImplemented
 
     @abstractmethod

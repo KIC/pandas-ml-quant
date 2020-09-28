@@ -85,19 +85,15 @@ class KerasModel(NumpyModel):
         self.callbacks = callbacks
         self.history = None
 
-    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
+
+    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
         if nr_epochs is None or nr_epochs > 1:
             # FIXME remo move epoch loop
             raise NotImplementedError("FIXME move epoch loop")
         else:
-            train_loss, test_loss = self.__fit_model(-1, train[0], train[1], test[0], test[1], train[3], test[3], **kwargs)
-            train_prediction = self._predict_epoch(train[0])
-            test_prediction = self._predict_epoch(test[0])
-
-            return train_prediction, train_loss, test_prediction, test_loss
-
-    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
+            return self.__fit_model(-1, train[0], train[1], test[0], test[1], train[3], test[3], **kwargs)
 
     def __fit_model(self,
                  fold_nr: int,

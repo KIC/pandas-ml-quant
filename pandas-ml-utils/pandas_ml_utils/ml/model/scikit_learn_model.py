@@ -30,20 +30,13 @@ class SkModel(NumpyModel):
         self.labels_columns = None
         self.label_shape = None
 
-    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[np.ndarray, float, np.ndarray, float]:
-        if nr_epochs is None or nr_epochs > 1:
-            # FIXME we need tu use Skit.partial_fit
-            raise NotImplementedError("FIXME we need to use Skit.partial_fit")
-        else:
-            train_loss, test_loss = self.__fit_model(train[0], train[1])
-            train_prediction = self._predict_epoch(train[0])
-            test_prediction = self._predict_epoch(test[0])
-
-            return train_prediction, 0, test_prediction, 0  # FIXME return correct losses
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
 
     def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
         #raise NotImplementedError("FIXME we need to train a cross validation model")
-        return self.__fit_model(train[0], train[1])
+        self.__fit_model(train[0], train[1])
+        return 0, 0  # FIXME fix losses
 
     def __fit_model(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         # shape correction if needed
