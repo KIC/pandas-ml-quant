@@ -32,8 +32,14 @@ class TestSkModel(TestAbstractModel, TestCase):
             features_and_labels,
             learning_rate_init=0.01,
             solver='sgd',
-            max_iter=1000,
-            # activation='relu'
+            validation_fraction=0,
+            activation='identity',
+            momentum=0,
+            max_iter=1500,
+            n_iter_no_change=500,
+            nesterovs_momentum=False,
+            shuffle=False,
+            random_state=42
         )
 
         return model

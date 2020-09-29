@@ -133,12 +133,12 @@ class SkAutoEncoderModel(NumpyAutoEncoderModel):
         if not hasattr(self.auto_encoder, 'coefs_'):
             raise ValueError("Model needs to be 'fit' first!")
 
-        encoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.encoder_layers, **kwargs})
+        encoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.encoder_layers[1:], **self.kwargs})
         encoder.coefs_ = self.auto_encoder.coefs_[:len(self.encoder_layers)].copy()
         encoder.intercepts_ = self.auto_encoder.intercepts_[:len(self.encoder_layers)].copy()
-        encoder.n_layers_ = len(self.encoder_layers) + 1
+        encoder.n_layers_ = len(encoder.coefs_) + 1
         encoder.n_outputs_ = len(self.features_and_labels.latent_names)
-        encoder.out_activation_ = self.auto_encoder.out_activation_
+        encoder.out_activation_ = self.auto_encoder.activation
 
         return encoder.predict(SkModel.reshape_rnn_as_ar(x))
 
@@ -146,10 +146,10 @@ class SkAutoEncoderModel(NumpyAutoEncoderModel):
         if not hasattr(self.auto_encoder, 'coefs_'):
             raise ValueError("Model needs to be 'fit' first!")
 
-        decoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.decoder_layers, **kwargs})
+        decoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.decoder_layers, **self.kwargs})
         decoder.coefs_ = self.auto_encoder.coefs_[len(self.encoder_layers):].copy()
         decoder.intercepts_ = self.auto_encoder.intercepts_[len(self.encoder_layers):].copy()
-        decoder.n_layers_ = len(self.decoder_layers) + 1
+        decoder.n_layers_ = len(decoder.coefs_) + 1
         decoder.n_outputs_ = self.layers[-1]
         decoder.out_activation_ = self.auto_encoder.out_activation_
 

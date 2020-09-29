@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 
 import numpy as np
@@ -45,6 +46,7 @@ class TestModel(TestCase):
         self.assertIsInstance(samples[PREDICTION_COLUMN_NAME].iloc[-1, 0], list)
         self.assertEqual(2, len(samples[PREDICTION_COLUMN_NAME].iloc[-1, 0]))
 
+    @unittest.skip("cross validation needs to be re-implemented")
     def test_simple_classification_cross_validation(self):
         df = DF_NOTES.copy()
 
