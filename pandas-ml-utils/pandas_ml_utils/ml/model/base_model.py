@@ -1,7 +1,7 @@
 import os
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Tuple, Dict, Iterable
+from typing import Callable, Tuple, Iterable
 
 import dill as pickle
 import numpy as np
@@ -11,6 +11,15 @@ from pandas_ml_common import Typing, Sampler, NumpySampler
 from pandas_ml_common.utils import to_pandas
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
+
+
+class SamplerFrameConstants(object):
+    FEATURES = 0
+    LABELS = 1
+    TARGETS = 2
+    WEIGHTS = 3
+    GROSS_LOSS = 4
+    LATENT = 5
 
 
 class _Model(object):
@@ -139,22 +148,18 @@ class Model(_Model):
             raise ValueError(f"construction of model with new parameters is not supported\n{type(self)}: {kwargs}")
 
 
-class NumpyModel(Model):
+class _NumpyModelFit(object):
 
-    def __init__(self,
-                 features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
+    def __init__(self, **kwargs):
         self.labels_columns = None
 
-    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+    def _fit_with_numpy(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         # remember the label column names for reconstruction
-        self.labels_columns = sampler.frames[1].columns.tolist()
+        self.labels_columns = sampler.frames[SamplerFrameConstants.LABELS].columns.tolist()
 
         # wrap sampler into a numpy sampler and fit each epoch
         nr_epochs = sampler.epochs
-        last_epoch = nr_epochs - 1
+        last_epoch = (nr_epochs - 1) if nr_epochs is not None else float('inf')
         nr_folds = sampler.nr_of_cross_validation_folds
         numpy_sampler = NumpySampler(sampler)
 
@@ -170,7 +175,7 @@ class NumpyModel(Model):
                 # train one fold of an eventually cross validation model
                 train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
 
-            if epoch >= last_epoch:
+            if epoch >= last_epoch and fold < 0:
                 train_predictions.append(to_pandas(self._predict_epoch(train[0]), train_idx, self.labels_columns))
                 test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
 
@@ -197,70 +202,27 @@ class NumpyModel(Model):
     def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
         raise NotImplemented
 
-    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        ns = NumpySampler(sampler)
-        prediction = np.array([self._predict_epoch(t[0], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
-        return to_pandas(prediction, sampler.frames[0].index, self.labels_columns)
-
     @abstractmethod
     def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         raise NotImplemented
 
 
-class OldCheese(object):
+class NumpyModel(Model, _NumpyModelFit):
 
-    def fit(self, sampler, **kwargs) -> float:
-        """
-        draws folds from the data generator as long as it yields new data and fits the model to one fold
+    def __init__(self,
+                 features_and_labels: FeaturesAndLabels,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(features_and_labels, summary_provider, **kwargs)
+        self.labels_columns = None
 
-        :param sampler: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling.Sampler`
-        :return: returns the average loss over oll folds
-        """
+    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        return super()._fit_with_numpy(sampler, **kwargs)
 
-        # sample: train[features, labels, target, weights], test[features, labels, target, weights]
-        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
-                  for i, s in enumerate(sampler.sample())]
+    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        ns = NumpySampler(sampler)
+        prediction = np.array([self._predict_epoch(t[0], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
 
-        self._history = losses
 
-        # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
-        return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
 
-    def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
-        """
-        predict as many samples as we can sample from the sampler
-
-        :param sampler:
-        :return:
-        """
-        # make shape (rows, samples, ...)
-        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample_full_epochs()]).swapaxes(0, 1)
-
-    def fit_fold(self,
-                 fold_nr: int,
-                 x: np.ndarray, y: np.ndarray,
-                 x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        function called to fit the model to one fold of the data generator (i.e. k-folds)
-        :param fold_nr: number of fold in case of cross validation is used
-        :param x: x
-        :param y: y
-        :param x_val: x validation
-        :param y_val: y validation
-        :param sample_weight_train: sample weights for loss penalisation (default np.ones)
-        :param sample_weight_test: sample weights for loss penalisation (default np.ones)
-        :return: loss of the fit
-        """
-        pass
-
-    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        """
-        prediction of the model for each sample and target
-
-        :param x: x
-        :return: prediction of the model for each target
-        """
-
-        pass

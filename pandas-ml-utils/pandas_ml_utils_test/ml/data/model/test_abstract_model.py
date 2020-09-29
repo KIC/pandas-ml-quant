@@ -3,7 +3,8 @@ import tempfile
 import uuid
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter
-from pandas_ml_utils import FeaturesAndLabels, Model, AutoEncoderModel
+from pandas_ml_utils import FeaturesAndLabels, Model
+from pandas_ml_utils.ml.model.auto_encoder_model import AutoEncoderModel
 
 
 class TestAbstractModel(object):
@@ -65,7 +66,14 @@ class TestAbstractModel(object):
 
     def test_auto_encoder(self):
         """given the implementation can handle auto encoders"""
-        model = self.provide_auto_encoder_model(FeaturesAndLabels(["a", "b"], ["a", "b"]))
+        model = self.provide_auto_encoder_model(
+            FeaturesAndLabels(
+                features=["a", "b"],
+                labels=["a", "b"],
+                latent=["x"]
+            )
+        )
+
         if model is None:
             return
 
@@ -76,21 +84,21 @@ class TestAbstractModel(object):
         })
 
         """when we fit the model"""
-        fit = df.model.fit(model, random_splitter(0.49), verbose=0, epochs=500)
+        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=500)
         print(fit.training_summary.df)
 
         """then we can encoder"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
+        self.assertEqual((4, 1), encoded_prediction["prediction"].shape)
 
         """and we can decoder"""
-        decoder_features = encoded_prediction.columns.to_list()[0:1]
-        decoded_prediction = encoded_prediction.model.predict(fit.model.as_decoder(decoder_features))
+        decoded_prediction = encoded_prediction.model.predict(fit.model.as_decoder())
         print(decoded_prediction)
-        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5,
-                                             df[["a", "b"]].values)
+        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values[:2], fit.training_summary.df["prediction"].values, 1)
+        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5, df[["a", "b"]].values)
 
-        """and we can encoder and decore after safe and load"""
+        """and we can encoder and decode after safe and load"""
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         try:
             fit.model.save(temp)
@@ -102,8 +110,8 @@ class TestAbstractModel(object):
                 check_less_precise=True)
 
             pd.testing.assert_frame_equal(
-                encoded_prediction.model.predict(fit.model.as_decoder(decoder_features)),
-                encoded_prediction.model.predict(copy.as_decoder(decoder_features)),
+                encoded_prediction.model.predict(fit.model.as_decoder()),
+                encoded_prediction.model.predict(copy.as_decoder()),
                 check_less_precise=True)
         finally:
             os.remove(temp)

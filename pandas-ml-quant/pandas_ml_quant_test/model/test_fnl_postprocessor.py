@@ -6,34 +6,10 @@ from pandas_ml_quant_test.config import DF_TEST
 
 class TestFeaturePostProcesor(TestCase):
 
-    def test_repr(self):
-        fnl = PostProcessedFeaturesAndLabels(
-            features=[
-                "Close",
-                lambda df: df["Close"].ta.trix(),
-            ],
-            feature_post_processor=[
-                lambda df: df.ta.rnn(5)
-            ],
-            labels=[
-                Constant(0)
-            ],
-            targets=[
-                lambda df: df["Close"]
-            ],
-        )
-
-        print(repr(repr(fnl).replace('"', '\"')))
-
-        self.assertEqual(
-            'PostProcessedFeaturesAndLabels(\t[\'Close\', \'                lambda df: df["Close"].ta.trix(),\\n\'], \t[\'                lambda df: df.ta.rnn(5)\\n\'], \t[\'Constant(0)\'], \tNone, \tNone, \tNone, \tNone, \tNone, \t[\'                lambda df: df["Close"]\\n\'], \tNone, \tNone, \t{})',
-            repr(fnl)
-        )
-
     def test_feature_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w, gl = df._.extract(
+        (f, min), l, _, t, w, gl = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
@@ -58,7 +34,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_feature_and_label_post_processing(self):
         df = DF_TEST.copy()
 
-        (f, min), l, t, w, gl = df._.extract(
+        (f, min), l, _, t, w, gl = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",

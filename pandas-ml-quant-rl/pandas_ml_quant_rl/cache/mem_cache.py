@@ -20,7 +20,7 @@ class MemCache(Cache):
 
     def get_feature_frames_or_fetch(self, df, symbol, features_and_labels) -> Tuple[np.ndarray, pd.Index]:
         if symbol not in self.features:
-            features, _ = extract_features(df, features_and_labels)
+            features, _, _ = extract_features(df, features_and_labels)
             self.features[symbol] = (features._.values, features.index)
 
         return self.features[symbol]

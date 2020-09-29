@@ -27,7 +27,7 @@ class DfModelPatch(object):
                           **kwargs):
         # extract pandas objects
         kwargs = merge_kwargs(features_and_labels.kwargs, kwargs)
-        (features, _), label, _, _, _ = extract_feature_labels_weights(self.df, features_and_labels, **kwargs)
+        (features, _), label, _, _, _, _ = extract_feature_labels_weights(self.df, features_and_labels, **kwargs)
 
         # try to estimate good features
         return feature_selection(features, label, top_features, correlation_threshold, minimum_features,

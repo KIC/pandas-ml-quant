@@ -12,8 +12,8 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
+from pandas_ml_utils.ml.model.base_model import NumpyModel
 from pandas_ml_utils.ml.summary import Summary
-from pandas_ml_utils import NumpyModel
 
 
 _log = logging.getLogger(__name__)

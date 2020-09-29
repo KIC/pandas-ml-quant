@@ -1,92 +1,117 @@
 import logging
-from copy import deepcopy
-from typing import List, Callable
+from abc import abstractmethod
+from typing import Callable, Tuple
 
 import numpy as np
 
+from pandas_ml_common import Sampler, NumpySampler
 from pandas_ml_common import Typing
+from pandas_ml_common.utils import to_pandas
+from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-from .base_model import Model
+from .base_model import Model, SamplerFrameConstants, _NumpyModelFit
 
 _log = logging.getLogger(__name__)
 
 
 class AutoEncoderModel(Model):
 
+    # mode constants
+    autoencode = 'autoencode'
+    encode = 'encode'
+    decode = 'decode'
+
     def __init__(self,
-                 trainable_model: Model,
-                 encoded_column_names: List[str],
-                 encoder_provider: Callable[[Model], Callable[[np.ndarray], np.ndarray]],
-                 decoder_provider: Callable[[Model], Callable[[np.ndarray], np.ndarray]],
+                 features_and_labels: FeaturesAndLabels,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
-        super().__init__(trainable_model.features_and_labels, summary_provider, **kwargs)
-        self._features_and_labels = trainable_model.features_and_labels
-        self.trainable_model = trainable_model
-        self.encoded_column_names = encoded_column_names
-        self.encoder_provider = encoder_provider
-        self.decoder_provider = decoder_provider
-        self.mode = 'train'
+        super().__init__(features_and_labels, summary_provider, **kwargs)
+        self.mode = AutoEncoderModel.autoencode
 
-    @property
-    def features_and_labels(self):
-        return self._features_and_labels
+    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        if self.mode == AutoEncoderModel.autoencode:
+            return self._auto_encode(sampler, **kwargs)
+        elif self.mode == AutoEncoderModel.encode:
+            return self._encode(sampler, **kwargs)
+        elif self.mode == AutoEncoderModel.decode:
+            return self._decode(sampler, **kwargs)
+        else:
+            raise ValueError("Illegal mode")
 
-    def as_trainable(self) -> Model:
+    def as_auto_encoder(self) -> 'AutoEncoderModel':
         copy = self()
-        copy.mode = 'train'
-        copy._features_and_labels = deepcopy(self.trainable_model.features_and_labels)
+        copy.mode = AutoEncoderModel.autoencode
         return copy
 
-    def as_encoder(self) -> Model:
-        fnl_copy = deepcopy(self.trainable_model.features_and_labels)
-        fnl_copy.set_label_columns(self.encoded_column_names, True)
-
+    def as_encoder(self) -> 'AutoEncoderModel':
         copy = self()
-        copy.mode = 'encode'
-        copy._features_and_labels = fnl_copy
+        copy.mode = AutoEncoderModel.encode
         return copy
 
-    def as_decoder(self, decoder_features: List[Typing._Selector] = None) -> Model:
-        if "bottleneck" in self.trainable_model.features_and_labels.kwargs and decoder_features is None:
-            decoder_features = self.trainable_model.features_and_labels.kwargs["bottleneck"]
-
-        fnl_copy = deepcopy(self.trainable_model.features_and_labels)
-        fnl_copy._features = decoder_features
-
+    def as_decoder(self) -> 'AutoEncoderModel':
         copy = self()
-        copy.mode = 'decode'
-        copy._features_and_labels = fnl_copy
+        copy.mode = AutoEncoderModel.decode
         return copy
 
-    def fit(self, sampler: 'Sampler', **kwargs) -> float:
-        loss = self.trainable_model.fit(sampler, **kwargs)
-        self._history = self.trainable_model._history
-        return loss
+    @abstractmethod
+    def _auto_encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
 
-    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        if x.ndim > 2 and x.shape[-1] == 1:
-            x = x.reshape(x.shape[:-1])
+    @abstractmethod
+    def _encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
 
-        if self.mode == 'train':
-            return self.trainable_model.predict_sample(x, **kwargs)
-        elif self.mode == 'encode':
-            return self.encoder_provider(self.trainable_model)(x, **kwargs)
-        elif self.mode == 'decode':
-            return self.decoder_provider(self.trainable_model)(x, **kwargs)
+    @abstractmethod
+    def _decode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
 
-    def plot_loss(self, **kwargs):
-        return self.trainable_model.plot_loss(**kwargs)
 
-    def __call__(self, *args, **kwargs):
-        copy = AutoEncoderModel(
-            self.trainable_model(*args, **kwargs),
-            self.encoded_column_names,
-            self.encoder_provider,
-            self.decoder_provider,
-            self.summary_provider,
-            **self.kwargs
-        )
+class NumpyAutoEncoderModel(AutoEncoderModel, _NumpyModelFit):
 
-        copy.mode = self.mode
-        return copy
+    def __init__(self,
+                 features_and_labels: FeaturesAndLabels,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(features_and_labels, summary_provider, **kwargs)
+
+    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        return super()._fit_with_numpy(sampler)
+
+    def _auto_encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        ns = NumpySampler(sampler)
+        prediction = np.array([self._auto_encode_epoch(t[SamplerFrameConstants.FEATURES], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
+
+    def _encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        ns = NumpySampler(sampler)
+        prediction = np.array([self._encode_epoch(t[SamplerFrameConstants.FEATURES], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self._features_and_labels.latent_names)
+
+    def _decode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        ns = NumpySampler(sampler)
+        prediction = np.array([self._decode_epoch(t[SamplerFrameConstants.LATENT], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
+
+    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        return self._auto_encode_epoch(x, **kwargs)
+
+    @abstractmethod
+    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
+
+    @abstractmethod
+    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
+        raise NotImplemented
+
+    @abstractmethod
+    def _auto_encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        raise NotImplemented
+
+    @abstractmethod
+    def _encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        raise NotImplemented
+
+    @abstractmethod
+    def _decode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        raise NotImplemented
+

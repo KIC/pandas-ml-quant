@@ -15,7 +15,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape(self):
         df = DF_TEST.copy()
 
-        (features, _), labels, targets, weights, gross_loss = df._.extract(
+        (features, _), labels, latent, targets, weights, gross_loss = df._.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
@@ -54,7 +54,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape_two_labels(self):
         df = DF_TEST.copy()
 
-        (features, min_samples), labels, targets, weights, gross_loss = df._.extract(
+        (features, min_samples), labels, latent, targets, weights, gross_loss = df._.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
@@ -108,7 +108,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             file
         )
 
-        (features, _), labels, targets, weights, gross_loss = df._.extract(
+        (features, _), labels, latent, targets, weights, gross_loss = df._.extract(
             deserialize(file, FeaturesAndLabels),
             # kwargs of call
             forecasting_time_steps=7,
@@ -124,7 +124,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_feature_post_processing_pipeline(self):
         df = DF_TEST.copy()
 
-        (features, min_samples), labels, targets, weights, gross_loss = df._.extract(
+        (features, min_samples), labels, latent, targets, weights, gross_loss = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     lambda df: df._["Close"].ta.log_returns()

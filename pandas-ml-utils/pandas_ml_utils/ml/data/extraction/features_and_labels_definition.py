@@ -24,6 +24,8 @@ class FeaturesAndLabels(object):
     def __init__(self,
                  features: Union[Typing._Selector,Tuple[Typing._Selector]],
                  labels: Typing._Selector = [],
+                 latent: Typing._Selector = None,
+                 latent_names: List[str] = None,
                  sample_weights: Typing._Selector = None,
                  gross_loss: Typing._Selector = None,
                  targets: Typing._Selector = None,
@@ -37,6 +39,7 @@ class FeaturesAndLabels(object):
             want to classify whether a stock price is below or above average and you want to provide what
             the average was. It is also possible to provide a Callable[[df, ...magic], labels] which returns
             the expected .data structure.
+        :param latent: a list of column names which are used as labels / features of an auto encoder model
         :param sample_weights: sample weights get passed to the model.fit function. In keras for example this can be
              used for imbalanced classes
         :param gross_loss: expects a callable[[df, target, ...magic], df] which receives the source .data frame and a
@@ -58,11 +61,15 @@ class FeaturesAndLabels(object):
 
         self._features = features
         self._labels = labels
+        self._latent = latent
         self._label_type = label_type
         self._sample_weights = sample_weights
         self._targets = targets
         self._gross_loss = gross_loss
         self._kwargs = kwargs
+
+        if latent is not None:
+            self._latent_names = latent_names if latent_names is not None else [str(l) for l in latent]
 
         # set after fit
         self._min_required_samples = None
@@ -79,6 +86,14 @@ class FeaturesAndLabels(object):
     @property
     def labels(self):
         return self._labels
+
+    @property
+    def latent(self):
+        return self._latent
+
+    @property
+    def latent_names(self):
+        return self._latent_names
 
     @property
     def label_type(self):
@@ -163,6 +178,7 @@ class FeaturesAndLabels(object):
         return f'FeaturesAndLabels(' \
                f'\t{source(self.features)}, ' \
                f'\t{source(self.labels)}, ' \
+               f'\t{source(self.latent)}, ' \
                f'\t{source(self.sample_weights)}, ' \
                f'\t{source(self.gross_loss)}, ' \
                f'\t{source(self.targets)}, ' \
@@ -178,6 +194,8 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
                  feature_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]],
                  labels: Typing._Selector = [],
                  labels_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
+                 latent: Typing._Selector = None,
+                 latent_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
                  sample_weights: Typing._Selector = None,
                  sample_weights_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
                  gross_loss: Typing._Selector = None,
@@ -189,6 +207,7 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
         super().__init__(
             PostProcessedFeaturesAndLabels.post_process(features, feature_post_processor),
             PostProcessedFeaturesAndLabels.post_process(labels, labels_post_processor),
+            PostProcessedFeaturesAndLabels.post_process(latent, latent_post_processor),
             PostProcessedFeaturesAndLabels.post_process(sample_weights, sample_weights_post_processor),
             PostProcessedFeaturesAndLabels.post_process(gross_loss, gross_loss_post_processor),
             PostProcessedFeaturesAndLabels.post_process(targets, targets_post_processor),
@@ -199,6 +218,7 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
         self._raw = [
             [features, feature_post_processor],
             [labels, labels_post_processor],
+            [latent, latent_post_processor],
             [sample_weights, sample_weights_post_processor],
             [gross_loss, gross_loss_post_processor],
             [targets, targets_post_processor],
@@ -251,6 +271,8 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
                f'\t{source(self._raw[3][1])}, ' \
                f'\t{source(self._raw[4][0])}, ' \
                f'\t{source(self._raw[4][1])}, ' \
+               f'\t{source(self._raw[5][0])}, ' \
+               f'\t{source(self._raw[5][1])}, ' \
                f'\t{self.label_type}, ' \
                f'\t{self.kwargs}' \
                f')'

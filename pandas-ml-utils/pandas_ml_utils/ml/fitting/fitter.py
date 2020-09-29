@@ -44,7 +44,7 @@ def fit(df: pd.DataFrame,
     trails = None
     model = model_provider()
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, min_required_samples), labels, targets, weights, gross_loss = \
+    (features, min_required_samples), labels, latent, targets, weights, gross_loss = \
         extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     start_performance_count = perf_counter()
@@ -81,7 +81,7 @@ def fit(df: pd.DataFrame,
     #                         cross_validation=cross_validatator,
     #                         epochs=epochs
     sampler = Sampler(
-        features, labels, targets, weights, gross_loss,
+        features, labels, targets, weights, gross_loss, latent,
         splitter=training_data_splitter,
         training_samples_filter=training_samples_filter,
         cross_validation=cross_validation
@@ -93,7 +93,7 @@ def fit(df: pd.DataFrame,
     # assemble result objects
     try:
         # get training and test data tuples of the provided frames
-        features, labels, targets, weights, gross_loss = sampler.frames
+        features, labels, targets, weights, gross_loss, latent = sampler.frames
         df_train = assemble_result_frame(targets, df_train_prediction, labels, gross_loss, weights, features)
         df_test = assemble_result_frame(targets, df_test_prediction, labels, gross_loss, weights, features)
 
@@ -117,12 +117,13 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
             _log.warning("could not determine the minimum required data from the model")
 
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    features, targets = extract(model.features_and_labels, df, extract_features, **kwargs)
+    features, targets, latent = extract(model.features_and_labels, df, extract_features, **kwargs)
 
     if samples > 1:
         print(f"draw {samples} samples")
 
-    sampler = Sampler(features, None, targets, None, splitter=None, epochs=samples)
+    # features, labels, targets, weights, gross_loss, latent,
+    sampler = Sampler(features, None, targets, None, None, latent, splitter=None, epochs=samples)
     predictions = model.predict(sampler, **kwargs)
 
     return assemble_result_frame(targets, predictions, None, None, None, features)
@@ -130,10 +131,11 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
 
 def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = None, **kwargs) -> Summary:
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, _), labels, targets, weights, gross_loss =\
+    (features, _), labels, latent, targets, weights, gross_loss =\
         extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
-    sampler = Sampler(features, labels, targets, None, splitter=None, epochs=1)
+    # features, labels, targets, weights, gross_loss, latent,
+    sampler = Sampler(features, labels, targets, None, None, latent, splitter=None, epochs=1)
     predictions = model.predict(sampler, **kwargs)
 
     df_backtest = assemble_result_frame(targets, predictions, labels, gross_loss, weights, features)

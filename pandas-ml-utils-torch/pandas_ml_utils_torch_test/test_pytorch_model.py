@@ -4,7 +4,8 @@ import torch as t
 import torch.nn as nn
 from torch.optim import SGD
 
-from pandas_ml_utils import pd, AutoEncoderModel, FeaturesAndLabels
+from pandas_ml_utils import pd, FeaturesAndLabels
+from pandas_ml_utils.ml.model.auto_encoder_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils_torch import PytorchModel
 
