@@ -9,6 +9,7 @@ from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import Fe
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
 from pandas_ml_utils.ml.model import Model as MlModel
 from pandas_ml_utils.ml.summary import Summary
+from .model_context import ModelContext
 
 
 class DfModelPatch(object):
@@ -68,3 +69,6 @@ class DfModelPatch(object):
                 samples: int = 1,
                 **kwargs) -> Typing.PatchedDataFrame:
         return predict(self.df, model, tail=tail, samples=samples, **kwargs)
+
+    def __call__(self, file_name=None):
+        return ModelContext(self.df, file_name=file_name)

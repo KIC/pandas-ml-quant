@@ -1,9 +1,9 @@
 from collections import namedtuple
+from typing import Callable, Tuple, Dict, Union, List
 
 from pandas_ml_common import Typing
 from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_utils.ml.model.base_model import Model
-from typing import Callable, Tuple, Dict, Union, Iterable, List
 
 
 class ModelContext(object):
