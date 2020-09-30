@@ -13,8 +13,7 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-from .base_model import NumpyModel
-from .auto_encoder_model import NumpyAutoEncoderModel
+from .base_model import NumpyModel, NumpyAutoEncoderModel
 
 
 _log = logging.getLogger(__name__)

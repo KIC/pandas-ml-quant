@@ -8,7 +8,7 @@ from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_quant import np
 from pandas_ml_quant_test.config import DF_TEST
 from pandas_ml_utils import PostProcessedFeaturesAndLabels
-from pandas_ml_utils.ml.model.auto_encoder_model import AutoEncoderModel
+from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_torch import PytorchModel
 from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, \
     DifferentiableArgmax

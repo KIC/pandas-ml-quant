@@ -3,7 +3,7 @@ from unittest import TestCase
 from sklearn.neural_network import MLPRegressor, MLPClassifier
 
 from pandas_ml_common import np, pd
-from pandas_ml_utils.ml.model.auto_encoder_model import AutoEncoderModel
+from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils import SkModel, SkAutoEncoderModel
 

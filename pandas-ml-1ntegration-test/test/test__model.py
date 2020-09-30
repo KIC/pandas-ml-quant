@@ -9,10 +9,9 @@ from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 import pandas_ml_quant
+from pandas_ml_common.sampling import naive_splitter, random_splitter, KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils import FeaturesAndLabels, SkModel, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
-from pandas_ml_utils.ml.data.splitting import RandomSplits, NaiveSplitter
-from pandas_ml_utils.ml.data.splitting.sampeling import KFoldBoostRareEvents, KEquallyWeightEvents
 from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
 from pandas_ml_utils_keras import KerasModel
 from test.config import DF_TEST
@@ -40,7 +39,7 @@ class TestModel(TestCase):
                 ),
                 summary_provider=RegressionSummary
             ),
-            NaiveSplitter()
+            naive_splitter()
         )
 
         print(fit)
@@ -67,7 +66,7 @@ class TestModel(TestCase):
                 ),
                 summary_provider=RegressionSummary
             ),
-            NaiveSplitter()
+            naive_splitter()
         )
 
         print(fit)
@@ -212,9 +211,8 @@ class TestModel(TestCase):
                     ]
                 )
             ),
-            RandomSplits(test_size=0.4,
-                         test_validate_split_seed=42,
-                         cross_validation=(1, KFoldBoostRareEvents(n_splits=5).split))
+            random_splitter(test_size=0.4, seed=42),
+            cross_validation=KFoldBoostRareEvents(n_splits=5)
         )
 
     def test_future_bband_quantile_clasification(self):
@@ -243,9 +241,8 @@ class TestModel(TestCase):
                 ),
                 summary_provider=ClassificationSummary,
             ),
-            RandomSplits(test_size=0.4,
-                         test_validate_split_seed=42,
-                         cross_validation=(1, KEquallyWeightEvents(n_splits=3).split))
+            random_splitter(test_size=0.4, seed=42),
+            cross_validation=KEquallyWeightEvents(n_splits=3)
         )
 
         print(fit)

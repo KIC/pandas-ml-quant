@@ -4,7 +4,7 @@ import uuid
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter
 from pandas_ml_utils import FeaturesAndLabels, Model
-from pandas_ml_utils.ml.model.auto_encoder_model import AutoEncoderModel
+from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 
 
 class TestAbstractModel(object):
@@ -48,7 +48,7 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=800)
         print(fit.training_summary.df)
 
         """then we can predict"""

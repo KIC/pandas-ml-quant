@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.optim import SGD
 
 from pandas_ml_utils import pd, FeaturesAndLabels
-from pandas_ml_utils.ml.model.auto_encoder_model import AutoEncoderModel
+from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils_torch import PytorchModel
 
@@ -111,8 +111,8 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                 lambda params: SGD(params, lr=0.1, momentum=0.9)
             ),
             ["condensed"],
-            lambda m: m.module.encode,
-            lambda m: m.module.decode,
+            lambda m: m.module.ENCODE,
+            lambda m: m.module.DECODE,
         )
 
         return model
