@@ -93,9 +93,9 @@ class TestAbstractModel(object):
         self.assertEqual((4, 1), encoded_prediction["prediction"].shape)
 
         """and we can decoder"""
-        decoded_prediction = encoded_prediction.model.predict(fit.model.as_decoder())
+        decoded_prediction = encoded_prediction["prediction"].model.predict(fit.model.as_decoder())
         print(decoded_prediction)
-#        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values[:2], fit.training_summary.df["prediction"].values, 1)
+        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values[:2], fit.training_summary.df["prediction"].values, 1)
         np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5, df[["a", "b"]].values)
 
         """and we can encoder and decode after safe and load"""

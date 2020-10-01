@@ -8,8 +8,7 @@ from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_quant import np
 from pandas_ml_quant_test.config import DF_TEST
 from pandas_ml_utils import PostProcessedFeaturesAndLabels
-from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
-from pandas_ml_utils_torch import PytorchModel
+from pandas_ml_utils_torch import PytorchModel, PytorchNN
 from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, \
     DifferentiableArgmax
 
@@ -85,7 +84,7 @@ class TestCustomLoss(TestCase):
     def test_soft_dtw_loss(self):
         df = DF_TEST[["Close"]][-21:].copy()
 
-        class LstmAutoEncoder(nn.Module):
+        class LstmAutoEncoder(PytorchNN):
             def __init__(self):
                 super().__init__()
                 self.input_size = 1
@@ -102,7 +101,7 @@ class TestCustomLoss(TestCase):
                     nn.RNN(input_size=self.hidden_size, hidden_size=self.input_size, num_layers=self.num_layers,
                            batch_first=True)
 
-            def forward(self, x):
+            def forward_training(self, x):
                 # make sure to treat single elements as batches
                 x = x.view(-1, self.seq_size, self.input_size)
                 batch_size = len(x)
@@ -115,7 +114,7 @@ class TestCustomLoss(TestCase):
                 x, hidden = self._decoder(x, hidden_decoder)
                 return x
 
-            def encoder(self, x):
+            def encode(self, x):
                 x = x.reshape(-1, self.seq_size, self.input_size)
                 batch_size = len(x)
 
@@ -124,28 +123,24 @@ class TestCustomLoss(TestCase):
                         t.zeros(self.num_layers * self.num_directions, batch_size, self.hidden_size))
 
                     # return last element of sequence
-                    return self._encoder(t.from_numpy(x).float(), hidden)[0].numpy()[:,-1]
+                    return self._encoder(x, hidden)[0][:,-1]
 
-            def decoder(self, x):
+            def decode(self, x):
                 x = x.reshape(-1, self.seq_size, self.hidden_size)
                 batch_size = len(x)
 
                 with t.no_grad():
                     hidden = nn.Parameter(
                         t.zeros(self.num_layers * self.num_directions, batch_size, self.input_size))
-                    return self._decoder(t.from_numpy(x).float(), hidden)[0].numpy()
+                    return self._decoder(x.float(), hidden)[0]
 
-        model = AutoEncoderModel(
-            PytorchModel(
-                PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: df.ta.rnn(10)],
-                                               df.columns.to_list(), [lambda df: df.ta.rnn(10)]),
-                LstmAutoEncoder,
-                SoftDTW,
-                Adam
-            ),
-            ["condensed-a", "condensed-b"],
-            lambda m: m.module.encoder,
-            lambda m: m.module.decoder,
+        model = PytorchModel(
+            PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: df.ta.rnn(10)],
+                                           df.columns.to_list(), [lambda df: df.ta.rnn(10)],
+                                           ["condensed-a", "condensed-b"]),
+            LstmAutoEncoder,
+            SoftDTW,
+            Adam
         )
 
         fit = df.model.fit(model, epochs=100)

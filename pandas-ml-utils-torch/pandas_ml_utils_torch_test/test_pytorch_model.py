@@ -7,7 +7,7 @@ from torch.optim import SGD
 from pandas_ml_utils import pd, FeaturesAndLabels
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils_torch import PytorchModel
+from pandas_ml_utils_torch import PytorchModel, PytorchNN
 
 
 class RegressionModule(nn.Module):
@@ -17,7 +17,7 @@ class RegressionModule(nn.Module):
             nn.Linear(1, 1)
         )
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         x = self.regressor(x)
         return x
 
@@ -39,7 +39,7 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                         nn.Sigmoid()
                     )
 
-                def forward(self, x):
+                def forward(self, x, **kwargs):
                     x = self.classifier(x)
                     return x
 
@@ -70,7 +70,7 @@ class TestPytorchModel(TestAbstractModel, TestCase):
         t.manual_seed(12)
 
         def module_provider():
-            class AutoEncoderModule(nn.Module):
+            class AutoEncoderModule(PytorchNN):
 
                 def __init__(self):
                     super().__init__()
@@ -88,31 +88,24 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                         nn.Tanh(),
                     )
 
-                def forward(self, x):
+                def forward_training(self, x, **kwargs):
                     x = self.encoder(x)
                     x = self.decoder(x)
                     return x
 
                 def encode(self, x):
-                    with t.no_grad():
-                        return self.encoder(t.from_numpy(x).float()).numpy()
+                    return self.encoder(x)
 
                 def decode(self, x):
-                    with t.no_grad():
-                        return self.decoder(t.from_numpy(x).float()).numpy()
+                    return self.decoder(x)
 
             return AutoEncoderModule()
 
-        model = AutoEncoderModel(
-            PytorchModel(
-                features_and_labels,
-                module_provider,
-                nn.MSELoss,
-                lambda params: SGD(params, lr=0.1, momentum=0.9)
-            ),
-            ["condensed"],
-            lambda m: m.module.ENCODE,
-            lambda m: m.module.DECODE,
+        model = PytorchModel(
+            features_and_labels,
+            module_provider,
+            nn.MSELoss,
+            lambda params: SGD(params, lr=0.1, momentum=0.9)
         )
 
         return model
@@ -136,7 +129,7 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                         nn.Sigmoid()
                     )
 
-                def forward(self, x):
+                def forward(self, x, **kwargs):
                     x = self.classifier(x)
                     return x
 

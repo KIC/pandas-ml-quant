@@ -32,9 +32,11 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
         res = values
 
     if res.ndim == 3 and res.shape[1] == 1:
-        return res[:, 0, :]
-    else:
-        return res
+        res = res[:, 0, :]
+    if res.ndim == 3 and res.shape[-1] == 1:
+        res = res[:, :, 0]
+
+    return res
 
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:

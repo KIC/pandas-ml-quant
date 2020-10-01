@@ -3,19 +3,24 @@ from __future__ import annotations
 import logging
 import math
 import sys
+from abc import abstractmethod
 from copy import deepcopy
-from typing import List, Callable, TYPE_CHECKING, Type, Dict, Tuple
+from typing import List, Callable, Type, Dict, Tuple
 
 import numpy as np
+import torch as t
+import torch.nn as nn
+from torch.autograd import Variable
+from torch.nn.modules.loss import _Loss
+from torch.optim import Optimizer
 
-from pandas_ml_common import Typing
-from pandas_ml_common.utils import call_callable_dynamic_args
+from pandas_ml_common import Typing, Sampler, NumpySampler
+from pandas_ml_common.utils import call_callable_dynamic_args, to_pandas
 from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
-from pandas_ml_utils.ml.model.base_model import NumpyModel
+from pandas_ml_utils.ml.model.base_model import NumpyModel, NumpyAutoEncoderModel, AutoEncoderModel, \
+    SamplerFrameConstants
 from pandas_ml_utils.ml.summary import Summary
-import torch.nn as nn
-
 
 _log = logging.getLogger(__name__)
 
@@ -25,28 +30,36 @@ class PytorchNN(nn.Module):
     def __init__(self, *args, **kwargs):
         super().__init__()
 
-    def forward(self, *input):
+    def forward(self, *input, state=None, **kwargs):
         if self.training:
             return self.forward_training(*input)
         else:
-            return self.forward_predict(*input)
+            if state == AutoEncoderModel.ENCODE:
+                return self.encode(*input)
+            elif state == AutoEncoderModel.DECODE:
+                return self.decode(*input)
+            else:
+                return self.forward_predict(*input)
 
+    @abstractmethod
     def forward_training(self, *input):
         pass
 
     def forward_predict(self, *input):
         return self.forward_training(*input)
 
+    def encode(self, *input):
+        raise NotImplementedError("For autoencoders the methods `encode` and `decode` need to be implemented!")
 
-class PytorchModel(NumpyModel):
+    def decode(self, *input):
+        raise NotImplementedError("For autoencoders the methods `encode` and `decode` need to be implemented!")
 
-    if TYPE_CHECKING:
-        from torch.nn import Module, _Loss
-        from torch.optim import Optimizer
+
+class PytorchModel(NumpyModel, NumpyAutoEncoderModel):
 
     def __init__(self,
                  features_and_labels: FeaturesAndLabels,
-                 module_provider: Type[Module],
+                 module_provider: Type[PytorchNN],
                  criterion_provider: Type[_Loss],
                  optimizer_provider: Type[Optimizer],
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
@@ -57,15 +70,36 @@ class PytorchModel(NumpyModel):
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
         self.callbacks = callbacks
-        self.module = None
+        self.module: PytorchNN = None
         self.log_once = LogOnce().log
+
+    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+        if self.mode == AutoEncoderModel.ENCODE:
+            return super()._encode(sampler, **kwargs)
+        elif self.mode == AutoEncoderModel.DECODE:
+            return super()._decode(sampler, **kwargs)
+        else:
+            ns = NumpySampler(sampler)
+            prediction = np.array([self._predict_epoch(t[0], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
+            return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
 
     def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
         raise NotImplemented
 
+    def _auto_encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        return self.module(t.from_numpy(x).float()).numpy()
+
+    def _encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        with t.no_grad():
+            return self.module.eval()(t.from_numpy(x).float(), state=AutoEncoderModel.ENCODE).numpy()
+
+    def _decode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
+        with t.no_grad():
+            return self.module.eval()(t.from_numpy(x).float(), state=AutoEncoderModel.DECODE).numpy()
+
     def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
         if nr_epochs is None or nr_epochs > 1:
-            # FIXME remo move epoch loop
+            # FIXME remove epoch loop
             raise NotImplementedError("FIXME move epoch loop")
         else:
             return self.__fit_model(-1, train[0], train[1], test[0], test[1], train[3], test[3], **kwargs)
@@ -76,9 +110,6 @@ class PytorchModel(NumpyModel):
                     x_val: np.ndarray, y_val: np.ndarray,
                     sample_weight: np.ndarray, sample_weight_val: np.ndarray,
                     **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        # import specifics
-        from torch.autograd import Variable
-        import torch as t
 
         # TODO we should not re-initialize model, criterion and optimizer once we have it already
         #  TODO we might re-initialize the optimizer with a new fold with a changes learning rate?
@@ -208,9 +239,6 @@ class PytorchModel(NumpyModel):
         return loss
 
     def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        # import specifics
-        import torch as t
-
         with t.no_grad():
             module = self.module.cpu().eval()
             res = module(t.from_numpy(x).float())
@@ -255,6 +283,7 @@ class PytorchModel(NumpyModel):
         )
 
         pytorch_model.module = self.module_provider()
+        pytorch_model.labels_columns = self.labels_columns
 
         # copy weights of existing models
         if self.module is not None:
