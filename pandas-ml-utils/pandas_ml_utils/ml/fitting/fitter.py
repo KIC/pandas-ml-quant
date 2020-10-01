@@ -14,6 +14,7 @@ from pandas_ml_utils.ml.fitting.fit import Fit
 from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
 from .exception import FitException
+from ..data.extraction.features_and_labels_extractor import FeaturesWithLabels, FeaturesWithTargets
 
 _log = logging.getLogger(__name__)
 
@@ -44,8 +45,7 @@ def fit(df: pd.DataFrame,
     trails = None
     model = model_provider()
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, min_required_samples), labels, latent, targets, weights, gross_loss = \
-        extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+    frames: FeaturesWithLabels = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     start_performance_count = perf_counter()
     _log.info("create model")
@@ -81,7 +81,7 @@ def fit(df: pd.DataFrame,
     #                         cross_validation=cross_validatator,
     #                         epochs=epochs
     sampler = Sampler(
-        features, labels, targets, weights, gross_loss, latent,
+        frames.features_with_required_samples.features, frames.labels, frames.targets, frames.sample_weights, frames.gross_loss, frames.latent,
         splitter=training_data_splitter,
         training_samples_filter=training_samples_filter,
         cross_validation=cross_validation
@@ -98,7 +98,7 @@ def fit(df: pd.DataFrame,
         df_test = assemble_result_frame(targets, df_test_prediction, labels, gross_loss, weights, features)
 
         # update model properties and return the fit
-        model.features_and_labels.set_min_required_samples(min_required_samples)
+        model.features_and_labels.set_min_required_samples(frames.features_with_required_samples.min_required_samples)
         model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
 
         return Fit(model, model.summary_provider(df_train, model, **kwargs), model.summary_provider(df_test, model, **kwargs), trails, **kwargs)
@@ -117,28 +117,27 @@ def predict(df: pd.DataFrame, model: Model, tail: int = None, samples: int = 1, 
             _log.warning("could not determine the minimum required data from the model")
 
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    features, targets, latent = extract(model.features_and_labels, df, extract_features, **kwargs)
+    frames: FeaturesWithTargets = extract(model.features_and_labels, df, extract_features, **kwargs)
 
     if samples > 1:
         print(f"draw {samples} samples")
 
     # features, labels, targets, weights, gross_loss, latent,
-    sampler = Sampler(features, None, targets, None, None, latent, splitter=None, epochs=samples)
+    sampler = Sampler(frames.features, None, frames.targets, None, None, frames.latent, splitter=None, epochs=samples)
     predictions = model.predict(sampler, **kwargs)
 
-    return assemble_result_frame(targets, predictions, None, None, None, features)
+    return assemble_result_frame(frames.targets, predictions, None, None, None, frames.features)
 
 
 def backtest(df: pd.DataFrame, model: Model, summary_provider: Callable[[pd.DataFrame], Summary] = None, **kwargs) -> Summary:
     kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-    (features, _), labels, latent, targets, weights, gross_loss =\
-        extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+    frames: FeaturesWithLabels = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
 
     # features, labels, targets, weights, gross_loss, latent,
-    sampler = Sampler(features, labels, targets, None, None, latent, splitter=None, epochs=1)
+    sampler = Sampler(frames.features_with_required_samples.features, frames.labels, frames.targets, None, None, frames.latent, splitter=None, epochs=1)
     predictions = model.predict(sampler, **kwargs)
 
-    df_backtest = assemble_result_frame(targets, predictions, labels, gross_loss, weights, features)
+    df_backtest = assemble_result_frame(frames.targets, predictions, frames.labels, frames.gross_loss, frames.sample_weights, frames.features_with_required_samples.features)
     return (summary_provider or model.summary_provider)(df_backtest, model, **kwargs)
 
 
