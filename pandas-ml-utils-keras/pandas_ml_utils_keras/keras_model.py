@@ -46,6 +46,7 @@ class KerasModel(NumpyModel):
                        match the signature
         """
         super().__init__(features_and_labels, summary_provider, **kwargs)
+        _log.warning("Keras is currently out of support (in favor of pytorch). Use at your own risk.")
         self.keras_model_provider = keras_compiled_model_provider
         self.output_shape = output_shape
         self.custom_objects = {}
