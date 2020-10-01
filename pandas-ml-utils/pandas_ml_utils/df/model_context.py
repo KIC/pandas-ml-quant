@@ -4,14 +4,10 @@ from typing import Callable, Tuple, Dict, Union, List
 from pandas_ml_common import Typing
 from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_utils.ml.model.base_model import Model
+from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 
 
 class ModelContext(object):
-
-    ModelFrames = namedtuple(
-        'ModelFrames',
-        ['features', 'min_required_samples_for_features', 'labels', 'latent', 'targets', 'weights', 'gross_loss']
-    )
 
     def __init__(self, df: Typing.PatchedDataFrame, file_name: str = None):
         self.df = df
@@ -34,9 +30,8 @@ class ModelContext(object):
 
         return fit
 
-    def extract(self, model: Model):
-        features, labels, latent, targets, weights, gross_loss = self.df._.extract(model.features_and_labels)
-        return ModelContext.ModelFrames(*features, labels, latent, targets, weights, gross_loss)
+    def extract(self, model: Model) -> FeaturesWithLabels:
+        return self.df._.extract(model.features_and_labels)
 
     def __enter__(self):
         return self
@@ -47,4 +42,6 @@ class ModelContext(object):
             print(f'exc_type: {exc_type}')
             print(f'exc_value: {exc_value}')
             print(f'exc_traceback: {exc_traceback}')
-            # TODO eventually return True if all excetions are handled
+
+            # eventually return True if all excetions are handled
+

@@ -5,6 +5,7 @@ from torch.optim import Adam
 
 from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_utils import pd
+from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils_torch import PytorchModel
 from pandas_ml_utils import FeaturesAndLabels
 
@@ -46,9 +47,9 @@ class TestMultiFeatureSet(TestCase):
             lambda params: Adam(params, lr=0.03)
         )
 
-        (f, _), l, t, _, s, g = df._.extract(model.features_and_labels)
-        self.assertIsInstance(f, MultiFrameDecorator)
-        print(f)
+        fl: FeaturesWithLabels = df._.extract(model.features_and_labels)
+        self.assertIsInstance(fl.features_with_required_samples.features, MultiFrameDecorator)
+        print(fl.features_with_required_samples.features)
 
 #        fit = df.model.fit(model)
         # FIXME print(fit)

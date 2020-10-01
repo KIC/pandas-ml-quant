@@ -1,8 +1,8 @@
-from typing import Tuple, List, Callable
-
-import pandas as pd
-import numpy as np
 import logging
+from typing import NamedTuple
+
+import numpy as np
+import pandas as pd
 
 from pandas_ml_common import get_pandas_object, Typing
 from pandas_ml_common.decorator import MultiFrameDecorator
@@ -12,10 +12,30 @@ from pandas_ml_common.utils.callable_utils import call_if_not_none
 _log = logging.getLogger(__name__)
 
 
+class FeaturesWithTargets(NamedTuple):
+    features: pd.DataFrame
+    targets: pd.DataFrame
+    latent: pd.DataFrame
+
+
+class FeaturesWithRequiredSamples(NamedTuple):
+    features: pd.DataFrame
+    min_required_samples: int
+
+
+class FeaturesWithLabels(NamedTuple):
+    features_with_required_samples: FeaturesWithRequiredSamples
+    labels: pd.DataFrame
+    latent: pd.DataFrame
+    targets: pd.DataFrame
+    sample_weights: pd.DataFrame
+    gross_loss: pd.DataFrame
+
+
 def extract_feature_labels_weights(
         df: Typing.PatchedDataFrame,
         features_and_labels,
-        **kwargs) -> Tuple[Tuple[pd.DataFrame, int], pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+        **kwargs) -> FeaturesWithLabels:
     features, targets, latent = extract_features(df, features_and_labels, **kwargs)
     labels = get_pandas_object(df, features_and_labels.labels, **kwargs).dropna()
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
@@ -37,8 +57,8 @@ def extract_feature_labels_weights(
     # now get the common index and return the filtered data frames
     common_index = intersection_of_index(features, labels, targets, sample_weights, gross_loss)
 
-    return (
-        (
+    return FeaturesWithLabels(
+        FeaturesWithRequiredSamples(
             tuple([f.loc[common_index] for f in features]) if isinstance(features, tuple) else features.loc[common_index],
             len(df) - len(features) + 1
         ),
@@ -50,7 +70,7 @@ def extract_feature_labels_weights(
     )
 
 
-def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> FeaturesWithTargets:
     if isinstance(features_and_labels.features, tuple):
         # allow multiple feature sets i.e. for multi input layered networks
         features = MultiFrameDecorator([get_pandas_object(df, f, **kwargs).dropna() for f in features_and_labels.features], True)
@@ -64,7 +84,7 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Tuple[p
     if len(features) <= 0:
         raise ValueError("not enough data!")
 
-    return (
+    return FeaturesWithTargets(
         features.loc[common_index],
         loc_if_not_none(targets, common_index),
         loc_if_not_none(latent, common_index)

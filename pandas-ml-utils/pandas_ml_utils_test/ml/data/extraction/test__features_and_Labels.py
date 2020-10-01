@@ -6,6 +6,7 @@ import pandas as pd
 
 from pandas_ml_common import Constant
 from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
+from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from test.config import DF_TEST
 
 
@@ -50,7 +51,7 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
     def test__extract_label_comprehension(self):
         df = DF_TEST.copy()
 
-        (features, _), labels, latent, targets, weights, gross_loss = df._.extract(
+        fl: FeaturesWithLabels = df._.extract(
             FeaturesAndLabels(
                 features=["Close"],
                 labels=[partial(lambda i, df: df["Close"].rename(f"Close_{i}"), i) for i in range(5, 10)]
@@ -60,26 +61,26 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
         #print(labels.tail())
         self.assertListEqual(
             ["Close_5", "Close_6", "Close_7", "Close_8", "Close_9"],
-            labels.columns.tolist()
+            fl.labels.columns.tolist()
         )
 
     def test__extract_inf(self):
 
         df = pd.DataFrame({"a": [1, 2, 4, np.nan, np.inf]})
 
-        (features, _), labels, latent, targets, weights, gross_loss = df._.extract(
+        fl: FeaturesWithLabels = df._.extract(
             FeaturesAndLabels(
                 features=["a"],
                 labels=["a"]
             )
         )
 
-        self.assertEqual(len(features), 3)
+        self.assertEqual(len(fl.features_with_required_samples.features), 3)
 
     def test_post_processing(self):
         df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20)})
 
-        (features, _), labels, latent, targets, weights, gross_loss = df._.extract(
+        fl: FeaturesWithLabels = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=["a"],
                 feature_post_processor=lambda df: df * 2,
@@ -88,7 +89,7 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
             )
         )
 
-        self.assertEqual(len(features), 10)
-        self.assertEqual(len(labels), 10)
-        self.assertEqual(labels.values.sum().item(), 90)
+        self.assertEqual(len(fl.features_with_required_samples.features), 10)
+        self.assertEqual(len(fl.labels), 10)
+        self.assertEqual(fl.labels.values.sum().item(), 90)
 

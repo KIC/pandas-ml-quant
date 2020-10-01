@@ -14,9 +14,28 @@ from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.model.base_model import NumpyModel
 from pandas_ml_utils.ml.summary import Summary
+import torch.nn as nn
 
 
 _log = logging.getLogger(__name__)
+
+
+class PytorchNN(nn.Module):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, *input):
+        if self.training:
+            return self.forward_training(*input)
+        else:
+            return self.forward_predict(*input)
+
+    def forward_training(self, *input):
+        pass
+
+    def forward_predict(self, *input):
+        return self.forward_training(*input)
 
 
 class PytorchModel(NumpyModel):

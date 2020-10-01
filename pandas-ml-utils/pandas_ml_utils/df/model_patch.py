@@ -10,6 +10,7 @@ from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
 from pandas_ml_utils.ml.model import Model as MlModel
 from pandas_ml_utils.ml.summary import Summary
 from .model_context import ModelContext
+from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 
 
 class DfModelPatch(object):
@@ -28,16 +29,28 @@ class DfModelPatch(object):
                           **kwargs):
         # extract pandas objects
         kwargs = merge_kwargs(features_and_labels.kwargs, kwargs)
-        (features, _), label, _, _, _, _ = extract_feature_labels_weights(self.df, features_and_labels, **kwargs)
+        fl: FeaturesWithLabels = extract_feature_labels_weights(self.df, features_and_labels, **kwargs)
 
         # try to estimate good features
-        return feature_selection(features, label, top_features, correlation_threshold, minimum_features,
-                                 lags, show_plots, figsize)
+        return feature_selection(
+            fl.features_with_required_samples.features,
+            fl.labels,
+            top_features,
+            correlation_threshold,
+            minimum_features,
+            lags,
+            show_plots,
+            figsize
+        )
 
     def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
         fnl = data.features_and_labels if isinstance(data, MlModel) else data
-        (features, _), labels, _, _, _ = self.df._.extract(fnl)
-        return plot_features(features.join(labels), labels.columns[0] if has_indexed_columns(labels) else labels.name)
+        fl: FeaturesWithLabels = self.df._.extract(fnl)
+
+        return plot_features(
+            fl.features_with_required_samples.features.join(fl.labels),
+            fl.labels.columns[0] if has_indexed_columns(fl.labels) else fl.labels.name
+        )
 
     def fit(self,
             model_provider: Callable[[], MlModel],
