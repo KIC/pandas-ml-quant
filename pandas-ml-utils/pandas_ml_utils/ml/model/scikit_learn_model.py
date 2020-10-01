@@ -68,7 +68,7 @@ class SkModel(NumpyModel):
                         raise e
             else:
                 from sklearn.metrics import mean_squared_error
-                return np.array(mean_squared_error(prediction, y).mean()), np.array([np.nan])
+                return np.array([mean_squared_error(prediction, y).mean()]), np.array([np.nan])
 
     def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         if callable(getattr(self.skit_model, 'predict_proba', None)):

@@ -22,33 +22,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 class TestModel(TestCase):
 
-    def test_linear_model(self):
-        df = DF_TEST.copy()
-
-        fit = df.model.fit(
-            SkModel(
-                Lasso(),
-                FeaturesAndLabels(
-                    features=[
-                        lambda df: df["Close"].ta.rsi().ta.rnn(28),
-                        lambda df: (df["Volume"] / df["Volume"].ta.ema(14) - 1).ta.rnn(28)
-                    ],
-                    labels=[
-                        lambda df: (df["Close"] / df["Open"] - 1).shift(-1),
-                    ]
-                ),
-                summary_provider=RegressionSummary
-            ),
-            naive_splitter()
-        )
-
-        print(fit)
-
-        prediction = df.model.predict(fit.model)
-        print(prediction)
-
-        backtest = df.model.backtest(fit.model)
-
     def test_simple_regression_model(self):
         df = DF_TEST.copy()
 
