@@ -10,7 +10,7 @@ def run_notebook(notebook_path, working_directory='/'):
     with open(notebook_path) as f:
         nb = nbformat.read(f, as_version=4)
 
-    proc = ExecutePreprocessor(timeout=600, kernel_name='python3')
+    proc = ExecutePreprocessor(timeout=600, iopub_timeout=10, kernel_name='python3')
     proc.allow_errors = True
 
     proc.preprocess(nb, {'metadata': {'path': working_directory}})

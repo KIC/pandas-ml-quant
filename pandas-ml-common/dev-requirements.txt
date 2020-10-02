@@ -2,3 +2,4 @@ tox
 twine
 scikit-learn
 nbconvert
+nbformat

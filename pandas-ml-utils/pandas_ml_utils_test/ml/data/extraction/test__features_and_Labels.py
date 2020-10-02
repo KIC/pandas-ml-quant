@@ -7,7 +7,7 @@ import pandas as pd
 from pandas_ml_common import Constant
 from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
-from test.config import DF_TEST
+from pandas_ml_utils_test.config import DF_TEST
 
 
 class TestExtrationOfFeaturesAndLabels(TestCase):

@@ -1,15 +1,13 @@
 from contextlib import redirect_stdout
 from datetime import datetime
 from typing import Callable
-
-from matplotlib.figure import Figure
 import io
 
-from moviepy.video.VideoClip import DataVideoClip
-from moviepy.video.io.html_tools import ipython_display
 
+def plot_animation(index, make_frame: Callable[[datetime], 'Figure'], fps=2, **kwargs):
+    from moviepy.video.VideoClip import DataVideoClip
+    from moviepy.video.io.html_tools import ipython_display
 
-def plot_animation(index, make_frame: Callable[[datetime], Figure], fps=2, **kwargs):
     def repr_html(clip):
         f = io.StringIO()
         with redirect_stdout(f):

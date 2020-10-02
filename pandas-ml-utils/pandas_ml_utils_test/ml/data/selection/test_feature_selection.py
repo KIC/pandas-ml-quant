@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from pandas_ml_utils.ml.data.selection.feature_selection import score_feature
-from test.config import DF_TEST
+from pandas_ml_utils_test.config import DF_TEST
 
 
 class TestFeatureSelection(TestCase):
