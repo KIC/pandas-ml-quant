@@ -19,6 +19,7 @@ setup(
    long_description_content_type='text/markdown',
    install_requires=open("requirements.txt").read().splitlines(),
    extras_require={
+      "cross_validation": ["scikit-learn"],
       "dev": open("dev-requirements.txt").read().splitlines(),
    },
    include_package_data=True,
@@ -32,5 +33,4 @@ setup(
       'Programming Language :: Python :: 3.7',
    ],
    keywords=['pandas', 'ml', 'util', 'quant'],
-   entry_points={"tox": ["clean_egg = tox_clean_egg"]},
 )

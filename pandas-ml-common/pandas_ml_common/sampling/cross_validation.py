@@ -6,7 +6,7 @@ from sklearn.utils.validation import _num_samples
 class KFoldBoostRareEvents(KFold):
 
     def __init__(self, n_splits='warn', shuffle=False, random_state=None):
-        super().__init__(n_splits, shuffle, random_state)
+        super().__init__(n_splits, shuffle=shuffle, random_state=random_state)
 
     def split(self, X, y=None, groups=None):
         n_samples = _num_samples(X)

@@ -59,7 +59,7 @@ class TestSampler(TestCase):
         self.assertEqual(101, len(samples[0][2][0]))
 
     def test_cross_validation(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(30),
+        sampler = Sampler(TEST_DF, TEST_DF, None, TEST_DF.tail(30),
                           splitter=lambda x: (x[:-3], x[-3:]),
                           cross_validation=(3, KFold(3).split),
                           epochs=2)
@@ -114,7 +114,7 @@ class TestSampler(TestCase):
             np.testing.assert_array_equal(samples[0][2][0].values, samples[1][2][0].values)
 
     def test_cross_validation_multiindex_row(self):
-        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF,
+        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, TEST_MUTLI_INDEX_ROW_DF,
                           splitter=lambda x: (x[:-3], x[-3:]),
                           cross_validation=KFold(2),
                           epochs=2)

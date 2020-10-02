@@ -1,4 +1,1 @@
-twine
-tensorflow<2
-keras
-torch
+tox

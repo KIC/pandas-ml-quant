@@ -23,8 +23,8 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
 
         if values.ndim > 1:
             # stack all rows per column then stack all columns
-            res = np.array([np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]) \
-                    .swapaxes(0, 1)
+            column_values = [np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]
+            res = np.array(column_values).swapaxes(0, 1)  # ignore warning as this throws an exception anyways
         else:
             # stack all rows
             res = np.array([np.array(v) for v in values])

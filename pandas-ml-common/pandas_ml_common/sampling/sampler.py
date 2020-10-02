@@ -81,7 +81,7 @@ class Sampler(object):
                 yield epoch, -1, train_data, test_data
         else:
             # here we only need one epoch for each frame!
-            row_frame_folds = [(train_idx, test_idx, list(enumerate(self.cross_validation(train_idx))))
+            row_frame_folds = [(train_idx, test_idx, list(enumerate(self.cross_validation(train_idx, self.frames[1].loc[train_idx].values))))
                                for epoch, train_idx, test_idx in self._sample(self.common_index, 1, False, None)]
 
             # loop epochs
