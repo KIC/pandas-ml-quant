@@ -32,4 +32,5 @@ setup(
       'Programming Language :: Python :: 3.7',
    ],
    keywords=['pandas', 'ml', 'util', 'quant'],
+   entry_points={"tox": ["clean_egg = tox_clean_egg"]},
 )

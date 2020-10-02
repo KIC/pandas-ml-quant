@@ -1,10 +1,10 @@
 import logging
 import re
-from collections import OrderedDict, Callable
-from typing import List, Iterable, Union
+from collections import OrderedDict
+from typing import List, Union, Callable
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pandas.core.base import PandasObject
 
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args

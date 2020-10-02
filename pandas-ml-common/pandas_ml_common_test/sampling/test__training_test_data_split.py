@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_utils import pd, np
+from pandas_ml_common import pd, np
 from pandas_ml_common.sampling import naive_splitter, random_splitter, dummy_splitter
 
 
