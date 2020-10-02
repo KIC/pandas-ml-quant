@@ -11,6 +11,7 @@ __pycache__/
 dist/
 _build/
 .scratch.py
+scratch/
 __temp__.*
 *_output.ipynb
 /pandas-ml-1ntegration-test/test/test_4_debug.py
