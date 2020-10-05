@@ -1,3 +1,4 @@
+sortedcontainers
 mpldatacursor
 mplfinance
 matplotlib
