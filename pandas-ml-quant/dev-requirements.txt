@@ -2,6 +2,6 @@ twine
 TA-Lib
 mplfinance
 matplotlib
-pylab
-keras
-tensorflow<2.0
+ipykernel
+nbconvert
+jupyter_client
