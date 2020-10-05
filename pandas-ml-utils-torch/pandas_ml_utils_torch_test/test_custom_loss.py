@@ -4,13 +4,13 @@ import torch as t
 import torch.nn as nn
 from torch.optim import Adam
 
+from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_common.utils.numpy_utils import one_hot
-from pandas_ml_quant import np
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_common import np
+from pandas_ml_common_test.config import TEST_DF
 from pandas_ml_utils import PostProcessedFeaturesAndLabels
 from pandas_ml_utils_torch import PytorchModel, PytorchNN
-from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, \
-    DifferentiableArgmax
+from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, DifferentiableArgmax
 
 
 class TestCustomLoss(TestCase):
@@ -82,7 +82,7 @@ class TestCustomLoss(TestCase):
                          (32,))
 
     def test_soft_dtw_loss(self):
-        df = DF_TEST[["Close"]][-21:].copy()
+        df = TEST_DF[["Close"]][-21:].copy()
 
         class LstmAutoEncoder(PytorchNN):
             def __init__(self):
@@ -135,8 +135,8 @@ class TestCustomLoss(TestCase):
                     return self._decoder(x.float(), hidden)[0]
 
         model = PytorchModel(
-            PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: df.ta.rnn(10)],
-                                           df.columns.to_list(), [lambda df: df.ta.rnn(10)],
+            PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
+                                           df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
                                            ["condensed-a", "condensed-b"]),
             LstmAutoEncoder,
             SoftDTW,

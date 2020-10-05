@@ -3,8 +3,9 @@ from unittest import TestCase
 import torch as t
 import torch.nn as nn
 
-from pandas_ml_quant import np
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_common import np
+from pandas_ml_common.utils.column_lagging_utils import lag_columns
+from pandas_ml_utils_test.config import DF_TEST
 from pandas_ml_utils_torch.layers import KerasLikeLSTM, RegularizedLayer, Time2Vec
 
 
@@ -37,7 +38,7 @@ class TestPytorchLayer(TestCase):
     def test_time2vec(self):
         df = DF_TEST.copy()
 
-        x = df["Volume"].pct_change().ta.rnn(range(5))._.values[:-2]
+        x = lag_columns(df["Volume"].pct_change(), 5).dropna()._.values[:-2]
         y = df["Volume"].pct_change().shift(-1).dropna()[6:]
 
         class MyModule(nn.Module):
