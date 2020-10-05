@@ -1,3 +1,4 @@
+tox
 twine
 TA-Lib
 mplfinance
