@@ -24,6 +24,9 @@ class TestAbstractModel(object):
         fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=1500)
         print(fit.training_summary.df)
 
+        """then we get a html summary and can predict"""
+        self.assertIn('<style scoped>', fit.training_summary._repr_html_())
+
         prediction = df.model.predict(fit.model)
         binary_prediction = prediction.iloc[:,0] >= 0.5
         np.testing.assert_array_equal(binary_prediction, np.array([True, False, False, True, True, False, False, True,]))
