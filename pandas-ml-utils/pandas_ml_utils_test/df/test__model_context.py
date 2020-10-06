@@ -1,8 +1,8 @@
 import os
-
 from unittest import TestCase
-from pandas_ml_utils import Model
+
 from pandas_ml_common_test.notebook_runner import run_notebook
+from pandas_ml_utils import Model
 from pandas_ml_utils_test.config import DF_NOTES
 
 PWD = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +20,7 @@ class TestModelContext(TestCase):
         if os.path.exists(out_notebook_file): os.remove(out_notebook_file)
 
         """when executing the notebook with a model context"""
-        nb, errors = run_notebook(notebook_file, PWD)
+        nb, errors = run_notebook(notebook_file, PWD, kernel=os.getenv("TOX_KERNEL") or "python3")
 
         """then we have no errors and a saved model"""
         self.assertEqual(errors, [])
