@@ -6,6 +6,10 @@ import pandas as pd
 import pandas_ml_quant_data_provider.datafetching as data_fetchers
 from .fetch import fetch_timeseries
 from .provider import *
+from .quant_data import QuantData
+
+quant_data = QuantData()
+load = quant_data.load
 
 setattr(pd, "fetch_timeseries", fetch_timeseries)
 setattr(pd, "read_ts_csv", data_fetchers.read_ts_csv)
