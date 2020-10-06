@@ -42,7 +42,25 @@ def get_buckets(arr, open=True, at_index=None):
         arr = _arr
 
     tuples = [(arr[i], arr[i+1]) for i in range(len(arr)-1)]
-    return tuples if at_index is None else tuples[at_index]
+    return WrappedTuple(tuples if at_index is None else tuples[at_index])
+
+
+class WrappedTuple(object):
+
+    def __init__(self, tpl):
+        self.tpl = tpl
+
+    def as_tuple(self):
+        return self.tpl
+
+    def __getitem__(self, item):
+        return self.tpl[item]
+
+    def __repr__(self):
+        return repr(self.tpl)
+
+    def __str__(self):
+        return str(self.tpl)
 
 
 class CircularBuffer(object):
