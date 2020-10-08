@@ -5,12 +5,13 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common import Constant
+from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils_test.config import DF_TEST
 
 
-class TestExtrationOfFeaturesAndLabels(TestCase):
+class TestExtractionOfFeaturesAndLabels(TestCase):
 
     def test_repr_features_labels(self):
         fnl = FeaturesAndLabels(
@@ -68,12 +69,15 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
 
         df = pd.DataFrame({"a": [1, 2, 4, np.nan, np.inf]})
 
-        fl: FeaturesWithLabels = df._.extract(
-            FeaturesAndLabels(
-                features=["a"],
-                labels=["a"]
+        with self.assertLogs(level='WARN') as cm:
+            fl: FeaturesWithLabels = df._.extract(
+                FeaturesAndLabels(
+                    features=["a"],
+                    labels=["a"]
+                )
             )
-        )
+
+            self.assertIn("features containing infinit number", cm.output[0])
 
         self.assertEqual(len(fl.features_with_required_samples.features), 3)
 
@@ -93,3 +97,18 @@ class TestExtrationOfFeaturesAndLabels(TestCase):
         self.assertEqual(len(fl.labels), 10)
         self.assertEqual(fl.labels.values.sum().item(), 90)
 
+    def test_post_processing_multiindex_row(self):
+        df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20)})
+        df.index = pd.MultiIndex.from_product([["A", "B"], range(10)])
+
+        fl: FeaturesWithLabels = df._.extract(
+            PostProcessedFeaturesAndLabels(
+                features=["a"],
+                feature_post_processor=lambda df: lag_columns(df, [1, 2]),
+                labels=["b"],
+                labels_post_processor=lambda df: df * 2,
+            )
+        )
+
+        self.assertIsInstance(fl.features_with_required_samples.features.index, pd.MultiIndex)
+        self.assertIsInstance(fl.labels.index, pd.MultiIndex)

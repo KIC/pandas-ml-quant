@@ -10,8 +10,17 @@ from pandas.core.base import PandasObject
 
 from pandas_ml_common.df.ml import ML
 from pandas_ml_common.lazy import LazyInit
-from pandas_ml_common.utils import get_pandas_object, Constant, inner_join, has_indexed_columns, np_nans, \
-    flatten_multi_column_index, unique_level_columns
+from pandas_ml_common.utils import (
+    get_pandas_object,
+    Constant,
+    inner_join,
+    has_indexed_columns,
+    np_nans,
+    flatten_multi_column_index,
+    unique_level_columns,
+    unique_level_rows,
+    unique_level
+)
 
 from pandas_ml_common.sampling import *
 
@@ -26,6 +35,7 @@ setattr(pd.DataFrame, "to_frame", lambda self: self)
 setattr(pd.DataFrame, "flatten_columns", flatten_multi_column_index)
 setattr(pd.DataFrame, "unique_level_columns", unique_level_columns)
 setattr(pd.DataFrame, "has_indexed_columns", lambda self: has_indexed_columns(self))
+setattr(pd.MultiIndex, "unique_level", lambda self, *args: unique_level(self, *args))
 # setattr(pd.Series, 'columns', lambda self: [self.name]) # FIXME leads to problems where we do hasattr(?, columns)
 
 

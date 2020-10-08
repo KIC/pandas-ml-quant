@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Dict, Callable
+from typing import Dict, Callable, Union, List, Tuple
 
 _log = logging.getLogger(__name__)
 _DEBUG = False
@@ -92,3 +92,20 @@ def merge_kwargs(*kwargs: Dict) -> Dict:
         dict = {**dict, **d}
 
     return dict
+
+
+def flatten_nested_list(l: Union[List, Tuple], func: callable) -> List:
+    if isinstance(l, (List, Tuple)):
+        res = []
+
+        for i in l:
+            r = flatten_nested_list(i, func)
+            if isinstance(r, (List, Tuple)):
+                res.extend(r)
+            else:
+                res.append(r)
+
+        return res
+    else:
+        return [func(l)]
+

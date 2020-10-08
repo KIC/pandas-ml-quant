@@ -54,6 +54,7 @@ for indicator_functions in [analysis, optimized_strategies]:
             func = getattr(indicator_functions, indicator_function)
             setattr(TechnicalAnalysis, indicator_function[3:], wrapper(func))
             TechnicalAnalysis.info[indicator_function] = func.__module__
+            # TODO we also want to add func.__doc__ and return everything as a dataframe
 
 
 

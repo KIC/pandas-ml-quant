@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ class ML(object):
         self.df = df
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> Union[List[np.ndarray], np.ndarray]:
         """
         In contrast to pandas.values the ml.values returns a n-dimensional array with respect to MultiIndex and/or
         nested numpy arrays inside of cells
@@ -25,18 +25,19 @@ class ML(object):
         values = unpack_nested_arrays(self.df)
 
         # return in multi level shape if multi index is used
-        if has_indexed_columns(self.df) and isinstance(self.df.columns, pd.MultiIndex):
-            index_shape = multi_index_shape(self.df.columns)
-            values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
+        def reshape_when_multi_index_colum(values):
+            if has_indexed_columns(self.df) and isinstance(self.df.columns, pd.MultiIndex):
+                index_shape = multi_index_shape(self.df.columns)
+                values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
 
-        return values
+            return values
+
+        # if values is list reshape each array
+        return [reshape_when_multi_index_colum(v) for v in values] if isinstance(values, List) else \
+            reshape_when_multi_index_colum(values)
 
     def extract(self, func: callable, *args, **kwargs):
         return call_callable_dynamic_args(func, self.df, *args, **kwargs)
-
-    def max(self):
-        values = self.values
-        return max([v.max() for v in values]) if isinstance(values, list) else values.max()
 
     def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
         """

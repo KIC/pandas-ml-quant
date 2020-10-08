@@ -5,6 +5,7 @@ from pandas_ml_common import Typing
 from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_utils.ml.model.base_model import Model
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
+from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
 
 
 class ModelContext(object):
@@ -30,8 +31,8 @@ class ModelContext(object):
 
         return fit
 
-    def extract(self, model: Model) -> FeaturesWithLabels:
-        return self.df._.extract(model.features_and_labels)
+    def extract(self, model: Union[Model, FeaturesAndLabels]) -> FeaturesWithLabels:
+        return self.df._.extract(model.features_and_labels if isinstance(model, Model) else model)
 
     def __enter__(self):
         return self

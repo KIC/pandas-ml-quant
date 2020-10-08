@@ -1,4 +1,4 @@
-from typing import Union as _Union
+from typing import Union as _Union, Iterable
 
 # create convenient type hint
 import numpy as _np
@@ -35,6 +35,21 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
         res = ta_wilders(df.to_frame(), period).iloc[:, 0]
 
     return _wcs(f"wilders_{period}", res)
+
+
+def ta_std_ret_bands(s: _pd.Series, period=12, stddevs=[2.0], ddof=1, lag=1, scale_lag=True, include_mean=True) -> _PANDAS:
+    assert not has_indexed_columns(s)
+    if not isinstance(stddevs, Iterable): stddevs = [stddevs]
+
+    mean = s.rolling(period).mean()
+    std = s.pct_change().rolling(period).std(ddof=ddof).shift(lag) * (_np.sqrt(lag) if scale_lag else 1)
+    res = mean.to_frame() if include_mean else _pd.DataFrame({}, index=s.index)
+
+    for z in stddevs:
+        res[f"upper_{z}"] = mean * (1 + std * z)
+        res[f"lower_{z}"] = mean * (1 - std * z)
+
+    return res
 
 
 def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:

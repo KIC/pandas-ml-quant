@@ -75,11 +75,16 @@ def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_m
 
 
 def unique_level_columns(df: pd.DataFrame, level=0):
-    return unique(df.columns.get_level_values(level)) if isinstance(df.columns, pd.MultiIndex) else df.columns
+    idx = df if isinstance(df, pd.Index) else df.columns
+    return unique_level(idx)
 
 
 def unique_level_rows(df: Union[pd.DataFrame, pd.Index], level=0):
     idx = df if isinstance(df, pd.Index) else df.index
+    return unique_level(idx)
+
+
+def unique_level(idx: pd.Index, level=0):
     return unique(idx.get_level_values(level)) if isinstance(idx, pd.MultiIndex) else idx
 
 
