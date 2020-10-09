@@ -1,1 +1,22 @@
-${summary.df._repr_html_() if summary.df is not None else "n.a."}
+<%include file="./style.html" />
+
+<div class="full-width">
+    <table width="100%" class="full-width no-boder" cellspacing="0" cellpadding="0">
+        <tr class="no-border">
+            % for p in plots:
+                <td class="no-border">
+                    <img src="${p}" class="left big" />
+                </td>
+            % endfor
+        </tr>
+    </table>
+
+    <div class="full-width">
+        % for t in tables:
+            t._repr_html_()
+            <br/>
+        % endfor
+
+        ${summary.df._repr_html_() if summary.df is not None else "n.a."}
+    </div>
+</div>

@@ -25,8 +25,8 @@ def one_hot(index, categories):
 
 def clean_one_hot_classification(true_values: np.ndarray, predicted_values: np.ndarray):
     if isinstance(true_values, list):
-        true_values = np.stack(true_values)
-        predicted_values = np.stack(predicted_values)
+        true_values = np.concatenate(true_values, axis=0)
+        predicted_values = np.concatenate(predicted_values, axis=0)
 
     true_values = true_values.reshape(true_values.shape[0], -1)
     predicted_values = predicted_values.reshape(true_values.shape)

@@ -21,6 +21,7 @@ class FeaturesWithTargets(NamedTuple):
 class FeaturesWithRequiredSamples(NamedTuple):
     features: pd.DataFrame
     min_required_samples: int
+    nr_of_features: int
 
 
 class FeaturesWithLabels(NamedTuple):
@@ -63,7 +64,8 @@ def extract_feature_labels_weights(
     return FeaturesWithLabels(
         FeaturesWithRequiredSamples(
             tuple([f.loc[common_index] for f in features]) if isinstance(features, tuple) else features.loc[common_index],
-            len(df) - len(features) + 1
+            len(df) - len(features) + 1,
+            len(features.columns)
         ),
         labels.loc[common_index],
         loc_if_not_none(latent, common_index),

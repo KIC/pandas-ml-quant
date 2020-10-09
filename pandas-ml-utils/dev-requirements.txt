@@ -2,3 +2,4 @@ tox
 ipykernel
 nbconvert
 jupyter_client
+matplotlib

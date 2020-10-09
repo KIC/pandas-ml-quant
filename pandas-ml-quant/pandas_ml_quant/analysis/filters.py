@@ -78,7 +78,7 @@ def ta_bbands(df: _PANDAS, period=12, stddev=2.0, ddof=1, include_mean=True) -> 
     upper = mean + (std * stddev)
     lower = mean - (std * stddev)
     z_score = (most_recent - mean) / std
-    quantile = _pd.Series(None, index=df.index)
+    quantile = _pd.Series(None, index=df.index, dtype='float64')
     quantile[most_recent <= lower] = 0
     quantile[most_recent > lower] = 1
     quantile[most_recent > mean] = 2

@@ -2,7 +2,6 @@ import base64
 import io
 import os
 import traceback
-from typing import Callable
 
 import dill as pickle
 

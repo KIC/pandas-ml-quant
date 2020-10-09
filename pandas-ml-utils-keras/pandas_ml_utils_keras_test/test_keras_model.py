@@ -4,17 +4,17 @@ import unittest
 import uuid
 from unittest import TestCase
 
-import numpy as np
 import keras
+import numpy as np
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.optimizers import SGD
 from tensorflow import set_random_seed
 
-from pandas_ml_utils import FeaturesAndLabels, Model
-from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils_keras import KerasModel
 from pandas_ml_common import pd
+from pandas_ml_utils import FeaturesAndLabels, Model
+from pandas_ml_utils_keras import KerasModel
+from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 set_random_seed(42)

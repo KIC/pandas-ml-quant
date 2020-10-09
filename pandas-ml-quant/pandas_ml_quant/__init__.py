@@ -2,7 +2,6 @@
 __version__ = '0.2.0'
 
 import importlib
-import sys as _sys
 
 from pandas_ml_common import *
 from pandas_ml_quant.df.technical_analysis import TechnicalAnalysis as _TA
@@ -21,13 +20,6 @@ try:
     _log.warning(f"automatically imported pandas_ml_utils {pandas_ml_utils.__version__}")
 except:
     _log.error(f"pandas_ml_utils module not available but needed!")
-
-# auto import pandas ml quant data prviders
-try:
-    pandas_ml_quant_data_provider = importlib.import_module("pandas_ml_quant_data_provider")
-    _log.warning(f"automatically imported pandas_ml_quant_data_provider {pandas_ml_quant_data_provider.__version__}")
-except:
-    _log.warning("pandas_ml_quant_data_provider module not avialable!")
 
 # auto import pandas quant reinforcement learning
 try:

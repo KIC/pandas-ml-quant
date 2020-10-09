@@ -1,4 +1,2 @@
-from .base_summary import Summary
-from .classification_summary import ClassificationSummary
-from .regression_summary import RegressionSummary
+from .base_summary import Summary, ClassificationSummary, RegressionSummary
 from .reconstruction_summary import ReconstructionSummary
