@@ -27,13 +27,18 @@ def deserialize(filename, type=None):
             raise ValueError(f"Deserialized pickle was {type(obj)} but expected {type}!")
 
 
-def plot_to_html_img(plotter: Callable, **kwargs):
+def plot_to_html_img(plotter, **kwargs):
     import matplotlib.pyplot as plt
+    from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
+
+    if callable(plotter):
+        ret_fig = call_callable_dynamic_args(plotter, **kwargs)
+        fig = ret_fig if isinstance(ret_fig, plt.Figure) else plt.gcf()
+    else:
+        fig = plotter
+
     with io.BytesIO() as f:
         try:
-            from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
-            call_callable_dynamic_args(plotter, **kwargs)
-            fig = plt.gcf()
             fig.savefig(f, format="png", bbox_inches='tight')
             image = base64.encodebytes(f.getvalue()).decode("utf-8")
             plt.close(fig)

@@ -1,5 +1,6 @@
 import pandas_ml_utils.html as html
 from pandas_ml_common import Typing
+from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 
 
 class Summary(object):
@@ -10,9 +11,10 @@ class Summary(object):
      * implement `_repr_html_()`
     """
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', **kwargs):
+    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', *args, **kwargs):
         self._df = df
         self.model = model
+        self.args = args
         self.kwargs = kwargs
 
     @property
@@ -23,6 +25,10 @@ class Summary(object):
         from mako.template import Template
         from mako.lookup import TemplateLookup
 
+        figures = [arg(self.df, model=self.model) for arg in self.args]
+        embedded_plots = [plot_to_html_img(f) for f in figures if str(type(f)) == "<class 'matplotlib.figure.Figure'>"]
+        tables = [f for f in figures if str(type(f)) != "<class 'matplotlib.figure.Figure'>"]
+
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
-        return template.render(summary=self)
+        return template.render(summary=self, plots=embedded_plots, tables=tables)
 

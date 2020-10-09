@@ -1,8 +1,17 @@
+from functools import partial
+from typing import Iterable
+
 import numpy as np
 
 
-def one_hot(index, len):
-    arr = np.zeros(len)
+def one_hot(index, categories):
+    if isinstance(index, Iterable):
+        if categories is None: categories = index.max() + 1
+        res = np.zeros((len(index), categories))
+        for i, v in enumerate(index): res[i] = one_hot(v, categories)
+        return res
+
+    arr = np.zeros(categories)
 
     if np.issubdtype(np.uint32, np.integer):
         arr[index] = 1.0
@@ -12,6 +21,29 @@ def one_hot(index, len):
         arr += np.NAN
 
     return arr
+
+
+def clean_one_hot_classification(true_values: np.ndarray, predicted_values: np.ndarray):
+    if isinstance(true_values, list):
+        true_values = np.stack(true_values)
+        predicted_values = np.stack(predicted_values)
+
+    true_values = true_values.reshape(true_values.shape[0], -1)
+    predicted_values = predicted_values.reshape(true_values.shape)
+
+    # eventually convert integer values to one hot encoded values
+    if true_values.ndim <= 1 < true_values.max():
+        # convert integers to one hot
+        true_values = one_hot(true_values, None)
+    elif true_values.shape[-1] == 1:
+        # fix binary classification case
+        true_values = np.column_stack([1 - true_values, true_values])
+
+    # fix binary classification case for labels
+    if predicted_values.shape[-1] == 1:
+        predicted_values = np.column_stack([1 - predicted_values, predicted_values])
+
+    return true_values, predicted_values
 
 
 def np_nans(shape):
