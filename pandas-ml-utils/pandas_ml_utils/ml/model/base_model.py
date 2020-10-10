@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common import Typing, Sampler, NumpySampler
-from pandas_ml_common.utils import to_pandas
+from pandas_ml_common.utils import to_pandas, unique_level
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 
@@ -116,7 +116,7 @@ class Model(_Model):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def plot_loss(self, figsize=(8, 6), secondary_y=False, **kwargs):
+    def plot_loss(self, figsize=(8, 6), **kwargs):
         """
         plot a diagram of the training and validation losses per fold
         :return: figure and axis
@@ -124,11 +124,13 @@ class Model(_Model):
 
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
-
-        for fold_nr, fold_loss in enumerate(self._history):
-            p = ax.plot(fold_loss[0], '-', label=f'{fold_nr}: loss')
-            ax2 = ax.twinx() if secondary_y else ax
-            ax2.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{fold_nr}: val loss')
+        for fold in unique_level(self._history.columns, 0):
+            if fold < 0:
+                p = ax.plot(self._history[(fold, 0)], '-', label='model (train)')
+                ax.plot(self._history[(fold, 1)], '--', color=p[-1].get_color(), label='model (test)')
+            else:
+                p = ax.plot(self._history[(fold, 0)], '-', label=f'fold {fold} (train)')
+                ax.plot(self._history[(fold, 1)], '--', color=p[-1].get_color(), label=f'fold {fold} (test)')
 
         plt.legend(loc='upper right')
         return fig, ax

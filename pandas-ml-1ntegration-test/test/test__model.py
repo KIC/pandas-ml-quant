@@ -220,6 +220,8 @@ class TestModel(TestCase):
         )
 
         print(fit)
+        print(fit.plot_loss())
+
         prediction = df.model.predict(fit.model, tail=3)
         self.assertEqual(3, len(prediction))
         self.assertEqual((3,), np.array(prediction[PREDICTION_COLUMN_NAME].iloc[-1, -1]).shape)
@@ -229,3 +231,4 @@ class TestModel(TestCase):
         print(target_predictions)
         self.assertEqual(9, len(target_predictions))
 
+        return fit.plot_loss()

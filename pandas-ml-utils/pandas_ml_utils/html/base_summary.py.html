@@ -1,22 +1,37 @@
 <%include file="./style.html" />
 
 <div class="full-width">
-    <table width="100%" class="full-width no-boder" cellspacing="0" cellpadding="0">
-        <tr class="no-border">
-            % for p in plots:
-                <td class="no-border">
-                    <img src="${p}" class="left big" />
-                </td>
+    % if layout is not None:
+        <table width="100%" class="full-width no-boder" cellspacing="0" cellpadding="0">
+            % for row in layout:
+                <tr class="no-border">
+                    % for fig, rowspan, colspan in row:
+                        <td class="no-border" rowspan="${rowspan}" colspan="${colspan}">
+                            % if fig < 0:
+                                <br/>
+                            % elif figures[fig][0] == 'img':
+                                <img src="${figures[fig][1]}" class="left big" />
+                            % else:
+                                <div class="full-width">
+                                    ${figures[fig][1]}
+                                </div>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
             % endfor
-        </tr>
-    </table>
-
-    <div class="full-width">
-        % for t in tables:
-            t._repr_html_()
-            <br/>
+        </table>
+    % else:
+        % for render, fig in figures:
+            <div class="full-width">
+                % if render == 'img':
+                    <img src="${fig}" class="left big" />
+                % else:
+                    <div class="full-width">
+                        ${fig[1]}
+                    </div>
+                % endif
+            </div>
         % endfor
-
-        ${summary.df._repr_html_() if summary.df is not None else "n.a."}
-    </div>
+    % endif
 </div>

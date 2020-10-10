@@ -25,7 +25,7 @@ class TestAbstractModel(object):
         print(fit.training_summary.df)
 
         """then we get a html summary and can predict"""
-        self.assertIn('<style scoped>', fit.training_summary._repr_html_())
+        self.assertIn('<style>', fit.training_summary._repr_html_())
 
         prediction = df.model.predict(fit.model)
         binary_prediction = prediction.iloc[:,0] >= 0.5

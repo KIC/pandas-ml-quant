@@ -1,3 +1,6 @@
+from collections import namedtuple
+from typing import List
+
 import numpy as np
 
 from pandas_ml_common import Typing
@@ -5,6 +8,7 @@ from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
+from .figures import *
 
 
 class Summary(object):
@@ -15,11 +19,44 @@ class Summary(object):
      * implement `_repr_html_()`
     """
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', *args, **kwargs):
+    Cell = namedtuple("Cell", ["index", "rowspan", "colspan"])
+
+    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', *args, layout: List[List[int]] = None, **kwargs):
         self._df = df
         self.model = model
         self.args = args
         self.kwargs = kwargs
+
+        if layout is not None:
+            grid = np.array(layout, dtype=int)
+            table: List[List[Summary.Cell]] = [[]]
+            for i, j in np.ndindex(grid.shape):
+                if i > 0:
+                    if grid[i-1, j] == grid[i, j]:
+                        # rowspan += 1
+                        cell = table[-1][j]
+                        table[-1][j] = Summary.Cell(cell.index, cell.rowspan + 1, cell.colspan)
+
+                    if j <= 0:
+                        # we need to add a new empty row
+                        table.append([])
+                if j > 0:
+                    if grid[i, j-1] == grid[i, j]:
+                        # colspan += 1
+                        cell = table[i][j-1]
+                        table[i][-1] = Summary.Cell(cell.index, cell.rowspan, cell.colspan + 1)
+                    else:
+                        table[i].append(Summary.Cell(grid[i, j], 1, 1))
+                else:
+                    table[i].append(Summary.Cell(grid[i, j], 1, 1))
+
+            # assign layout
+            if len(table) > 0 and table[-1] == []:
+                table.pop()
+
+            self.layout = table
+        else:
+            self.layout = None
 
     @property
     def df(self):
@@ -28,21 +65,26 @@ class Summary(object):
     def _repr_html_(self):
         from mako.template import Template
         from mako.lookup import TemplateLookup
+        plot = "<class 'matplotlib.figure.Figure'>"
 
         figures = [arg(self.df, model=self.model) for arg in self.args]
-        embedded_plots = [plot_to_html_img(f) for f in figures if str(type(f)) == "<class 'matplotlib.figure.Figure'>"]
-        tables = [f for f in figures if str(type(f)) != "<class 'matplotlib.figure.Figure'>"]
+        figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_()) for f in figures]
 
-        # TODO we need some table layouting ...
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
-        return template.render(summary=self, plots=embedded_plots, tables=tables)
+        return template.render(summary=self, figures=figures, layout=self.layout)
 
 
 class RegressionSummary(Summary):
-    from .figures import plot_true_pred_scatter
 
     def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', **kwargs):
-        super().__init__(df, model, RegressionSummary.plot_true_pred_scatter, **kwargs)
+        super().__init__(
+            df,
+            model,
+            plot_true_pred_scatter,
+            df_tail,
+            layout=[[0, -1], [1, 1]],
+            **kwargs
+        )
         # TODO we should also add some figures as table like r2 ...
 
     def __str__(self):
@@ -50,14 +92,15 @@ class RegressionSummary(Summary):
 
 
 class ClassificationSummary(Summary):
-    from .figures import plot_receiver_operating_characteristic, plot_confusion_matrix
 
     def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', **kwargs):
         super().__init__(
             df,
             model,
-            ClassificationSummary.plot_confusion_matrix,
-            ClassificationSummary.plot_receiver_operating_characteristic,
+            plot_confusion_matrix,
+            plot_receiver_operating_characteristic,
+            df_tail,
+            layout=[[0, 1], [2, 2]],
             **kwargs
         )
         # TODO we should also add some figures as table like f1 ...

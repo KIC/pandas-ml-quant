@@ -27,6 +27,9 @@ class Fit(object):
         self._trails = trails
         self._kwargs = kwargs
 
+    def plot_loss(self, figsize=(8, 6), **kwargs):
+        return self.model.plot_loss(figsize, **kwargs)
+
     def values(self):
         """
         :return: returns the fitted model, a :class:`.Summary` on the training data, a :class:`.Summary` on the test data
