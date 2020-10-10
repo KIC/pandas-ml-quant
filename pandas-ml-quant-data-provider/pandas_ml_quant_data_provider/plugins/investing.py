@@ -43,7 +43,7 @@ class Investing(DataProvider):
 
     def load(self, symbol: str, **kwargs):
         # select symbols, rank countries, raise error on multiple type
-        symbol_detail = symbol.split("|")
+        symbol_detail = symbol.split("/")
         if len(symbol_detail) > 2:
             symbol, type, country = symbol_detail
             with self.engine.connect() as con:
@@ -63,19 +63,24 @@ class Investing(DataProvider):
                 assets = list(con.execute(f"SELECT * FROM {DataProvider.symbols_table_name}"
                                           f" WHERE symbol = '{symbol}'"))
 
-        # ambiguity check
-        types = {a["type"] for a in assets}
-        if len(types) != 1:
-            raise ValueError(f"Invalid or ambiguous symbol: {symbol} types: {types}")
+        if len(assets) < 0:
+            return None
+        elif len(assets) > 1:
+            # ambiguity check
+            types = {a["type"] for a in assets}
+            if len(types) != 1:
+                raise ValueError(f"Invalid or ambiguous symbol: {symbol} types: {types}")
 
-        by_countries = {a["country"]: a for a in assets}
-        if len(by_countries) > 1:
-            preferred_countries = [by_countries[c] for c in Investing.prefered_countries if c in by_countries]
-            if len(preferred_countries) < 1 < len(by_countries):
-                raise ValueError(f"ambiguous country: {by_countries.keys()}")
+            by_countries = {a["country"]: a for a in assets}
+            if len(by_countries) > 1:
+                preferred_countries = [by_countries[c] for c in Investing.prefered_countries if c in by_countries]
+                if len(preferred_countries) < 1 < len(by_countries):
+                    raise ValueError(f"ambiguous country: {by_countries.keys()}")
 
-            asset = preferred_countries[0]
-            _log.warning(f"ambiguous country: {by_countries.keys()}\ndefault to {asset['country']}")
+                asset = preferred_countries[0]
+                _log.warning(f"ambiguous country: {by_countries.keys()}\ndefault to {asset['country']}")
+        else:
+            asset = assets[0]
 
         # date range
         from_date = Investing.min_date.strftime('%d/%m/%Y')
