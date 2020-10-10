@@ -87,4 +87,25 @@ def feature_importance(df, model, **kwargs):
     #  loss = df.model[feature].predict(features)  # uuu here it gets tricky ... we need to bypass the feature
     #                                              # extraction of the fitter
     # plot(loss - loss_star)
+
+    # frames: FeaturesWithTargets = extract(model.features_and_labels, df, extract_features, **kwargs)
+    #
+    # if samples > 1:
+    #     print(f"draw {samples} samples")
+    #
+    # # features, labels, targets, weights, gross_loss, latent,
+    # sampler = Sampler(frames.features, None, frames.targets, None, None, frames.latent, splitter=None, epochs=samples)
+    # predictions = model.predict(sampler, **kwargs)
+
     pass
+
+
+def df_regression_scores(df, model, **kwargs):
+    # TODO calculate r2 score and such and return as data frame
+    pass
+
+
+def df_classification_scores(df, model, **kwargs):
+    # TODO calculate f1 score and such and return as data frame
+    pass
+

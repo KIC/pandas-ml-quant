@@ -13,17 +13,31 @@ def serialize(obj, filename):
     print(f"saved {type(obj)} to: {os.path.abspath(filename)}")
 
 
+def serializeb(obj):
+    return pickle.dumps(obj)
+
+
 def deserialize(filename, type=None):
     with open(filename, 'rb') as file:
         obj = pickle.load(file)
 
         if type is None:
             return obj
-
-        if isinstance(obj, type):
+        elif isinstance(obj, type):
             return obj
         else:
             raise ValueError(f"Deserialized pickle was {type(obj)} but expected {type}!")
+
+
+def deserializeb(bytes, type=None):
+    obj = pickle.loads(bytes)
+
+    if type is None:
+        return obj
+    elif isinstance(obj, type):
+        return obj
+    else:
+        raise ValueError(f"Deserialized pickle was {type(obj)} but expected {type}!")
 
 
 def plot_to_html_img(plotter, **kwargs):

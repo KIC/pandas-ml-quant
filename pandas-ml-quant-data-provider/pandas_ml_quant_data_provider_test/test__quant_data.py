@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from pandas_ml_quant_data_provider import QuantData
+from pandas_ml_quant_data_provider import _QuantData as QuantData
 
 
 class TestQuantData(TestCase):
@@ -61,7 +61,7 @@ class TestQuantData(TestCase):
 
         with self.assertLogs(level='WARN') as cm:
             qd.load("A")
-            self.assertIn('is older then yesterday', cm.output[0])
+            self.assertIn('is older then', cm.output[0])
 
     def test_ambiguity(self):
         qd = QuantData(plugins={"mock1": TestQuantData.MokedDataProvider(), "mock2": TestQuantData.MokedDataProvider(2)})
@@ -75,3 +75,11 @@ class TestQuantData(TestCase):
             df = qd.load("A", force_provider='mock2')
             self.assertEqual(df["Close"].mean(), 2)
             self.assertEqual(len(cm.output), 1)
+
+    def test_same_symbol_multiple_providers(self):
+        qd = QuantData(plugins={"mock1": TestQuantData.MokedDataProvider(), "mock2": TestQuantData.MokedDataProvider(2)})
+
+        df = qd.load("A|mock1", "A|mock2")
+        self.assertIsInstance(df.columns, pd.MultiIndex)
+        self.assertEqual(set(df.columns.get_level_values(0)), {'A|mock2', 'A|mock1'})
+        self.assertNotIsInstance(df.index, pd.MultiIndex)

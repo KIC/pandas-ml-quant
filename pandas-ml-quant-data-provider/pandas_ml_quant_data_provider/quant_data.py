@@ -11,6 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.base import Engine
 
 _log = logging.getLogger(__name__)
+logging.getLogger("pangres").setLevel(logging.WARNING)
 
 
 class DataProvider(object):
@@ -25,7 +26,7 @@ class DataProvider(object):
     @staticmethod
     def last_business_day():
         days = max(DataProvider.today().weekday() * -1 + 7, 3)
-        return DataProvider.today() + timedelta(days=days)
+        return DataProvider.today() - timedelta(days=days)
 
     @staticmethod
     def tomorrow():
@@ -119,17 +120,18 @@ class QuantData(object):
     def _load(self, symbols: np.ndarray, provider_splitter='|', force_provider: Union[str, List[str]] = None):
         # loop all providers and if the symbol is supported return data from this provder
         # if multiple providers support this data raise ambiguity exception
-        # also we want to control multi indexex i.e. we could pass [[AAPL, SPY], [ZM, QQQ]]
+        # also we want to control multi indexes i.e. we could pass [[AAPL, SPY], [ZM, QQQ]]
         frames = np.empty(symbols.shape, dtype=object)
 
         for i, row_symbols in enumerate(symbols):
             for j, column_symbol in enumerate(row_symbols):
-                symbol_provider = column_symbol.split(provider_splitter)
+                symbol_provider = column_symbol.split(provider_splitter, 1)
                 frames[i, j] = self._fetch_time_series(*symbol_provider, force_provider=force_provider)
 
                 # check relevance
-                if frames[i, j].index[-1] < DataProvider.last_business_day():
-                    _log.warning(f"last data point of {symbol_provider} is older then yesterday: {frames[i, j].index[-1]}")
+                if len(frames[i, j]) > 0 and frames[i, j].index[-1] < DataProvider.last_business_day():
+                    _log.warning(f"last data point of {symbol_provider} is older then last business day: "
+                                 f"{frames[i, j].index[-1]} < {DataProvider.last_business_day()}")
 
                 # fix indices
                 if frames.shape[0] > 1:

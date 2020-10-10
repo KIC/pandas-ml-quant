@@ -9,22 +9,26 @@ from pandas_ml_common.utils.index_utils import unique_level_rows
 _log = logging.getLogger(__name__)
 
 
-def unpack_nested_arrays(df: pd.DataFrame) -> Union[List[np.ndarray], np.ndarray]:
+def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], dtype=None) -> Union[List[np.ndarray], np.ndarray]:
     # in case of multiple assets stacked on top of each other
-    if isinstance(df, pd.DataFrame) and isinstance(df.index, pd.MultiIndex):
-        return [unpack_nested_arrays(df.loc[group]) for group in unique_level_rows(df)]
-
-    # get raw values
-    values = df.values
-    res = None
+    if isinstance(df, pd.DataFrame):
+        if isinstance(df.index, pd.MultiIndex):
+            return [unpack_nested_arrays(df.loc[group]) for group in unique_level_rows(df)]
+        else:
+            values = df.values
+    elif isinstance(df, pd.Series):
+        values = df.values
+    else:
+        values = df
 
     # un-nest eventually nested numpy arrays
+    res = None
     if values.dtype == 'object':
         _log.debug("unnesting objects, expecting numpy arrays")
 
         if values.ndim > 1:
             # stack all rows per column then stack all columns
-            column_values = [np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]
+            column_values = [np.array([np.array(v, dtype=dtype) for v in values[:, col]]) for col in range(values.shape[1])]
             res = np.array(column_values).swapaxes(0, 1)  # ignore warning as this throws an exception anyways
         else:
             # stack all rows

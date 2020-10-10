@@ -239,6 +239,11 @@ class _NumpyModelFit(object):
                 losses[(fold, 0)].append(train_loss)
                 losses[(fold, 1)].append(test_loss)
 
+        # fix length of losses
+        max_len = max([len(v) for v in losses.values()])
+        for k, v in losses.items():
+            v.extend([np.nan] * (max_len - len(v)))
+
         # reconstruct pandas data frames
         df_losses = pd.DataFrame(losses, columns=pd.MultiIndex.from_tuples(losses.keys()))
         df_train_prediction = pd.concat(train_predictions, axis=0)

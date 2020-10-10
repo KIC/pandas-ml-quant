@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
 
-from pandas_ml_utils.ml.summary.regression_summary import RegressionSummary
+from pandas_ml_utils.ml.summary import RegressionSummary
 
 
 def plot_losses(parent):

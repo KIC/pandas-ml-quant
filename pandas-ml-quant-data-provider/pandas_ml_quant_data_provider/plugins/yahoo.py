@@ -4,12 +4,12 @@ import traceback
 from datetime import datetime, timedelta
 from time import sleep
 from typing import Set
+from urllib.parse import quote
 
 import cachetools
 import pandas as pd
 import requests
 from pangres import upsert
-from ytd.compat import quote, text
 
 from pandas_ml_quant_data_provider.quant_data import DataProvider
 
@@ -34,11 +34,12 @@ class Yahoo(DataProvider):
         # fall back
         return requests.get(f"https://finance.yahoo.com/quote/{symbol}", allow_redirects=False).status_code == 200
 
-    @cachetools.func.ttl_cache(maxsize=100, ttl=10 * 60)
     def load(self, symbol: str, **kwargs):
         # TODO add some SQLite magic here
         start_date = None  # select max date from .... where symbol = symbol
-        return Yahoo.__download_yahoo_data(symbol, start_date)
+
+        # return a copy of a potentially cached data frame!
+        return Yahoo.__download_yahoo_data(symbol, start_date).copy()
 
     def update_symbols(self, **kwargs):
         with self.engine.connect() as con:
@@ -52,6 +53,7 @@ class Yahoo(DataProvider):
         pass
 
     @staticmethod
+    @cachetools.func.ttl_cache(maxsize=100, ttl=10 * 60)
     def __download_yahoo_data(symbol, period: str = 'max', start_date: datetime = None):
         import yfinance as yf
 
@@ -116,7 +118,7 @@ class TickerFinder(object):
         def _encodeParams(params):
             encoded = ''
             for key, value in params.items():
-                encoded += ';' + quote(key) + '=' + quote(text(value))
+                encoded += ';' + quote(key) + '=' + quote(str(value))
             return encoded
 
         params = {

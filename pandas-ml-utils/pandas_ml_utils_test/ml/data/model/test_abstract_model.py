@@ -21,7 +21,7 @@ class TestAbstractModel(object):
         model = self.provide_classification_model(FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int))
 
         """when we fit the model"""
-        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=1500)
+        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=1700)
         print(fit.training_summary.df)
 
         """then we get a html summary and can predict"""

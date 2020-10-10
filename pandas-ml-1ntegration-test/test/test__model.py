@@ -185,7 +185,7 @@ class TestModel(TestCase):
                     ]
                 )
             ),
-            random_splitter(test_size=0.4, seed=42),
+            splitter=random_splitter(test_size=0.4, seed=42),
             cross_validation=KFoldBoostRareEvents(n_splits=5)
         )
 
@@ -223,6 +223,7 @@ class TestModel(TestCase):
         prediction = df.model.predict(fit.model, tail=3)
         self.assertEqual(3, len(prediction))
         self.assertEqual((3,), np.array(prediction[PREDICTION_COLUMN_NAME].iloc[-1, -1]).shape)
+        print(prediction.tail())
 
         target_predictions = prediction.map_prediction_to_target()
         print(target_predictions)

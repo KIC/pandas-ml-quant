@@ -11,6 +11,7 @@ from sklearn.neural_network import MLPRegressor
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import call_callable_dynamic_args
+from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 from .base_model import NumpyModel, NumpyAutoEncoderModel
@@ -30,9 +31,13 @@ class SkModel(NumpyModel):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.skit_model = skit_model
         self.label_shape = None
+        self.log_one = LogOnce().log
 
     def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
+        self.log_one("cross_validation", _log.warning,
+                     "there is no cross validation processing implemented, all folds will naively be loop as if it is"
+                     "part of the data set. Make sure the `warm_start` is set to true in your scikit model!")
+        return np.nan, np.nan
 
     def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
         if nr_epochs > 1:

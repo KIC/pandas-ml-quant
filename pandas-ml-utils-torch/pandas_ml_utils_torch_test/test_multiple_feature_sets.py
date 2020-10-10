@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 
 import torch.nn as nn
@@ -12,6 +13,7 @@ from pandas_ml_utils import FeaturesAndLabels
 
 class TestMultiFeatureSet(TestCase):
 
+    @unittest.skip("implement later for RL cases")
     def test_pytorch_mfs(self):
         df = pd.DataFrame({
             "a": [1, 0, 1, 0, 1, 0, 1, 0,],

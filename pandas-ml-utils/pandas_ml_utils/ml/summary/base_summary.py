@@ -33,6 +33,7 @@ class Summary(object):
         embedded_plots = [plot_to_html_img(f) for f in figures if str(type(f)) == "<class 'matplotlib.figure.Figure'>"]
         tables = [f for f in figures if str(type(f)) != "<class 'matplotlib.figure.Figure'>"]
 
+        # TODO we need some table layouting ...
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
         return template.render(summary=self, plots=embedded_plots, tables=tables)
 
@@ -42,10 +43,10 @@ class RegressionSummary(Summary):
 
     def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', **kwargs):
         super().__init__(df, model, RegressionSummary.plot_true_pred_scatter, **kwargs)
-        # TODO we should also add some figures as table like r2
+        # TODO we should also add some figures as table like r2 ...
 
     def __str__(self):
-        return f"... to be implemented ..."
+        return f"... to be implemented ... "  # return r2 and such
 
 
 class ClassificationSummary(Summary):
@@ -59,6 +60,7 @@ class ClassificationSummary(Summary):
             ClassificationSummary.plot_receiver_operating_characteristic,
             **kwargs
         )
+        # TODO we should also add some figures as table like f1 ...
 
     def __str__(self):
         from mlxtend.evaluate import confusion_matrix
@@ -69,7 +71,7 @@ class ClassificationSummary(Summary):
         # confusion matrix needs integer encoding
         tv = np.apply_along_axis(np.argmax, 1, tv)
         pv = np.apply_along_axis(np.argmax, 1, pv)
-        cm = confusion_matrix(tv, pv, binary=tv.shape[1] <= 2)
+        cm = confusion_matrix(tv, pv, binary=tv.max() < 2)
 
         return f"{cm}"
 

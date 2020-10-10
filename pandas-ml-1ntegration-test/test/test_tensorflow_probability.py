@@ -7,9 +7,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 import pandas_ml_utils as pmu
-from pandas_ml_quant import PostProcessedFeaturesAndLabels
 from pandas_ml_quant_test.config import DF_TEST
-from pandas_ml_utils.ml.summary import RegressionSummary
+from pandas_ml_utils import PostProcessedFeaturesAndLabels, RegressionSummary
 from pandas_ml_utils_keras import KerasModel
 from pandas_ml_utils_keras.callbacks import plot_losses
 from pandas_ml_utils_keras.layers import Time2Vec

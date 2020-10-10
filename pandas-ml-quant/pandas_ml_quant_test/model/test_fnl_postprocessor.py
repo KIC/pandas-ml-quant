@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_quant import PostProcessedFeaturesAndLabels, Constant
+from pandas_ml_utils import PostProcessedFeaturesAndLabels, Constant
 from pandas_ml_quant_test.config import DF_TEST
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 

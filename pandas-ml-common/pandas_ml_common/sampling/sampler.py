@@ -4,6 +4,7 @@ from typing import Callable, Tuple, Generator, List, Union
 import numpy as np
 import pandas as pd
 
+from pandas_ml_common.utils import unpack_nested_arrays
 from pandas_ml_common.utils.index_utils import intersection_of_index, loc_if_not_none, unique_level_rows
 
 _log = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class Sampler(object):
                 yield epoch, -1, train_data, test_data
         else:
             # here we only need one epoch for each frame!
-            row_frame_folds = [(train_idx, test_idx, list(enumerate(self.cross_validation(train_idx, self.frames[1].loc[train_idx].values))))
+            row_frame_folds = [(train_idx, test_idx, list(enumerate(self.cross_validation(train_idx, unpack_nested_arrays(self.frames[1].loc[train_idx].values)))))
                                for epoch, train_idx, test_idx in self._sample(self.common_index, 1, False, None)]
 
             # loop epochs
