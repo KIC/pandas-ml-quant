@@ -13,7 +13,7 @@ _log = logging.getLogger(__file__)
 
 
 class Investing(DataProvider):
-
+    prefered_countries = ['united states', 'canada', 'euro zone', 'united kingdom']
     min_date = datetime(1970, 1, 2)
 
     def __init__(self):
@@ -43,16 +43,41 @@ class Investing(DataProvider):
 
     def load(self, symbol: str, **kwargs):
         # select symbols, rank countries, raise error on multiple type
-        with self.engine.connect() as con:
-            assets = list(con.execute(f"SELECT * from {DataProvider.symbols_table_name} WHERE symbol = '{symbol}'"))
+        symbol_detail = symbol.split("|")
+        if len(symbol_detail) > 2:
+            symbol, type, country = symbol_detail
+            with self.engine.connect() as con:
+                assets = list(con.execute(f"SELECT * FROM {DataProvider.symbols_table_name} "
+                                          f" WHERE symbol = '{symbol}'"
+                                          f"   AND type = '{type}'"
+                                          f"   AND country = '{country}'"))
 
+        elif len(symbol_detail) > 1:
+            symbol, country = symbol_detail
+            with self.engine.connect() as con:
+                assets = list(con.execute(f"SELECT * FROM {DataProvider.symbols_table_name} "
+                                          f" WHERE symbol = '{symbol}'"
+                                          f"   AND country = '{country}'"))
+        else:
+            with self.engine.connect() as con:
+                assets = list(con.execute(f"SELECT * FROM {DataProvider.symbols_table_name}"
+                                          f" WHERE symbol = '{symbol}'"))
+
+        # ambiguity check
         types = {a["type"] for a in assets}
         if len(types) != 1:
             raise ValueError(f"Invalid or ambiguous symbol: {symbol} types: {types}")
 
         by_countries = {a["country"]: a for a in assets}
+        if len(by_countries) > 1:
+            preferred_countries = [by_countries[c] for c in Investing.prefered_countries if c in by_countries]
+            if len(preferred_countries) < 1 < len(by_countries):
+                raise ValueError(f"ambiguous country: {by_countries.keys()}")
 
-        asset = by_countries["united states"]
+            asset = preferred_countries[0]
+            _log.warning(f"ambiguous country: {by_countries.keys()}\ndefault to {asset['country']}")
+
+        # date range
         from_date = Investing.min_date.strftime('%d/%m/%Y')
         to_date = DataProvider.tomorrow().strftime('%d/%m/%Y')
         df = self._download_data(asset["type"], asset["symbol"], asset["name"], asset["country"], from_date, to_date)
