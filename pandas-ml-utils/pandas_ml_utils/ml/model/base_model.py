@@ -229,10 +229,6 @@ class _NumpyModelFit(object):
                 # train one fold of an eventually cross validation model
                 train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
 
-            if epoch >= last_epoch and fold < 0:
-                train_predictions.append(to_pandas(self._predict_epoch(train[0]), train_idx, self.labels_columns))
-                test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
-
             # append losses
             if isinstance(train_loss, Iterable):
                 losses[(fold, 0)].extend(train_loss)
@@ -241,10 +237,16 @@ class _NumpyModelFit(object):
                 losses[(fold, 0)].append(train_loss)
                 losses[(fold, 1)].append(test_loss)
 
-        # fix length of losses
-        max_len = max([len(v) for v in losses.values()])
-        for k, v in losses.items():
-            v.extend([np.nan] * (max_len - len(v)))
+            # fix length of losses
+            if fold < 0:
+                max_len = max([len(v) for v in losses.values()])
+                for k, v in losses.items():
+                    v.extend([np.nan] * (max_len - len(v)))
+
+            # assemble history data frame when done
+            if epoch >= last_epoch and fold < 0:
+                train_predictions.append(to_pandas(self._predict_epoch(train[0]), train_idx, self.labels_columns))
+                test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
 
         # reconstruct pandas data frames
         df_losses = pd.DataFrame(losses, columns=pd.MultiIndex.from_tuples(losses.keys()))

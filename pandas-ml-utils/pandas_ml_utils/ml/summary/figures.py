@@ -121,6 +121,10 @@ def plot_feature_importance(df,
     pass
 
 
+def plot_partial_dependence(df, model, **kwargs):
+    raise NotImplemented
+
+
 def df_tail(df, model, **kwargs):
     # TODO if multiindex row make sure each level 0 element gets printed
     return df.tail()
