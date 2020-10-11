@@ -42,7 +42,7 @@ This module contains helpers and utilities for the most common tasks like:
 * data serialization 
 
 ### [pandas-ml-utils](pandas-ml-utils/Readme.md)
-The main abstraction layer for data preparation and modelling. The core object is the `FeaturesAndLabels` 
+The main abstraction layer for data selection, preparation and modelling. The core object is the `FeaturesAndLabels` 
 definition. Very high level your models will look something along the lines:
 
 ```python
@@ -77,6 +77,17 @@ with df.model('file_name') as m:
  
 fit  # finally just return fit as the `Fit` object implements `_repr_html_()` which renders a nice report
 ```
+
+But before a model can be developed features need to be selected. 
+```python
+df.model.feature_selection(
+    FeaturesAndLabels(
+        features=[...],
+        labels=[...]
+    )
+)
+```
+![Feature Selection](./.readme/images/feature_selection.png)
 
 ### [pandas-ml-utils-toch](pandas-ml-utils-torch/Readme.md)
 Extends the pandas-ml-utils library for the use of pytorch models
