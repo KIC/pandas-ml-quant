@@ -95,6 +95,7 @@ Also contains building blocks needed to implement optimized portfolios like mean
 And of course provides the needed tools to noramlize, discretize time series data suatable for machine learing.
   
 Last but not least this module also contains some fancy plotting methods.
+![Ta Plot](./.readme/images/sample_plot.png)
  
 ### [pandas-ml-quant-data-provider](pandas-ml-quant-data-provider/Readme.md) 
 This is maily a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
