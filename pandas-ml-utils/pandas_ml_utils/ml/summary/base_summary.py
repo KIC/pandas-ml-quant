@@ -1,13 +1,9 @@
 from collections import namedtuple
 from typing import List
 
-import numpy as np
-
 from pandas_ml_common import Typing
-from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
-from pandas_ml_utils.constants import *
 from .figures import *
 
 

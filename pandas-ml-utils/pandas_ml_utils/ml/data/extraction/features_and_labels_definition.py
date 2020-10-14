@@ -68,6 +68,11 @@ class FeaturesAndLabels(object):
         self._gross_loss = gross_loss
         self._kwargs = kwargs
 
+        if label_type == 'regression':
+            self._label_type = float
+        elif label_type == 'classification':
+            self._label_type = int
+
         if latent is not None:
             self._latent_names = latent_names if latent_names is not None else [str(l) for l in latent]
 

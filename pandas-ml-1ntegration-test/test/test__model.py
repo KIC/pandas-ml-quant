@@ -152,7 +152,7 @@ class TestModel(TestCase):
         )
 
         """then test best parameter"""
-        self.assertEqual(fit.model.skit_model.get_params()['alpha'], 0.0001)
+        self.assertEqual(fit.model.sk_model.get_params()['alpha'], 0.0001)
 
 
         pass

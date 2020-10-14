@@ -1,9 +1,35 @@
 import logging
+import math
 from typing import Tuple, Callable
 
 import pandas as pd
+import numpy as np
+
+from pandas_ml_common.utils import temp_seed
 
 _log = logging.getLogger(__name__)
+
+
+def stratified_random_splitter(test_size=0.3, seed=42) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
+    def splitter(index: pd.Index, df, *args) -> Tuple[pd.Index, pd.Index]:
+        f = df.reset_index()
+        indices_per_class = f.groupby(df.columns.to_list()).agg(lambda x: list(x))
+
+        with temp_seed(seed):
+            test_idx = pd.Index(
+                np.concatenate(
+                    indices_per_class.apply(
+                        lambda x: np.random.choice(np.array(x[0]), math.ceil(len(x[0]) * test_size)).tolist(),
+                        axis=1,
+                        result_type='reduce'
+                    ).values
+                ), dtype=index.dtype
+            )
+
+        # fixme if there is a class not represented in the training set we need to copy it from the test set
+        return index.delete(test_idx), test_idx
+
+    return splitter
 
 
 def random_splitter(test_size=0.3, youngest_size: float = None, seed=42) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
@@ -12,7 +38,7 @@ def random_splitter(test_size=0.3, youngest_size: float = None, seed=42) -> Call
     youngest_split_size = test_size * youngest_size if youngest_size is not None else 0
     random_sample_test_size = test_size * (1 - youngest_split_size)
 
-    def splitter(index: pd.Index) -> Tuple[pd.Index, pd.Index]:
+    def splitter(index: pd.Index, *args) -> Tuple[pd.Index, pd.Index]:
         random_sample_train_index_size = int(len(index) - len(index) * (test_size - random_sample_test_size))
 
         if test_size <= 0:
@@ -38,7 +64,7 @@ def random_splitter(test_size=0.3, youngest_size: float = None, seed=42) -> Call
     return splitter
 
 
-def naive_splitter(test_size=0.3) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
+def naive_splitter(test_size=0.3, *args) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
     def splitter(index: pd.Index) -> Tuple[pd.Index, pd.Index]:
         end_idx = int(len(index) * (1 - test_size))
         return index[0:end_idx], index[end_idx:]

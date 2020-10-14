@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from pandas_ml_common import pd, np
 from pandas_ml_common.sampling import naive_splitter, random_splitter, dummy_splitter
+from pandas_ml_common.sampling.splitter import stratified_random_splitter
 
 
 class TestTrainTestData(TestCase):
@@ -56,3 +57,13 @@ class TestTrainTestData(TestCase):
         "then"
         self.assertEqual(6, len(test_ix))
         np.testing.assert_array_equal(test_ix[-2:], np.array([8, 9]))
+
+    def test_stratified_random_splitter(self):
+        """given"""
+        df = pd.DataFrame({"featureA": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                           "labelA": [1, 1, 1, 1, 1, 1, 2, 2, 2, 3]})
+
+        """when"""
+        train_ix, test_ix = stratified_random_splitter(test_size=0.5)(df.index, df[["labelA"]])
+
+        print(train_ix, test_ix)

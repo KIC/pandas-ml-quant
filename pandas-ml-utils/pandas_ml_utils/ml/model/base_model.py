@@ -246,12 +246,13 @@ class _NumpyModelFit(object):
             # assemble history data frame when done
             if epoch >= last_epoch and fold < 0:
                 train_predictions.append(to_pandas(self._predict_epoch(train[0]), train_idx, self.labels_columns))
-                test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
+                if len(test_idx) > 0:
+                    test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
 
         # reconstruct pandas data frames
         df_losses = pd.DataFrame(losses, columns=pd.MultiIndex.from_tuples(losses.keys()))
         df_train_prediction = pd.concat(train_predictions, axis=0)
-        df_test_prediction = pd.concat(test_predictions, axis=0)
+        df_test_prediction = pd.concat(test_predictions, axis=0) if len(test_predictions) > 0 else pd.DataFrame({})
 
         return df_losses, df_train_prediction, df_test_prediction
 

@@ -37,7 +37,7 @@ class TestSkModel(TestAbstractModel, TestCase):
         print(prediction)
 
         backtest = df.model.backtest(fit.model)
-        self.assertLess(backtest.model.skit_model.coef_[0], 1e-5)
+        self.assertLess(backtest.model.sk_model.coef_[0], 1e-5)
 
     def provide_classification_model(self, features_and_labels):
         model = SkModel(

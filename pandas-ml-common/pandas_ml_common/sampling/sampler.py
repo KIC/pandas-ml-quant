@@ -15,7 +15,7 @@ class Sampler(object):
     def __init__(
             self,
             *dataframes: pd.DataFrame,
-            splitter: Callable[[pd.Index], Tuple[pd.Index, pd.Index]],
+            splitter: Callable[[pd.Index, pd.DataFrame], Tuple[pd.Index, pd.Index]],
             training_samples_filter: Union['BaseCrossValidator', Tuple[int, Callable[[pd.Series], bool]]] = None,
             cross_validation: Tuple[int, Callable[[pd.Index], Tuple[List[int], List[int]]]] = None,
             epochs: int = 1
@@ -164,7 +164,7 @@ class Sampler(object):
 
                         train_idx, test_idx = (idx, [])
                     else:
-                        train_idx, test_idx = self.splitter(idx)
+                        train_idx, test_idx = self.splitter(idx, self.frames[1])
 
                         if self.training_samples_filter is not None:
                             df = self.frames[self.training_samples_filter_frame].loc[train_idx]

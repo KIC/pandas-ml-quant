@@ -7,7 +7,7 @@ from typing import Callable, Dict, TYPE_CHECKING, Union, Tuple, List
 import pandas as pd
 
 from pandas_ml_common import Sampler, Typing
-from pandas_ml_common.utils import merge_kwargs
+from pandas_ml_common.utils import merge_kwargs, loc_if_not_none
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights, extract, extract_features
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting.fit import Fit
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     pass
 
 
+# TODO all this legacy should be moved to the DfModel class since they get called from there anyways
 def fit(df: pd.DataFrame,
         model_provider: Callable[[int], Model],
         training_data_splitter,
@@ -101,7 +102,13 @@ def fit(df: pd.DataFrame,
         model.features_and_labels.set_min_required_samples(frames.features_with_required_samples.min_required_samples)
         model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
 
-        return Fit(model, model.summary_provider(df_train, model, **kwargs), model.summary_provider(df_test, model, **kwargs), trails, **kwargs)
+        return Fit(
+            model,
+            model.summary_provider(df_train, model, is_test=False, **kwargs),
+            model.summary_provider(df_test, model, is_test=True, **kwargs),
+            trails,
+            **kwargs
+        )
     except Exception as e:
         raise FitException(e, model)
 

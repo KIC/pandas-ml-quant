@@ -53,6 +53,7 @@ class TestAbstractModel(object):
         """when we fit the model"""
         fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=800)
         print(fit.training_summary.df)
+        self.assertLess(len(fit.training_summary.df), len(df))
 
         """then we can predict"""
         prediction = df.model.predict(fit.model)
@@ -191,6 +192,26 @@ class TestAbstractModel(object):
         self.assertEqual((12, 2), prediction.iloc[:, 0]._.values.shape)
         self.assertEqual(2, fit.model._history.shape[1])
         self.assertGreater(fit.model._history.shape[0], 2)
+
+    def test_no_test_data(self):
+        """given some toy regression data"""
+        df = pd.DataFrame({
+            "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
+            "b": [-2.0, 1.0, 4.0, 7.0, 10.0, 13.0]
+        })
+
+        """and a model"""
+        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+
+        """when we fit the model"""
+        fit = df.model.fit(model, naive_splitter(0), verbose=0, epochs=800)
+        # print(fit.training_summary.df)
+        print(fit.test_summary.df)
+
+        """then we have an empty test data frame"""
+        self.assertEqual(len(fit.training_summary.df), len(df))
+        self.assertEqual(len(fit.test_summary.df), 0)
+
 
     # Abstract methods
     def provide_regression_model(self, features_and_labels) -> Model:

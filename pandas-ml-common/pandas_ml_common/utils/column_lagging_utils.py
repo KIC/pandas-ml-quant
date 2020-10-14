@@ -6,6 +6,7 @@ from sortedcontainers import SortedDict
 def lag_columns(df: Union[pd.Series, pd.DataFrame],
                 feature_lags: Iterable[int],
                 lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None,
+                multi_index: bool = True
                ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, int]]:
 
     df = df.to_frame()
@@ -29,7 +30,9 @@ def lag_columns(df: Union[pd.Series, pd.DataFrame],
             # assign the lagged (eventually smoothed) feature to the features frame
             dff[(feature, lag)] = feature_series.shift(lag)
 
-    # fix tuple column index to actually be a multi index and fix levels
-    # features need to be row, timestep, feature to fit RNN based models
-    dff.columns = pd.MultiIndex.from_tuples(dff.columns).swaplevel(0, 1)
+    if multi_index:
+        # fix tuple column index to actually be a multi index and fix levels
+        # features need to be row, time step, feature to fit RNN based models
+        dff.columns = pd.MultiIndex.from_tuples(dff.columns).swaplevel(0, 1)
+
     return dff

@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_utils.df.model_patch import DfModelPatch
+from pandas_ml_utils.df_patching.model_patch import DfModelPatch
 from pandas_ml_common_test.config import TEST_DF
 
 
