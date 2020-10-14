@@ -4,6 +4,7 @@ from typing import List, Callable, Tuple, Union, Any, TypeVar
 
 import pandas as pd
 
+from pandas_ml_common.utils import as_list
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
 from pandas_ml_common import Typing, get_pandas_object
@@ -75,6 +76,8 @@ class FeaturesAndLabels(object):
 
         if latent is not None:
             self._latent_names = latent_names if latent_names is not None else [str(l) for l in latent]
+        else:
+            self._latent_names = None
 
         # set after fit
         self._min_required_samples = None
@@ -192,33 +195,69 @@ class FeaturesAndLabels(object):
                f')'
 
 
+PostProcessorType = Union[
+    List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]],
+    Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]
+]
+
+
 class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
+
+
+    @staticmethod
+    def from_features_and_labels(
+            features_and_labels: FeaturesAndLabels,
+            feature_post_processor: PostProcessorType = None,
+            labels_post_processor: PostProcessorType = None,
+            latent_post_processor: PostProcessorType = None,
+            sample_weights_post_processor: PostProcessorType = None,
+            gross_loss_post_processor: PostProcessorType = None,
+            targets_post_processor: PostProcessorType = None,
+            **kwargs
+    ):
+        return PostProcessedFeaturesAndLabels(
+            features=features_and_labels.features,
+            feature_post_processor=feature_post_processor,
+            labels=features_and_labels.labels,
+            labels_post_processor=labels_post_processor,
+            latent=features_and_labels.latent,
+            latent_names=features_and_labels.latent_names,
+            latent_post_processor=latent_post_processor,
+            sample_weights=features_and_labels.sample_weights,
+            sample_weights_post_processor=sample_weights_post_processor,
+            gross_loss=features_and_labels.gross_loss,
+            gross_loss_post_processor=gross_loss_post_processor,
+            targets=features_and_labels.targets,
+            targets_post_processor=targets_post_processor,
+            label_type=features_and_labels.label_type,
+            **{**features_and_labels._kwargs, **kwargs}
+        )
 
     def __init__(self,
                  features: Typing._Selector,
-                 feature_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]],
+                 feature_post_processor: PostProcessorType = None,
                  labels: Typing._Selector = [],
-                 labels_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
+                 labels_post_processor: PostProcessorType = None,
                  latent: Typing._Selector = None,
                  latent_names: List[str] = None,
-                 latent_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
+                 latent_post_processor: PostProcessorType = None,
                  sample_weights: Typing._Selector = None,
-                 sample_weights_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
+                 sample_weights_post_processor: PostProcessorType = None,
                  gross_loss: Typing._Selector = None,
-                 gross_loss_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
+                 gross_loss_post_processor: PostProcessorType = None,
                  targets: Typing._Selector = None,
-                 targets_post_processor: List[Callable[[Typing.PatchedDataFrame], Typing.PatchedDataFrame]] = None,
+                 targets_post_processor: PostProcessorType = None,
                  label_type=None,
                  **kwargs):
         super().__init__(
-            PostProcessedFeaturesAndLabels.post_process(features, feature_post_processor),
-            PostProcessedFeaturesAndLabels.post_process(labels, labels_post_processor),
-            PostProcessedFeaturesAndLabels.post_process(latent, latent_post_processor),
-            latent_names,
-            PostProcessedFeaturesAndLabels.post_process(sample_weights, sample_weights_post_processor),
-            PostProcessedFeaturesAndLabels.post_process(gross_loss, gross_loss_post_processor),
-            PostProcessedFeaturesAndLabels.post_process(targets, targets_post_processor),
-            label_type,
+            features=PostProcessedFeaturesAndLabels.post_process(features, as_list(feature_post_processor)),
+            labels=PostProcessedFeaturesAndLabels.post_process(labels, as_list(labels_post_processor)),
+            latent=PostProcessedFeaturesAndLabels.post_process(latent, as_list(latent_post_processor)),
+            latent_names=latent_names,
+            sample_weights=PostProcessedFeaturesAndLabels.post_process(sample_weights, as_list(sample_weights_post_processor)),
+            gross_loss=PostProcessedFeaturesAndLabels.post_process(gross_loss, as_list(gross_loss_post_processor)),
+            targets=PostProcessedFeaturesAndLabels.post_process(targets, as_list(targets_post_processor)),
+            label_type=label_type,
             **kwargs
         )
 
@@ -237,10 +276,6 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
         if post_processors is None:
             return selectors
 
-        # make post processors iterable and exceute one after the other
-        pps = post_processors if isinstance(post_processors, list) else [post_processors]
-        previous = selectors
-
         def extract_with_post_processor(list, postprocessor: Callable):
             def extractor(df, **kwargs):
                 extraction = get_pandas_object(df, list, **kwargs)
@@ -248,7 +283,8 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
 
             return extractor
 
-        for pp in pps:
+        previous = selectors
+        for pp in post_processors:
             previous = extract_with_post_processor(previous, pp)
 
         return previous

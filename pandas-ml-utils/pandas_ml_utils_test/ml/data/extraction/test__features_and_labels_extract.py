@@ -112,3 +112,25 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         self.assertIsInstance(fl.features_with_required_samples.features.index, pd.MultiIndex)
         self.assertIsInstance(fl.labels.index, pd.MultiIndex)
+
+    def test_nested_postprocessors(self):
+        df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20), "c": np.arange(20)})
+
+        def outer_postprocessor(df):
+            return df[["b"]]
+
+        fl: FeaturesWithLabels = df._.extract(
+            PostProcessedFeaturesAndLabels.from_features_and_labels(
+                PostProcessedFeaturesAndLabels(
+                    features=["a"],
+                    feature_post_processor=[lambda df: lag_columns(df, [1, 2])],
+                    labels=["b", "c"],
+                    labels_post_processor=[lambda df: df + 0.5, lambda df: df + 0.001],
+                ),
+                labels_post_processor=[outer_postprocessor],
+            )
+
+        )
+
+        print(fl.labels.shape)
+        self.assertEqual(19.501, fl.labels.iloc[-1, -1])

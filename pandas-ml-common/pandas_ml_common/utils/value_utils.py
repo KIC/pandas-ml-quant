@@ -116,3 +116,8 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
             df[col] = arr if i <= 0 else np.nan
 
     return df
+
+
+def as_list(value):
+    return value if value is None or isinstance(value, List) else [value]
+

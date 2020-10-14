@@ -9,7 +9,7 @@ from pandas_ml_common import Typing, naive_splitter
 from pandas_ml_common.utils import has_indexed_columns, merge_kwargs
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
 from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights
-from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
+from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
 from pandas_ml_utils.ml.model import Model as MlModel, SkModel
 from pandas_ml_utils.ml.summary import Summary
@@ -38,6 +38,15 @@ class DfModelPatch(object):
 
         # find best parameters
         with self() as m:
+            # first perform a correlation analysis and remove correlating features !!!
+            if eliminate_correlated_features:
+                non_correlated_features = []
+
+                features_and_labels = PostProcessedFeaturesAndLabels.from_features_and_labels(
+                    features_and_labels,
+                    feature_post_processor=lambda df: df[non_correlated_features]
+                )
+
             # estimate model type and sample properties
             is_classification = 'float' not in (str(features_and_labels.label_type))
             nr_samples = len(self.df)
