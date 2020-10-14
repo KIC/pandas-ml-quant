@@ -164,7 +164,7 @@ class Sampler(object):
 
                         train_idx, test_idx = (idx, [])
                     else:
-                        train_idx, test_idx = self.splitter(idx, self.frames[1])
+                        train_idx, test_idx = self.splitter(idx, *self.frames)
 
                         if self.training_samples_filter is not None:
                             df = self.frames[self.training_samples_filter_frame].loc[train_idx]

@@ -61,9 +61,13 @@ class TestTrainTestData(TestCase):
     def test_stratified_random_splitter(self):
         """given"""
         df = pd.DataFrame({"featureA": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                           "labelA": [1, 1, 1, 1, 1, 1, 2, 2, 2, 3]})
+                           "labelA": [1, 1, 1, 1, 1, 1, 2, 2, 3, 3]})
 
         """when"""
-        train_ix, test_ix = stratified_random_splitter(test_size=0.5)(df.index, df[["labelA"]])
+        train_ix, test_ix = stratified_random_splitter(test_size=0.5)(df.index, None, df[["labelA"]])
 
-        print(train_ix, test_ix)
+        """then each class is represented similarly often in each train and test set"""
+        self.assertIn(2, df.loc[train_ix, "labelA"].to_list())
+        self.assertIn(3, df.loc[train_ix, "labelA"].to_list())
+        self.assertIn(2, df.loc[test_ix, "labelA"].to_list())
+        self.assertIn(3, df.loc[test_ix, "labelA"].to_list())

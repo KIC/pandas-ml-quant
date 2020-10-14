@@ -11,9 +11,9 @@ _log = logging.getLogger(__name__)
 
 
 def stratified_random_splitter(test_size=0.3, seed=42) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
-    def splitter(index: pd.Index, df, *args) -> Tuple[pd.Index, pd.Index]:
-        f = df.reset_index()
-        indices_per_class = f.groupby(df.columns.to_list()).agg(lambda x: list(x))
+    def splitter(index: pd.Index, df_features, df_labels, *args) -> Tuple[pd.Index, pd.Index]:
+        df = df_labels.reset_index()
+        indices_per_class = df.groupby(df_labels.columns.to_list()).agg(lambda x: list(x))
 
         with temp_seed(seed):
             test_idx = pd.Index(
@@ -26,7 +26,6 @@ def stratified_random_splitter(test_size=0.3, seed=42) -> Callable[[pd.Index], T
                 ), dtype=index.dtype
             )
 
-        # fixme if there is a class not represented in the training set we need to copy it from the test set
         return index.delete(test_idx), test_idx
 
     return splitter
@@ -64,8 +63,8 @@ def random_splitter(test_size=0.3, youngest_size: float = None, seed=42) -> Call
     return splitter
 
 
-def naive_splitter(test_size=0.3, *args) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
-    def splitter(index: pd.Index) -> Tuple[pd.Index, pd.Index]:
+def naive_splitter(test_size=0.3) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
+    def splitter(index: pd.Index, *args) -> Tuple[pd.Index, pd.Index]:
         end_idx = int(len(index) * (1 - test_size))
         return index[0:end_idx], index[end_idx:]
 

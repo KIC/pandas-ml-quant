@@ -119,7 +119,7 @@ class KerasModel(NumpyModel):
                                                 validation_data=(
                                                     x_val,
                                                     y_val.reshape(y_val.shape[:1] + self.output_shape)
-                                                ),
+                                                ) if y_val is not None and len(y_val) > 0 else None,
                                                 **fitter_args)
         if self.history is None:
             self.history = fit_history.history
@@ -127,7 +127,10 @@ class KerasModel(NumpyModel):
             for metric, _ in self.history.items():
                 self.history[metric] = self.history[metric] + fit_history.history[metric]
 
-        return np.array(fit_history.history['loss']), np.array(fit_history.history['val_loss'])
+        return (
+            np.array(fit_history.history['loss']),
+            np.array(fit_history.history['val_loss']) if 'val_loss' in fit_history.history else [np.nan]
+        )
 
     def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
         return self._exec_within_session(self.keras_model.predict, x)

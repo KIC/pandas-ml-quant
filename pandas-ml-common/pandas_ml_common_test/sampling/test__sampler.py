@@ -28,7 +28,7 @@ class TestSampler(TestCase):
         self.assertIsNone(sample_one[3][2])
 
     def test_simple_sample_split(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=lambda x: (x[:3], x[3:]), epochs=2)
+        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
         samples = list(sampler.sample_cross_validation())
         row1 = samples[0]
         epoch, fold, train, test = row1
@@ -44,7 +44,12 @@ class TestSampler(TestCase):
         self.assertIsNone(test[2])
 
     def test_multiframe_decorator(self):
-        sampler = Sampler(MultiFrameDecorator((TEST_DF.tail(), TEST_DF)), TEST_DF.tail(10), splitter=lambda x: (x[:3], x[3:]), epochs=2)
+        sampler = Sampler(
+            MultiFrameDecorator((TEST_DF.tail(), TEST_DF)),
+            TEST_DF.tail(10),
+            splitter=lambda x, *args: (x[:3], x[3:]),
+            epochs=2
+        )
         samples = list(sampler.sample_cross_validation())
 
         self.assertEqual(2, len(samples))
@@ -52,7 +57,7 @@ class TestSampler(TestCase):
 
     def test_filter(self):
         sampler = Sampler(TEST_DF,
-                          splitter=lambda x: (x[:-3], x[-3:]),
+                          splitter=lambda x, *args: (x[:-3], x[-3:]),
                           training_samples_filter=(0, lambda r: r["Close"] > 300))
         samples = list(sampler.sample_cross_validation())
 
@@ -60,7 +65,7 @@ class TestSampler(TestCase):
 
     def test_cross_validation(self):
         sampler = Sampler(TEST_DF, TEST_DF, None, TEST_DF.tail(30),
-                          splitter=lambda x: (x[:-3], x[-3:]),
+                          splitter=lambda x, *args: (x[:-3], x[-3:]),
                           cross_validation=(3, KFold(3).split),
                           epochs=2)
 
@@ -91,7 +96,7 @@ class TestSampler(TestCase):
       )
 
     def test_simple_sample_split_multiindex_row(self):
-        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, None, splitter=lambda x: (x[:3], x[3:]), epochs=2)
+        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, None, splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
         samples = list(sampler.sample_cross_validation())
         row1 = samples[0]
         epoch, fold, train, test = row1
@@ -115,7 +120,7 @@ class TestSampler(TestCase):
 
     def test_cross_validation_multiindex_row(self):
         sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, TEST_MUTLI_INDEX_ROW_DF,
-                          splitter=lambda x: (x[:-3], x[-3:]),
+                          splitter=lambda x, *args: (x[:-3], x[-3:]),
                           cross_validation=KFold(2),
                           epochs=2)
 
@@ -130,7 +135,7 @@ class TestSampler(TestCase):
                 np.testing.assert_array_equal(samples[0][2][0].values, samples[i][2][0].values)
 
     def test_full_epoch(self):
-        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x: (x[:-3], x[-3:]), epochs=2)
+        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2)
         samples = list(sampler.sample_full_epochs())
 
         self.assertEqual(2, len(samples))
@@ -139,7 +144,7 @@ class TestSampler(TestCase):
         pd.testing.assert_frame_equal(samples[0][2][0], samples[1][2][0])
 
     def test_numpy_simple(self):
-        sampler = NumpySampler(Sampler(TEST_DF, splitter=lambda x: (x[:-3], x[-3:]), epochs=2))
+        sampler = NumpySampler(Sampler(TEST_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2))
         samples = list(sampler.sample_full_epochs())
 
         self.assertEqual(2, len(samples))
@@ -148,7 +153,7 @@ class TestSampler(TestCase):
         self.assertEqual((3, 6), samples[0][2][0].shape)
 
     def test_numpy(self):
-        sampler = NumpySampler(Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x: (x[:-3], x[-3:]), epochs=2))
+        sampler = NumpySampler(Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2))
         samples = list(sampler.sample_full_epochs())
 
         self.assertEqual(2, len(samples))
