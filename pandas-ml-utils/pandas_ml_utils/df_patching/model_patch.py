@@ -45,12 +45,12 @@ class DfModelPatch(object):
             # first perform a correlation analysis and remove correlating features !!!
             if correlated_features_th > 0:
                 _, pairs = get_correlation_pairs(ext.features_with_required_samples.features)
-                redundant_correlated_features = [i[0] for i, p in pairs.items() if p > correlated_features_th]
+                redundant_correlated_features = {i[0]: p for i, p in pairs.items() if p > correlated_features_th}
                 _log.warning(f"drop redundant features: {redundant_correlated_features}")
 
                 features_and_labels = PostProcessedFeaturesAndLabels.from_features_and_labels(
                     features_and_labels,
-                    feature_post_processor=lambda df: df.drop(redundant_correlated_features, axis=1)
+                    feature_post_processor=lambda df: df.drop(redundant_correlated_features.keys(), axis=1)
                 )
 
             # estimate model type and sample properties

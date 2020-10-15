@@ -87,7 +87,9 @@ df.model.feature_selection(
     )
 )
 ```
-![Feature Selection](./.readme/images/feature_selection.png)
+
+Check this demo from the [exmaples](./pandas-ml-utils/examles/): 
+![Feature Selection](./.readme/images/classification.png)
 
 ### [pandas-ml-utils-toch](pandas-ml-utils-torch/Readme.md)
 Extends the pandas-ml-utils library for the use of pytorch models
