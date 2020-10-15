@@ -26,6 +26,7 @@ class Fit(object):
         self.test_summary = test_summary
         self._trails = trails
         self._kwargs = kwargs
+        self._hide_loss_plot = False
 
     def plot_loss(self, figsize=(8, 6), **kwargs):
         return self.model.plot_loss(figsize, **kwargs)
@@ -59,6 +60,10 @@ class Fit(object):
         """
         self.model.save(filename)
 
+    def with_hidden_loss_plot(self):
+        self._hide_loss_plot = True
+        return self
+
     def with_summary(self, summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary, **kwargs):
         return Fit(self.model,
                    summary_provider(self.training_summary.df, **{**self._kwargs, **kwargs}),
@@ -77,4 +82,7 @@ class Fit(object):
         from mako.lookup import TemplateLookup
 
         template = Template(filename=html.FIT_TEMPLATE, lookup=TemplateLookup(directories=['/']))
-        return template.render(fit=self, loss_plot=plot_to_html_img(self.model.plot_loss, **self._kwargs))
+        return template.render(
+            fit=self,
+            loss_plot=plot_to_html_img(self.model.plot_loss, **self._kwargs) if not self._hide_loss_plot else None
+        )

@@ -31,13 +31,18 @@ class FeatureSelectionSummary(Summary):
         super().__init__(
             df,
             model,
-            plot_true_pred_scatter,
-            df_tail,
-            layout=[[0, -1], [1, 1]],
+            self._plot_feature_importance,
+            plot_feature_correlation,
+            lambda *args, **kwargs: self.kpis,
+            layout=[
+                [0, 0],
+                [1, 2],
+            ],
             **kwargs
         )
 
         # init self
+        self.is_test = is_test
         self.nr_of_nodes = sum([e.tree_.node_count for e in model.sk_model.best_estimator_.estimator_.estimators_])
 
         def get_kpis(model):
@@ -78,18 +83,22 @@ class FeatureSelectionSummary(Summary):
             test_model.fit(Sampler(features, labels, None, weights, None, None, splitter=None, epochs=1))
             validation_kpis = get_kpis(test_model)
 
-            self.validation_kpis = self.kpis.join(validation_kpis, how='outer', rsuffix=" (Test)")
+            self.kpis = self.kpis.join(validation_kpis, how='outer', rsuffix=" (Test)")
 
     def __str__(self):
-        return f"... to be implemented ... "  # return r2 and such
+        return str(self.kpis)
 
-    def _lala(self):
-        # TODO this is one of the plots we want to show ...
-        fidf = self.validation_kpis.feature_importance
-        ax = fidf[["importance", "importance (Test)"]].plot.bar(
-            figsize=(15, 10),
-            yerr=fidf[["importance_std", "importance_std (Test)"]].values.T
-        )
+    def _plot_feature_importance(self, *args, figsize=(20, 10), **kwargs):
+        fidf = self.kpis.fillna(0)
+
+        if self.is_test:
+            ax = fidf[["importance", "importance (Test)"]].plot.bar(
+                yerr=fidf[["importance_std", "importance_std (Test)"]].values.T,
+                figsize=figsize
+            )
+        else:
+            ax = fidf[["importance", "importance_std"]].plot.bar(yerr='importance_std', figsize=figsize)
+
         ax.set_xticklabels(ax.get_xticklabels(), ha='right', rotation=60, rotation_mode="anchor")
         return ax.get_figure()
 

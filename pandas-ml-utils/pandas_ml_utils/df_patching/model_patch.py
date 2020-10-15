@@ -84,7 +84,8 @@ class DfModelPatch(object):
                 training_data_splitter=training_data_splitter,
             )
 
-        return fit
+        # we hide the loss plot from this summary
+        return fit.with_hidden_loss_plot()
 
     # Obsolete ... might be part of the report of the feature analysis/selection section
     def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
