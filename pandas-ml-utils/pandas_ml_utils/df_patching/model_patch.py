@@ -6,10 +6,10 @@ from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
 
 from pandas_ml_common import Typing, naive_splitter
-from pandas_ml_common.utils import has_indexed_columns, merge_kwargs
+from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs
 from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
-from pandas_ml_utils.ml.data.extraction import extract_feature_labels_weights
-from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, PostProcessedFeaturesAndLabels
+from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
+    PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
 from pandas_ml_utils.ml.model import Model as MlModel, SkModel
 from pandas_ml_utils.ml.summary import Summary
@@ -26,11 +26,10 @@ class DfModelPatch(object):
     def feature_selection(self,
                           features_and_labels: FeaturesAndLabels,
                           training_data_splitter: Callable = naive_splitter(0.2),
-                          eliminate_correlated_features: bool = True,
+                          correlated_features_th: float = 0.75,
                           rfecv_splits: int = 4,
                           forest_splits: int = 7,
                           min_features_to_select: int = 1,
-                          max_feature_ranking: int = 1,
                           is_time_series: bool = False,
                           **kwargs):
         assert features_and_labels.label_type in ('regression', 'classification', int, float, bool), \
@@ -38,13 +37,17 @@ class DfModelPatch(object):
 
         # find best parameters
         with self() as m:
+            # extract features and labels
+            ext = m.extract(features_and_labels)
+
             # first perform a correlation analysis and remove correlating features !!!
-            if eliminate_correlated_features:
-                non_correlated_features = []
+            if correlated_features_th > 0:
+                _, pairs = get_correlation_pairs(ext.features_with_required_samples.features)
+                redundant_correlated_features = [i[0] for i, p in pairs.items() if p > correlated_features_th]
 
                 features_and_labels = PostProcessedFeaturesAndLabels.from_features_and_labels(
                     features_and_labels,
-                    feature_post_processor=lambda df: df[non_correlated_features]
+                    feature_post_processor=lambda df: df.drop(redundant_correlated_features, axis=1)
                 )
 
             # estimate model type and sample properties
@@ -52,7 +55,6 @@ class DfModelPatch(object):
             nr_samples = len(self.df)
 
             if is_classification:
-                ext = m.extract(features_and_labels)
                 nr_classes = len(ext.labels.value_counts())
             else:
                 nr_classes = max(len(self.df) / 3, 100)

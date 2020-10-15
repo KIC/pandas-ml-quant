@@ -132,5 +132,5 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         )
 
-        print(fl.labels.shape)
+        self.assertEqual((18, 1), fl.labels.shape)
         self.assertEqual(19.501, fl.labels.iloc[-1, -1])

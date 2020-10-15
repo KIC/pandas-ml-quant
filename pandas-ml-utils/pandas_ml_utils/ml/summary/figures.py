@@ -1,5 +1,6 @@
 from typing import Callable
 
+from pandas_ml_common.utils import get_correlation_pairs
 from pandas_ml_common.utils.numpy_utils import one_hot, clean_one_hot_classification
 from pandas_ml_utils.constants import *
 from sklearn.metrics import roc_curve, auc, mean_squared_error
@@ -128,9 +129,8 @@ def plot_feature_correlation(df, model=None, cmap='seismic', width=15, **kwargs)
     if FEATURE_COLUMN_NAME in df:
         df = df[FEATURE_COLUMN_NAME]
 
-    corr = df.corr().abs()
-    redundant = {(df.columns[i], df.columns[j]) for i in range(0, df.shape[1]) for j in range(0, i + 1)}
-    sorted_corr = df.corr().abs().unstack().drop(labels=redundant).sort_values()
+    # cet correlations
+    corr, sorted_corr = get_correlation_pairs(df)
 
     # generate plot
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(width, width / 1.33), gridspec_kw={'width_ratios': [3, 1]})

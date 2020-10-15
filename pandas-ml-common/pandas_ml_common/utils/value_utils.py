@@ -121,3 +121,16 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
 def as_list(value):
     return value if value is None or isinstance(value, List) else [value]
 
+
+def get_correlation_pairs(df: pd.DataFrame):
+    corr = df.corr().abs()
+
+    # eventually flatten MultiIndex
+    if isinstance(corr.columns, pd.MultiIndex):
+        corr.columns = corr.columns.tolist()
+        corr.index = corr.index.tolist()
+
+    redundant = {(df.columns[i], df.columns[j]) for i in range(0, df.shape[1]) for j in range(0, i + 1)}
+    sorted_corr = corr.unstack().drop(labels=redundant).sort_values()
+    return corr, sorted_corr
+
