@@ -82,6 +82,64 @@ def plot_confusion_matrix(df, figsize=(6, 6), **kwargs):
     return fig
 
 
+def plot_feature_correlation(df, model=None, cmap='seismic', width=15, **kwargs):
+    import matplotlib.pyplot as plt
+
+    # extract features or use whole data frame
+    if FEATURE_COLUMN_NAME in df:
+        df = df[FEATURE_COLUMN_NAME]
+
+    # cet correlations
+    corr, sorted_corr = get_correlation_pairs(df)
+
+    # generate plot
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(width, width / 1.33), gridspec_kw={'width_ratios': [3, 1]})
+    ax.pcolor(corr, cmap=cmap)
+    for i, j in np.ndindex(corr.shape):
+        ax.text(j + 0.5, i + 0.5, f'{corr.iloc[i, j]:.2f}', ha="center", va="center", color="w")
+
+    ax.xaxis.tick_top()
+    ax.set_yticks(np.arange(0.5, len(corr), 1))
+    ax.set_yticklabels(corr.index)
+    ax.set_xticks(np.arange(0.5, len(corr), 1))
+    ax.set_xticklabels(corr.columns, rotation=60, ha="left", rotation_mode="anchor")
+
+    ax2.pcolor(sorted_corr.values.reshape(-1, 1), cmap=cmap)
+    for i, v in enumerate(sorted_corr.values):
+        ax2.text(0.5, i + 0.5, f'{v:.2f}', ha="center", va="center", color="w")
+
+    ax2.set_xticks([0, 1])
+    ax2.set_xticklabels([])
+    ax2.yaxis.tick_right()
+    ax2.set_yticks(np.arange(0.5, len(sorted_corr), 1))
+    ax2.set_yticklabels([f'{a} / {b}' for a, b in sorted_corr.index])
+
+    return fig
+
+
+def plot_partial_dependence(df, model, **kwargs):
+    """
+    def __plot_acf(series, lags, figsize):
+    try:
+        from matplotlib import pyplot as plt
+        from statsmodels.graphics.tsaplots import plot_acf
+
+        fig, ax = plt.subplots(figsize=figsize)
+        fig.suptitle(series.name, fontsize=14)
+
+        plot_acf(series, lags=lags, ax=ax)
+        plt.show()
+    except:
+        return None
+
+    :param df:
+    :param model:
+    :param kwargs:
+    :return:
+    """
+    raise NotImplemented
+
+
 def plot_feature_importance(df,
                        model,
                        loss_function: Callable[[np.ndarray, np.ndarray, np.ndarray], float] = mean_squared_error,
@@ -120,45 +178,6 @@ def plot_feature_importance(df,
     # predictions = model.predict(sampler, **kwargs)
 
     pass
-
-
-def plot_feature_correlation(df, model=None, cmap='seismic', width=15, **kwargs):
-    import matplotlib.pyplot as plt
-
-    # extract features or use whole data frame
-    if FEATURE_COLUMN_NAME in df:
-        df = df[FEATURE_COLUMN_NAME]
-
-    # cet correlations
-    corr, sorted_corr = get_correlation_pairs(df)
-
-    # generate plot
-    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(width, width / 1.33), gridspec_kw={'width_ratios': [3, 1]})
-    ax.pcolor(corr, cmap=cmap)
-    for i, j in np.ndindex(corr.shape):
-        ax.text(j + 0.5, i + 0.5, f'{corr.iloc[i, j]:.2f}', ha="center", va="center", color="w")
-
-    ax.xaxis.tick_top()
-    ax.set_yticks(np.arange(0.5, len(corr), 1))
-    ax.set_yticklabels(corr.index)
-    ax.set_xticks(np.arange(0.5, len(corr), 1))
-    ax.set_xticklabels(corr.columns, rotation=60, ha="left", rotation_mode="anchor")
-
-    ax2.pcolor(sorted_corr.values.reshape(-1, 1), cmap=cmap)
-    for i, v in enumerate(sorted_corr.values):
-        ax2.text(0.5, i + 0.5, f'{v:.2f}', ha="center", va="center", color="w")
-
-    ax2.set_xticks([0, 1])
-    ax2.set_xticklabels([])
-    ax2.yaxis.tick_right()
-    ax2.set_yticks(np.arange(0.5, len(sorted_corr), 1))
-    ax2.set_yticklabels([f'{a} / {b}' for a, b in sorted_corr.index])
-
-    return fig
-
-
-def plot_partial_dependence(df, model, **kwargs):
-    raise NotImplemented
 
 
 def df_tail(df, model, **kwargs):

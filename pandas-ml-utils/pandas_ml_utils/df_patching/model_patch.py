@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Tuple, Dict, Union, List
 
 from scipy.stats import randint as sp_randint
@@ -7,7 +8,6 @@ from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, 
 
 from pandas_ml_common import Typing, naive_splitter
 from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs
-from pandas_ml_utils.ml.data.analysis.plot_features import plot_features
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.fitting import fit, backtest, predict, Fit
@@ -16,6 +16,8 @@ from pandas_ml_utils.ml.summary import Summary
 from .model_context import ModelContext
 from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
+
+_log = logging.getLogger(__name__)
 
 
 class DfModelPatch(object):
@@ -44,6 +46,7 @@ class DfModelPatch(object):
             if correlated_features_th > 0:
                 _, pairs = get_correlation_pairs(ext.features_with_required_samples.features)
                 redundant_correlated_features = [i[0] for i, p in pairs.items() if p > correlated_features_th]
+                _log.warning(f"drop redundant features: {redundant_correlated_features}")
 
                 features_and_labels = PostProcessedFeaturesAndLabels.from_features_and_labels(
                     features_and_labels,
@@ -85,8 +88,16 @@ class DfModelPatch(object):
 
     # Obsolete ... might be part of the report of the feature analysis/selection section
     def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
+        # FIXME this is the only seaborn dependency left, get rid of it if possible
         fnl = data.features_and_labels if isinstance(data, MlModel) else data
         fl: FeaturesWithLabels = self.df._.extract(fnl)
+
+        def plot_features(joined_features_andLabels_df, label_column):
+            import seaborn as sns
+
+            # fixme if labels are contonious, we need to bin them
+            # fixme if one hot encoded label column use np.argmax
+            return sns.pairplot(joined_features_andLabels_df, hue=label_column)
 
         return plot_features(
             fl.features_with_required_samples.features.join(fl.labels),
