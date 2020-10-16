@@ -37,21 +37,6 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"wilders_{period}", res)
 
 
-def ta_std_ret_bands(s: _pd.Series, period=12, stddevs=[2.0], ddof=1, lag=1, scale_lag=True, include_mean=True) -> _PANDAS:
-    assert not has_indexed_columns(s)
-    if not isinstance(stddevs, Iterable): stddevs = [stddevs]
-
-    mean = s.rolling(period).mean()
-    std = s.pct_change().rolling(period).std(ddof=ddof).shift(lag) * (_np.sqrt(lag) if scale_lag else 1)
-    res = mean.to_frame() if include_mean else _pd.DataFrame({}, index=s.index)
-
-    for z in stddevs:
-        res[f"upper_{z}"] = mean * (1 + std * z)
-        res[f"lower_{z}"] = mean * (1 - std * z)
-
-    return res
-
-
 def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:
     assert not has_indexed_columns(s)
     mean = s.rolling(period).mean().rename("mean")
@@ -68,48 +53,6 @@ def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof
         df[f'upper-{stddev}'] = mean + (std * stddev)
 
     return df
-
-
-def ta_bbands(df: _PANDAS, period=12, stddev=2.0, ddof=1, include_mean=True) -> _PANDAS:
-    mean = df.rolling(period).mean()
-    std = df.rolling(period).std(ddof=ddof)
-    most_recent = df.rolling(period).apply(lambda x: x[-1], raw=True)
-
-    upper = mean + (std * stddev)
-    lower = mean - (std * stddev)
-    z_score = (most_recent - mean) / std
-    quantile = _pd.Series(None, index=df.index, dtype='float64')
-    quantile[most_recent <= lower] = 0
-    quantile[most_recent > lower] = 1
-    quantile[most_recent > mean] = 2
-    quantile[most_recent > upper] = 3
-
-    if isinstance(mean, _pd.Series):
-        upper.name = "upper"
-        mean.name = "mean"
-        lower.name = "lower"
-        z_score.name = "z"
-        quantile.name = "quantile"
-    else:
-        upper.columns = _pd.MultiIndex.from_product([upper.columns, ["upper"]])
-        mean.columns = _pd.MultiIndex.from_product([mean.columns, ["mean"]])
-        lower.columns = _pd.MultiIndex.from_product([lower.columns, ["lower"]])
-        z_score.columns = _pd.MultiIndex.from_product([z_score.columns, ["z"]])
-        quantile.columns = _pd.MultiIndex.from_product([z_score.columns, ["quantile"]])
-
-    if include_mean:
-        return _pd.DataFrame(upper) \
-            .join(mean) \
-            .join(lower) \
-            .join(z_score) \
-            .join(quantile) \
-            .sort_index(axis=1)
-    else:
-        return _pd.DataFrame(upper) \
-            .join(lower) \
-            .join(z_score) \
-            .join(quantile) \
-            .sort_index(axis=1)
 
 
 def ta_multi_ma(df: _t.PatchedDataFrame, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)) -> _t.PatchedDataFrame:
