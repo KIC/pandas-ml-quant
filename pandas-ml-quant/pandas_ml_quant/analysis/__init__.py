@@ -7,3 +7,4 @@ from .forecast import *
 from .covariances import *
 from .normalizer import *
 from .alias import *
+from .bands import *

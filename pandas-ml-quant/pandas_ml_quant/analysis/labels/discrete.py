@@ -5,6 +5,7 @@ import pandas as _pd
 
 import pandas_ml_quant.analysis.filters as _f
 import pandas_ml_quant.analysis.indicators as _i
+import pandas_ml_quant.analysis.bands as _b
 from pandas_ml_common import get_pandas_object as _get_pandas_object
 from pandas_ml_quant.utils import index_of_bucket as _index_of_bucket
 
@@ -61,7 +62,7 @@ def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
 
 def ta_future_bband_quantile(df: _pd.Series, period=12, forecast_period=5, stddev=2.0, ddof=1, include_mean=True):
     # we want to know if a future price is violating the current upper/lower band
-    bands = _i.ta_bbands(df, period, stddev, ddof)
+    bands = _b.ta_bbands(df, period, stddev, ddof)
     bands = bands[["lower", "mean", "upper"] if include_mean else ["lower", "upper"] ]
     future = df.shift(-forecast_period)
 
