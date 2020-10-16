@@ -188,3 +188,11 @@ def ta_ma_decompose(df: Typing.PatchedPandas, period=50, boost_ma=10):
 
     return base.to_frame().join(ratio)
 
+
+def ta_ma_ratio(df: Typing.PatchedPandas, period=12, exponential='wilder') -> _PANDAS:
+    if exponential is True:
+        return (1 / _ema(df)) * df.values - 1
+    if exponential == 'wilder':
+        return (1 / _wilders(df)) * df.values - 1
+    else:
+        return (1 / _sma(df)) * df.values - 1

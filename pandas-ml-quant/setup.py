@@ -2,7 +2,10 @@
 __version__ = '0.2.0'
 
 import os
+import re
 from setuptools import setup, find_packages
+
+url = 'https://github.com/KIC/pandas-ml-quant'
 
 
 setup(
@@ -12,10 +15,11 @@ setup(
    author_email='',
    packages=find_packages(),
    scripts=[],
-   url='https://github.com/KIC/pandas-ml-quant',
+   url=url,
    license='MIT',
    description=__doc__,
-   long_description=open('Readme.md').read(),
+   long_description='\n'.join(
+      [re.sub(r'(^\[gh\d+]:\s+)', f'\\1{url}/blob/{__version__}/', l) for l in open('Readme.md').readlines()]),
    long_description_content_type='text/markdown',
    install_requires=["pandas-ml-common", "pandas-ml-utils", *open("requirements.txt").read().splitlines()],
    extras_require={

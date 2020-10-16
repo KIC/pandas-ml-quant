@@ -47,7 +47,13 @@ def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_m
         else:
             return join
 
+    if len(join) <= 0:
+        _log.warning(f"right dataframe is empty: {prefix}")
+
     if force_multi_index:
+        if not isinstance(join, pd.DataFrame):
+            join = join.to_frame()
+
         if not isinstance(df.columns, pd.MultiIndex) and len(df.columns) > 0:
             if len(prefix_left) <= 0:
                 raise ValueError("You need to provide a prefix_left")
