@@ -6,10 +6,12 @@ import pandas as _pd
 
 import pandas_ml_quant.analysis.filters as _f
 from pandas_ml_common import get_pandas_object as _get_pandas_object
+from pandas_ml_quant.analysis.utils import for_each_top_level_column as _for_each_top_level_column
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+@_for_each_top_level_column
 def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=True) -> _PANDAS:
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
@@ -27,6 +29,7 @@ def ta_tr(df: _PANDAS, high="High", low="Low", close="Close", relative=True) -> 
     return ranges.max(axis=1).rename("true_range")
 
 
+@_for_each_top_level_column
 def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=True, exponential='wilder') -> _PANDAS:
     if exponential is True:
         atr = _f.ta_ema(ta_tr(df, high, low, close, relative), period)
@@ -37,7 +40,7 @@ def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
 
     return atr.rename(f"atr_{period}")
 
-
+@_for_each_top_level_column
 def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=True) -> _PANDAS:
     from ..utils import difference
     h = _get_pandas_object(df, high)
@@ -59,6 +62,7 @@ def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
     return _pd.DataFrame({"+DM": pdm, "-DM": ndm, "+DI": pdi, "-DI": ndi, "ADX": adx}, index=df.index)
 
 
+@_for_each_top_level_column
 def ta_williams_R(df: _pd.DataFrame, period=14, close="Close", high="High", low="Low") -> _pd.Series:
     temp = _get_pandas_object(df, close).to_frame()
     temp = temp.join(_get_pandas_object(df, high if high is not None else close).rolling(period).max().rename("highest_high"))
@@ -66,6 +70,7 @@ def ta_williams_R(df: _pd.DataFrame, period=14, close="Close", high="High", low=
     return ((temp["highest_high"] - temp[close]) / (temp["highest_high"] - temp["lowest_low"])).rename(f"williams_R_{period}")
 
 
+@_for_each_top_level_column
 def ta_ultimate_osc(df: _pd.DataFrame, period1=7, period2=14, period3=28, close="Close", high="High", low="Low") -> _pd.Series:
     # BP = Close - Minimum(Low or Prior Close).
     # TR = Maximum(High or Prior Close)  -  Minimum(Low or Prior Close)
@@ -88,6 +93,7 @@ def ta_ultimate_osc(df: _pd.DataFrame, period1=7, period2=14, period3=28, close=
     return ((4 * avs[0] + 2 * avs[1] + avs[2]) / 7).rename(f"ultimate_osc_{period1},{period2},{period3}")
 
 
+@_for_each_top_level_column
 def ta_bop(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
     # (CLOSE – OPEN) / (HIGH – LOW)
     o = _get_pandas_object(df, open)
@@ -98,6 +104,7 @@ def ta_bop(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close"
     return ((c - o) / (h - l)).rename("bop")
 
 
+@_for_each_top_level_column
 def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", alpha=0.015) -> _PANDAS:
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
@@ -110,5 +117,6 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
     return ((1 / alpha) * (tp - tp_sma) / md / 100).rename(f"cci_{period}")
 
 
+@_for_each_top_level_column
 def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
     return (df[open] / df[close].shift(1) - 1).rename("gap")

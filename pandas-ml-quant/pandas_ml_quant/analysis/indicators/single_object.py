@@ -8,36 +8,28 @@ from scipy.stats import zscore
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_quant.analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
+from pandas_ml_quant.analysis.utils import for_each_column
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 import pandas_ml_quant.analysis.bands as _bands
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+@for_each_column
 def ta_macd(df: Typing.PatchedPandas, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
-    if has_indexed_columns(df):
-        res = _pd.DataFrame({}, index=df.index)
-        for col in df.columns.to_list():
-            d = ta_macd(df[col], fast_period, slow_period, slow_period, relative)
-            d.columns = _pd.MultiIndex.from_product([[col], d.columns])
-            res = res.join(d)
+    fast = _ema(df, fast_period)
+    slow = _ema(df, slow_period)
 
-        res.columns = _pd.MultiIndex.from_tuples(res.columns.to_list())
-        return res
-    else:
-        fast = _ema(df, fast_period)
-        slow = _ema(df, slow_period)
+    macd = (fast / slow - 1) if relative else (fast - slow)
+    signal = _ema(macd, signal_period)
+    hist = macd - signal
+    suffix = f'{fast_period},{slow_period},{signal_period}'
 
-        macd = (fast / slow - 1) if relative else (fast - slow)
-        signal = _ema(macd, signal_period)
-        hist = macd - signal
-        suffix = f'{fast_period},{slow_period},{signal_period}'
+    for label, frame in {f"macd_{suffix}": macd, f"signal_{suffix}": signal, f"histogram_{suffix}": hist}.items():
+        frame.name = label
 
-        for label, frame in {f"macd_{suffix}": macd, f"signal_{suffix}": signal, f"histogram_{suffix}": hist}.items():
-            frame.name = label
-
-        macd = macd.to_frame() if isinstance(macd, _pd.Series) else macd
-        return macd.join(signal).join(hist)
+    macd = macd.to_frame() if isinstance(macd, _pd.Series) else macd
+    return macd.join(signal).join(hist)
 
 
 def ta_mom(df: _PANDAS, period=12, relative=True) -> _PANDAS:
@@ -104,17 +96,11 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
     return ratio
 
 
+@for_each_column
 def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
     from pandas_ml_common.utils import ReScaler
     from pandas_ml_common import np_nans
     from pandas_ml_common import inner_join
-
-    if isinstance(df, _pd.DataFrame):
-        res = None
-        for col in df.columns:
-            res = inner_join(res, ta_poly_coeff(df[col], period, degree), col, force_multi_index=True)
-
-        return res
 
     x = _np.linspace(0, 1, period)
     v = df.values
@@ -143,40 +129,31 @@ def ta_sortino_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=Fal
     return (mean_returns - risk_free) / sigma
 
 
+@for_each_column
 def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
-    if has_indexed_columns(df):
-        res = _pd.DataFrame({}, index=df.index)
-        for col in df.columns.to_list():
-            d = ta_draw_down(df[col], return_dates, return_duration)
-            d.columns = _pd.MultiIndex.from_product([[col], d.columns])
-            res = res.join(d)
+    ds = df
+    pmin_pmax = (ds.diff(-1) > 0).astype(int).diff()  # <- -1 indicates pmin, +1 indicates pmax
+    pmax = pmin_pmax[pmin_pmax == 1]
+    pmin = pmin_pmax[pmin_pmax == -1]
 
-        res.columns = _pd.MultiIndex.from_tuples(res.columns.to_list())
-        return res
-    else:
-        ds = df
-        pmin_pmax = (ds.diff(-1) > 0).astype(int).diff()  # <- -1 indicates pmin, +1 indicates pmax
-        pmax = pmin_pmax[pmin_pmax == 1]
-        pmin = pmin_pmax[pmin_pmax == -1]
+    if pmin.index[0] < pmax.index[0]:
+        pmin = pmin.drop(pmin.index[0])
 
-        if pmin.index[0] < pmax.index[0]:
-            pmin = pmin.drop(pmin.index[0])
+    if pmin.index[-1] < pmax.index[-1]:
+        pmax = pmax.drop(pmax.index[-1])
 
-        if pmin.index[-1] < pmax.index[-1]:
-            pmax = pmax.drop(pmax.index[-1])
+    dd = (_np.array(ds[pmin.index]) - _np.array(ds[pmax.index])) / _np.array(ds[pmax.index])
+    d = {'drawdown': dd}
 
-        dd = (_np.array(ds[pmin.index]) - _np.array(ds[pmax.index])) / _np.array(ds[pmax.index])
-        d = {'drawdown': dd}
+    if return_dates:
+        d['d_start'] = pmax.index
+        d['d_end'] = pmin.index
 
-        if return_dates:
-            d['d_start'] = pmax.index
-            d['d_end'] = pmin.index
+    if return_duration:
+        dur = [_np.busday_count(p1.date(), p2.date()) for p1, p2 in zip(pmax.index, pmin.index)]
+        d['duration'] = dur
 
-        if return_duration:
-            dur = [_np.busday_count(p1.date(), p2.date()) for p1, p2 in zip(pmax.index, pmin.index)]
-            d['duration'] = dur
-
-        return _pd.DataFrame({}, index=df.index).join(_pd.DataFrame(d, index=pmax.index)).fillna(0)
+    return _pd.DataFrame({}, index=df.index).join(_pd.DataFrame(d, index=pmax.index)).fillna(0)
 
 
 def ta_ma_decompose(df: Typing.PatchedPandas, period=50, boost_ma=10):

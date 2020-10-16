@@ -16,8 +16,8 @@ class Sampler(object):
             self,
             *dataframes: pd.DataFrame,
             splitter: Callable[[pd.Index, pd.DataFrame], Tuple[pd.Index, pd.Index]],
-            training_samples_filter: Union['BaseCrossValidator', Tuple[int, Callable[[pd.Series], bool]]] = None,
-            cross_validation: Tuple[int, Callable[[pd.Index], Tuple[List[int], List[int]]]] = None,
+            training_samples_filter: Callable[[pd.Series], bool] = None,
+            cross_validation: Union['BaseCrossValidator', Callable[[pd.Index, pd.DataFrame], Tuple[List[int], List[int]]]] = None,
             epochs: int = 1
     ):
         """

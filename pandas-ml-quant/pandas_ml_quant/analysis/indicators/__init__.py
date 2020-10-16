@@ -1,10 +1,12 @@
 from .single_object import *
 from .multi_object import *
 from .time import *
+from pandas_ml_quant.analysis.utils import for_each_top_level_column as _for_each_top_level_column
 from pandas_ml_common import pd as _pd, suitable_kwargs as _select_kwargs
 
 
 # this is executing all technical indicators into one huge data frame
+@_for_each_top_level_column
 def ta_all(df: _pd.DataFrame,
            close_only: bool = False,
            open: str = "Open",
@@ -16,13 +18,6 @@ def ta_all(df: _pd.DataFrame,
            ):
     assert isinstance(df, _pd.DataFrame), "Data needs to be a frame not a Series"
     df_res = None
-
-    # in case of multiple symbols
-    if isinstance(df.columns, _pd.MultiIndex):
-        group_frames = [ta_all(df[group],
-                               close, open, high, low, close, volume, open_interest).add_multi_index(group, axis=1)
-                        for group in df.unique_level_columns(0)]
-        return _pd.concat(group_frames, axis=1)
 
     # loop all indicator functions
     for indicator_function in dir(single_object):

@@ -15,6 +15,7 @@ class TestTheAllIndicator(TestCase):
 
         print(res.tail())
         print(res.columns)
+        self.assertEqual(3, res.columns.nlevels)
         self.assertEqual(3835, len(res))
 
 

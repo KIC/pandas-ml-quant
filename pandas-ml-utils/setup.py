@@ -19,7 +19,7 @@ setup(
    license='MIT',
    description=__doc__,
    long_description='\n'.join(
-      [re.sub(r'(^\[gh\d+]:\s+)', f'\\1{url}/blob/{__version__}/', l) for l in open('Readme.md').readlines()]),
+      [re.sub(r'(^\[gh\d+]:\s+)', f'\\1{url}/raw/{__version__}/', l) for l in open('Readme.md').readlines()]),
    long_description_content_type='text/markdown',
    install_requires=["pandas-ml-common", *open("requirements.txt").read().splitlines()],
    extras_require={

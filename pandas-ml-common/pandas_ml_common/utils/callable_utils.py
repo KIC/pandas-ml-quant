@@ -62,7 +62,11 @@ def call_callable_dynamic_args(func, *args, **kwargs):
         try:
             source = inspect.getsource(func)
         except OSError:
-            source = "eval"
+            try:
+                from dill.source import getsource
+                source = getsource(func)
+            except Exception:
+                source = "eval"
 
         raise RuntimeError(e, f"error while calling {func}({spec.args})\n{source}\nwith arguments:\n{call_args}, {kwargs}")
 

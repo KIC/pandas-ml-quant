@@ -30,12 +30,12 @@ class TestIndicator(TestCase):
 
         # test multi
         my_multi_macd = ta_macd(DF_TEST[["Close", "Open"]], relative=False)
-        self.assertListEqual([('Close', 'macd_12,26,26'),
-                              ('Close', 'signal_12,26,26'),
-                              ('Close', 'histogram_12,26,26'),
-                              ('Open', 'macd_12,26,26'),
-                              ('Open', 'signal_12,26,26'),
-                              ('Open', 'histogram_12,26,26')],
+        self.assertListEqual([('Close', 'macd_12,26,9'),
+                              ('Close', 'signal_12,26,9'),
+                              ('Close', 'histogram_12,26,9'),
+                              ('Open', 'macd_12,26,9'),
+                              ('Open', 'signal_12,26,9'),
+                              ('Open', 'histogram_12,26,9')],
                              my_multi_macd.columns.to_list())
 
     def test__mom(self):
