@@ -33,7 +33,7 @@ is intended to help you through your journey of statistical or machine learning 
 while you never need to leave the world of pandas.
 
 ## Installation
-The basic implementation supports [scikit learn](https://scikit-learn.org/stable/) classifiers and regressors.
+The basic implementation supports [scikit learn][e1] classifiers and regressors.
 ```shell script
 
 pip install pandas-ml-utils
@@ -50,8 +50,15 @@ Note that the keras/tensorflow version is currently stalled as I focus on pytorc
 with PyMC4 and tensorflow probability
  
 ## Example
-You will find some demo projects in the [exmaples](./examles/) directory. But It might also be worth it to check
-the unit tests and the [integration tests](../pandas-ml-1ntegration-test). Here is how classification challange
+You will find some demo projects in the [exmaples][gh1] directory. But It might also be worth it to check
+the unit tests and the [integration tests][gh2]. Here is how classification challange
 might look like:
   
-![Feature Selection](../.readme/images/classification.png)
+![Classification Example][gh3]
+
+
+[e1]: https://scikit-learn.org/stable/
+[gh1]: ./examles/
+[gh2]: ../pandas-ml-1ntegration-test
+[gh3]: ../.readme/images/classification.png
+

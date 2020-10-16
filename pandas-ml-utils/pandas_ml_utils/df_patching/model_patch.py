@@ -66,8 +66,8 @@ class DfModelPatch(object):
             grid = {
                 "estimator__n_estimators": sp_randint(10, 500),
                 "estimator__max_depth": [2, None],
-                "estimator__min_samples_split": sp_randint(3, nr_samples / nr_classes),
-                "estimator__min_samples_leaf": sp_randint(1, nr_samples / nr_classes),
+                "estimator__min_samples_split": sp_randint(2, nr_samples / nr_classes),
+                "estimator__min_samples_leaf": sp_randint(2, nr_samples / nr_classes),
                 "estimator__bootstrap": [True, False],
                 "estimator__criterion": ["gini", "entropy"] if is_classification else ["mse", "mae"]
             }
