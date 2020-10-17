@@ -50,15 +50,15 @@ Note that the keras/tensorflow version is currently stalled as I focus on pytorc
 with PyMC4 and tensorflow probability
  
 ## Example
-You will find some demo projects in the [exmaples][gh1] directory. But It might also be worth it to check
-the unit tests and the [integration tests][gh2]. Here is how classification challange
+You will find some demo projects in the [exmaples][ghl1] directory. But It might also be worth it to check
+the unit tests and the [integration tests][ghl2]. Here is how classification challange
 might look like:
   
-![Classification Example][gh3]
+![Classification Example][ghi1]
 
 
 [e1]: https://scikit-learn.org/stable/
-[gh1]: ./examles/
-[gh2]: ../pandas-ml-1ntegration-test
-[gh3]: ../.readme/images/classification.png
+[ghl1]: ./examles/
+[ghl2]: ../pandas-ml-1ntegration-test
+[ghi1]: ../.readme/images/classification.png
 
