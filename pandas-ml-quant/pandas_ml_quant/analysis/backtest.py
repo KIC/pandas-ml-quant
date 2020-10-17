@@ -7,6 +7,7 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
 
 
+# TODO shoule become part of rolling model + portfolio summary
 def ta_backtest(signal: Typing.PatchedDataFrame,
                 prices: Typing.PatchedPandas,
                 action: Callable[[pd.Series], Tuple[int, float]],

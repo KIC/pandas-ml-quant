@@ -38,6 +38,7 @@ def invertible_gaf_encoder(time_steps, **kwargs):
 
 
 # technical analysis function
+# TODO for_each_top_level_row
 def ta_gaf(df: Typing.PatchedPandas, columm_index_level=1, type='pyts', **kwargs):
     """
     :param df:

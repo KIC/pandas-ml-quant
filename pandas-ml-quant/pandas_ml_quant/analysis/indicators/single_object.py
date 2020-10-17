@@ -15,6 +15,7 @@ import pandas_ml_quant.analysis.bands as _bands
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+# TODO for_each_top_level_row
 @for_each_column
 def ta_macd(df: Typing.PatchedPandas, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
     fast = _ema(df, fast_period)
@@ -32,18 +33,22 @@ def ta_macd(df: Typing.PatchedPandas, fast_period=12, slow_period=26, signal_per
     return macd.join(signal).join(hist)
 
 
+# TODO for_each_top_level_row
 def ta_mom(df: _PANDAS, period=12, relative=True) -> _PANDAS:
     return _wcs(f"mom_{period}", df.pct_change(period) if relative else df.diff(period))
 
 
+# TODO for_each_top_level_row
 def ta_roc(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"roc_{period}", df.pct_change(period))
 
 
+# TODO for_each_top_level_row
 def ta_stddev(df: _PANDAS, period=12, nbdev=1, ddof=1, downscale=True) -> _PANDAS:
     return _wcs(f"stddev_{period}", (df.rolling(period).std(ddof=ddof) * nbdev) / (100 if downscale else 1))
 
 
+# TODO for_each_top_level_row
 def ta_rsi(df: _PANDAS, period=12):
     returns = df.diff()
 
@@ -53,6 +58,7 @@ def ta_rsi(df: _PANDAS, period=12):
     return _wcs(f"rsi_{period}", pos / (pos + neg), returns)
 
 
+# TODO for_each_top_level_row
 def ta_apo(df: _PANDAS, fast_period=12, slow_period=26, exponential=False, relative=True) -> _PANDAS:
     fast = _ema(df, fast_period) if exponential else _sma(df, fast_period)
     slow = _ema(df, slow_period) if exponential else _sma(df, slow_period)
@@ -60,22 +66,26 @@ def ta_apo(df: _PANDAS, fast_period=12, slow_period=26, exponential=False, relat
     return _wcs(f"apo_{fast_period},{slow_period},{int(exponential)}", apo, df)
 
 
+# TODO for_each_top_level_row
 def ta_trix(df: _PANDAS, period=30) -> _PANDAS:
     return _wcs(f"trix_{period}", _ema(_ema(_ema(df, period), period), period).pct_change() * 100, df)
 
 
+# TODO for_each_top_level_row
 def ta_ppo(df: _pd.DataFrame, fast_period=12, slow_period=26, exponential=True) -> _PANDAS:
     fast = _ema(df, period=fast_period) if exponential else _sma(df, period=fast_period)
     slow = _ema(df, period=slow_period) if exponential else _sma(df, period=slow_period)
     return _wcs(f"ppo_{fast_period},{slow_period},{int(exponential)}", (fast - slow) / slow, df)
 
 
+# TODO for_each_top_level_row
 def ta_zscore(df: _PANDAS, period=20, ddof=1, downscale=True):
     res = df.rolling(period).apply(lambda c: zscore(c, ddof=ddof)[-1] / (4 if downscale else 1))
 
     return _wcs(f"z_{period}", res)
 
 
+# TODO for_each_top_level_row
 def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_date=False):
     if isinstance(df, _pd.DataFrame):
         return df.apply(lambda col: ta_up_down_volatility_ratio(col, period, normalize))
@@ -96,6 +106,7 @@ def ta_up_down_volatility_ratio(df: _PANDAS, period=60, normalize=True, setof_da
     return ratio
 
 
+# TODO for_each_top_level_row
 @for_each_column
 def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
     from pandas_ml_common.utils import ReScaler
@@ -115,6 +126,7 @@ def ta_poly_coeff(df: _PANDAS, period=60, degree=2):
     return _pd.DataFrame(res, index=df.index, columns=[*[f'b{b}' for b in range(0, degree)], "mse"])
 
 
+# TODO for_each_top_level_row
 def ta_sharpe_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=False):
     returns = df if is_returns else df.pct_change()
     mean_returns = returns.rolling(period).mean()
@@ -122,6 +134,7 @@ def ta_sharpe_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=Fals
     return (mean_returns - risk_free) / sigma
 
 
+# TODO for_each_top_level_row
 def ta_sortino_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=False):
     returns = df if is_returns else df.pct_change()
     mean_returns = returns.rolling(period).mean()
@@ -129,6 +142,7 @@ def ta_sortino_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=Fal
     return (mean_returns - risk_free) / sigma
 
 
+# TODO for_each_top_level_row
 @for_each_column
 def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
     ds = df
@@ -156,6 +170,7 @@ def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
     return _pd.DataFrame({}, index=df.index).join(_pd.DataFrame(d, index=pmax.index)).fillna(0)
 
 
+# TODO for_each_top_level_row
 def ta_ma_decompose(df: Typing.PatchedPandas, period=50, boost_ma=10):
     ma = _sma(df, period=period)
     base = ma.pct_change() * boost_ma
@@ -167,6 +182,7 @@ def ta_ma_decompose(df: Typing.PatchedPandas, period=50, boost_ma=10):
     return base.to_frame().join(ratio)
 
 
+# TODO for_each_top_level_row
 def ta_ma_ratio(df: Typing.PatchedPandas, period=12, exponential='wilder') -> _PANDAS:
     if exponential is True:
         return (1 / _ema(df)) * df.values - 1
@@ -176,6 +192,7 @@ def ta_ma_ratio(df: Typing.PatchedPandas, period=12, exponential='wilder') -> _P
         return (1 / _sma(df)) * df.values - 1
 
 
+# TODO for_each_top_level_row
 def ta_std_ret_bands_indicator(df: _pd.DataFrame, period=12, stddevs=[2.0], ddof=1, lag=1, scale_lag=True, include_mean=True, inculde_width=True) -> _PANDAS:
     columns = ["width"]
     res = _bands.ta_std_ret_bands(df, period, stddevs, ddof, lag, scale_lag, inculde_width=True)
@@ -186,6 +203,7 @@ def ta_std_ret_bands_indicator(df: _pd.DataFrame, period=12, stddevs=[2.0], ddof
     return res[columns]
 
 
+# TODO for_each_top_level_row
 def ta_bbands_indicator(df: _PANDAS, period=12, stddev=2.0, ddof=1) -> _PANDAS:
     columns = ["width", "z-score", "quantile"]
     res = _bands.ta_bbands(df, period, stddev, ddof)

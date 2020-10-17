@@ -22,6 +22,7 @@ def ta_cross_under(df: _pd.DataFrame, a=None, b=None, period=1) -> _PANDAS:
     return ta_cross(df, a, b, period).clip(upper=0)
 
 
+# TODO for_each_top_level_row
 def ta_cross(df: _pd.DataFrame, a=None, b=None, period=1):
     # get pandas objects for crossing
     if a is None and b is None:
@@ -51,6 +52,7 @@ def ta_cross(df: _pd.DataFrame, a=None, b=None, period=1):
     return a_over_b + a_under_b
 
 
+# TODO for_each_top_level_row
 def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
     crossings = _i.ta_cross(df, a, b, period=period)
 
@@ -60,6 +62,7 @@ def ta_future_crossings(df: _PANDAS, a=None, b=None, period=1, forecast=1):
     return crossings.shift(-forecast)
 
 
+# TODO for_each_top_level_row
 def ta_future_bband_quantile(df: _pd.Series, period=12, forecast_period=5, stddev=2.0, ddof=1, include_mean=True):
     # we want to know if a future price is violating the current upper/lower band
     bands = _b.ta_bbands(df, period, stddev, ddof)
@@ -72,6 +75,7 @@ def ta_future_bband_quantile(df: _pd.Series, period=12, forecast_period=5, stdde
         .rename(f"{df.name}_quantile")
 
 
+# TODO for_each_top_level_row
 def ta_future_multi_bband_quantile(df: _pd.Series, period=12, forecast_period=5, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True):
     future = df.shift(-forecast_period)
     bands = _f.ta_multi_bbands(df, period, stddevs, ddof)
@@ -85,6 +89,7 @@ def ta_future_multi_bband_quantile(df: _pd.Series, period=12, forecast_period=5,
         .rename(f"{df.name}_quantile")
 
 
+# TODO for_each_top_level_row
 def ta_future_multi_ma_quantile(df: _pd.Series, forecast_period=12, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)):
     future = df.shift(-forecast_period)
     mas = _f.ta_multi_ma(df, average_function, period, factors)
@@ -95,6 +100,7 @@ def ta_future_multi_ma_quantile(df: _pd.Series, forecast_period=12, average_func
         .rename(f"{df.name}_quantile")
 
 
+# TODO for_each_top_level_row
 def ta_has_opening_gap(df: _pd.DataFrame, forecast_period=1, offset=0.005, open="Open", close="Close"):
     gap = (df[open].shift(-forecast_period) / df[close]) - 1
     return gap.apply(lambda row: _np.nan if _np.isnan(row) or _np.isinf(row) else \
@@ -102,6 +108,7 @@ def ta_has_opening_gap(df: _pd.DataFrame, forecast_period=1, offset=0.005, open=
               .rename("opening_gap")
 
 
+# TODO for_each_top_level_row
 def ta_is_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, no_gap=_np.nan, open="Open", high="High", low="Low", close="Close"):
     gap = "$gap$"
     yesterday_close = "$close-1$"

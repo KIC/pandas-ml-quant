@@ -6,6 +6,7 @@ from sortedcontainers import SortedDict
 from pandas_ml_common.utils.column_lagging_utils import lag_columns
 
 
+# TODO for_each_top_level_row
 def ta_rnn(df: Union[pd.Series, pd.DataFrame],
            feature_lags: Iterable[int],
            lag_smoothing: Dict[int, Callable[[pd.Series], pd.Series]] = None,

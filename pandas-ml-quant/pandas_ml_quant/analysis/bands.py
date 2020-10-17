@@ -4,16 +4,14 @@ import numpy as _np
 import pandas as _pd
 
 from pandas_ml_common.utils import has_indexed_columns
+from pandas_ml_quant.analysis._decorators import for_each_column
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+# TODO for_each_top_level_row
+@for_each_column
 def ta_std_ret_bands(s: _pd.Series, period=12, stddevs=[2.0], ddof=1, lag=1, scale_lag=True, include_mean=True, inculde_width=True) -> _PANDAS:
-    if has_indexed_columns(s):
-        groups = [ta_std_ret_bands(s[group], period, stddevs, ddof, lag, scale_lag, include_mean, inculde_width).add_multi_index(group)
-                  for group in s.columns.to_list()]
-        return _pd.concat(groups, axis=1)
-
     if not isinstance(stddevs, Iterable):
         stddevs = [stddevs]
 
@@ -31,11 +29,9 @@ def ta_std_ret_bands(s: _pd.Series, period=12, stddevs=[2.0], ddof=1, lag=1, sca
     return res
 
 
+# TODO for_each_top_level_row
+@for_each_column
 def ta_bbands(df: _PANDAS, period=12, stddev=2.0, ddof=1, include_mean=True) -> _PANDAS:
-    if has_indexed_columns(df):
-        groups = [ta_bbands(df[group], period, stddev, ddof, include_mean).add_multi_index(group) for group in df.columns.to_list()]
-        return _pd.concat(groups, axis=1)
-
     mean = df.rolling(period).mean().rename("mean")
     std = df.rolling(period).std(ddof=ddof)
     most_recent = df.rolling(period).apply(lambda x: x[-1], raw=True)

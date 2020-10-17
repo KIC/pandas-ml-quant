@@ -4,8 +4,10 @@ from arch import arch_model  # alternatively https://pyflux.readthedocs.io/en/la
 import pandas as pd
 
 
+# TODO for_each_top_level_row
 def ta_garch11(df: Typing.PatchedPandas, period=200, forecast=1, returns='returns'):
     if has_indexed_columns(df):
+        # FIXME use decorator
         return pd.DataFrame(
             {f"{col}_garch11({period})->{forecast}": ta_garch11(df[col], period, forecast, returns) for col in df.columns},
             index=df.index

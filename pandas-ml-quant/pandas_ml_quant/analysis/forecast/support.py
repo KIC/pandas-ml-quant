@@ -7,6 +7,7 @@ from sortedcontainers import SortedKeyList
 from pandas_ml_utils import Typing, has_indexed_columns
 
 
+# TODO for_each_top_level_row
 def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
     current_min_max = [0, 0]
     most_recent_min_max = [0, 0]
@@ -53,6 +54,7 @@ def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
     )
 
 
+# TODO for_each_top_level_row
 def ta_edge_detect(df: Typing.PatchedSeries, period=3):
     assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
     assert period > 2, "minimum period is 3"
@@ -69,6 +71,7 @@ def ta_edge_detect(df: Typing.PatchedSeries, period=3):
     return df.rolling(period, center=True).apply(edge, raw=True)
 
 
+# TODO for_each_top_level_row
 def ta_trend_lines(df: Typing.PatchedSeries,
                    edge_periods=3,
                    rescale_digits=4,
@@ -156,6 +159,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
     return accumulated, line_lookup_table
 
 
+# TODO for_each_top_level_row
 def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=None):
     # TODO implement this paper: http://www.meacse.org/ijcar/archives/128.pdf
     if has_indexed_columns(df):

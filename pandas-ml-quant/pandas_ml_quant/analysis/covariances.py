@@ -5,6 +5,7 @@ import pandas as _pd
 from pandas_ml_common import Typing
 
 
+# TODO for_each_top_level_row
 def _normalize(df, convert_to):
     data = df.copy()
 
@@ -16,18 +17,21 @@ def _normalize(df, convert_to):
     return data
 
 
+# TODO for_each_top_level_row ??
 def ta_ewma_covariance(df: Typing.PatchedPandas, alpha=0.97, convert_to='returns', **kwargs):
     data = _normalize(df, convert_to)
     data.columns = data.columns.to_list()
     return data.ewm(com=alpha).cov()
 
 
+# TODO for_each_top_level_row ??
 def ta_moving_covariance(df: Typing.PatchedPandas, period=30, convert_to='returns', **kwargs):
     data = _normalize(df, convert_to)
     data.columns = data.columns.to_list()
     return data.rolling(period).cov()
 
 
+# TODO for_each_top_level_row ??
 def ta_sparse_covariance(df: Typing.PatchedPandas, convert_to='returns', covariance='ewma', cov_arg=0.97, rho=0.1, inverse=False, **kwargs):
     from sklearn.covariance import graphical_lasso
 

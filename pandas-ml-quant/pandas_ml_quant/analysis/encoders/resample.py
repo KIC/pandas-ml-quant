@@ -12,6 +12,7 @@ from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix a
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+# TODO for_each_top_level_row
 def ta_inverse(df: _PANDAS) -> _PANDAS:
     return df.apply(lambda col: col * -1 + col.min() + col.max(), raw=True)
 

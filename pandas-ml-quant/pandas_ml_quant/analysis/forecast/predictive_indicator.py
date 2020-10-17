@@ -3,10 +3,12 @@ import numpy as np
 import pandas as pd
 
 
+# TODO for_each_top_level_row
+# TODO for_each_column
 def ta_hmm(df: Typing.PatchedDataFrame, nr_components, means_estimator, period=250, forecast_period=1, close="close", n_iter=500):
     from hmmlearn import hmm
 
-    X = df[[close]].pct_change(forecast_period).dropna().values
+    X = df[[close]].pct_change(forecast_period).dropna().values  # FIXME each column or series
 
     def moving_hmm(X):
         # new model

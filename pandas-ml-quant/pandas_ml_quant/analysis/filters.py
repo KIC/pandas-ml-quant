@@ -13,14 +13,17 @@ from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+# TODO for_each_top_level_row
 def ta_sma(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"sma_{period}", df.rolling(period).mean())
 
 
+# TODO for_each_top_level_row
 def ta_ema(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"ema_{period}", df.ewm(span=period, adjust=False, min_periods=period-1).mean())
 
 
+# TODO for_each_top_level_row
 def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
     if has_indexed_columns(df):
         resdf = _pd.DataFrame({}, index=df.index)
@@ -37,6 +40,7 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
     return _wcs(f"wilders_{period}", res)
 
 
+# TODO for_each_top_level_row
 def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:
     assert not has_indexed_columns(s)
     mean = s.rolling(period).mean().rename("mean")
@@ -55,6 +59,7 @@ def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof
     return df
 
 
+# TODO for_each_top_level_row
 def ta_multi_ma(df: _t.PatchedDataFrame, average_function='sma', period=12, factors=_np.linspace(1 - 0.2, 1 + 0.2, 5)) -> _t.PatchedDataFrame:
     ma = {'sma': ta_sma, 'ema': ta_ema, 'wilder': ta_wilders}
     res = _pd.DataFrame({}, index=df.index)

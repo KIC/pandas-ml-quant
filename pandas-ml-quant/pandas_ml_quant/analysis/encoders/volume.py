@@ -4,6 +4,7 @@ import pandas as _pd
 from pandas_ml_common import Typing as _t
 
 
+# TODO for_each_top_level_row
 def ta_volume_as_time(df: _t.PatchedPandas, volume="Volume"):
     if df.has_indexed_columns():
         res = df.copy()

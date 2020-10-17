@@ -10,6 +10,7 @@ from pandas_ml_quant.analysis import filters as _f
 from pandas_ml_quant.utils import with_column_suffix as _wcs
 
 
+# TODO for_each_top_level_row
 def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
     if axis is not None:
         return df.apply(lambda x: ta_rescale(x, range), raw=False, axis=axis, result_type='broadcast')
@@ -26,10 +27,12 @@ def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
             return pd.Series(rescaled, name=df.name, index=df.index)
 
 
+# TODO for_each_top_level_row
 def ta_returns(df: Typing.PatchedPandas, period=1):
     return _wcs("return", df.pct_change(periods=period))
 
 
+# TODO for_each_top_level_row
 def ta_log_returns(df: Typing.PatchedPandas, period=1):
     current = df
     lagged = df.shift(period)
@@ -37,11 +40,13 @@ def ta_log_returns(df: Typing.PatchedPandas, period=1):
     return _wcs("log_return", np.log(current) - np.log(lagged))
 
 
+# TODO for_each_top_level_row
 def ta_ma_ratio(df: Typing.PatchedPandas, period=12, lag=0, ma='sma', **kwargs):
     mafunc = getattr(_f, f'ta_{ma}')
     return _wcs(f"{ma}({period}) x 1/", df / mafunc(df, period=period, **kwargs).shift(lag).values - 1, df)
 
 
+# TODO for_each_top_level_row
 def ta_ncdf_compress(df: Typing.PatchedPandas, period=200, lower_percentile=25, upper_percentile=75) -> Typing.PatchedPandas:
     if has_indexed_columns(df):
         return pd.DataFrame(
@@ -56,6 +61,7 @@ def ta_ncdf_compress(df: Typing.PatchedPandas, period=200, lower_percentile=25, 
     return pd.Series(norm.cdf(0.5 * (df - f50) / (fup - flo)) - 0.5, index=df.index, name=df.name)
 
 
+# TODO for_each_top_level_row
 def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
     if has_indexed_columns(df):
         return pd.DataFrame(
@@ -69,21 +75,25 @@ def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
     return (a / s / 4).rename(df.name)
 
 
+# TODO for_each_top_level_row
 def ta_performance(df: Typing.PatchedPandas):
     delta = df.pct_change() + 1
     return delta.cumprod()
 
 
+# TODO for_each_top_level_row
 def ta_sma_price_ratio(df: Typing.Series, period=14, log=False):
     from .labels.continuous import ta_future_pct_to_current_mean
     return ta_future_pct_to_current_mean(df, 0, period, log)
 
 
+# TODO for_each_top_level_row
 def _ta_adaptive_normalisation():
     # TODO implement .papers/Adaptive Normalization.pdf
     pass
 
 
+# TODO for_each_top_level_row
 def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform"):
     # normalizer can be one of minmax01, minmax-11, uniform, standard or callable
     def scaler(row):

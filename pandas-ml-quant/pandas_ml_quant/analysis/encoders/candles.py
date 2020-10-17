@@ -4,6 +4,7 @@ import pandas as _pd
 from pandas_ml_common import get_pandas_object as _get_pandas_object
 
 
+# TODO for_each_top_level_row
 def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume"):
     relative = _pd.DataFrame(index=df.index)
     relative[open] = (_np.log(df[open]) - _np.log(df[close].shift(1)))
@@ -17,6 +18,8 @@ def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low",
     return relative
 
 
+# TODO for_each_top_level_row
+# TODO should also be indicator with relative=True
 def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative_close=False):
     o = _get_pandas_object(df, open)
     c = _get_pandas_object(df, close)
@@ -39,6 +42,8 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
     return res
 
 
+# TODO for_each_top_level_row
+# TODO should also be indicator
 def ta_candle_category(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", body_threshold=0.975, gap_thresold=0.002):
     """
     We try to classify single candle sticks based on simple rules:
