@@ -37,6 +37,9 @@ class TechnicalAnalysis(object):
 def wrapper(func):
     def wrapped(quant, *args, **kwargs):
         if isinstance(quant.df.index, pd.MultiIndex):
+            # FIXME replace this implementation by  the decorator for each function
+            #  because it is no very clear why the monkey patched data frame should behave differently from the the
+            #  dedicated function call
             return pd.concat(
                 [add_multi_index(func(quant.df.loc[group], *args, **kwargs), group, True, 0) for group in unique_level_rows(quant.df)],
                 axis=0

@@ -8,7 +8,7 @@ from scipy.stats import zscore
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
 from pandas_ml_quant.analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
-from pandas_ml_quant.analysis.utils import for_each_column
+from pandas_ml_quant.analysis._decorators import for_each_column
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 import pandas_ml_quant.analysis.bands as _bands
 

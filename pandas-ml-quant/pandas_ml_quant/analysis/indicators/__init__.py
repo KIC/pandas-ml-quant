@@ -1,7 +1,7 @@
 from .single_object import *
 from .multi_object import *
 from .time import *
-from pandas_ml_quant.analysis.utils import for_each_top_level_column as _for_each_top_level_column
+from .._decorators import for_each_top_level_column as _for_each_top_level_column
 from pandas_ml_common import pd as _pd, suitable_kwargs as _select_kwargs
 
 

@@ -6,7 +6,7 @@ import pandas as _pd
 
 import pandas_ml_quant.analysis.filters as _f
 from pandas_ml_common import get_pandas_object as _get_pandas_object
-from pandas_ml_quant.analysis.utils import for_each_top_level_column as _for_each_top_level_column
+from pandas_ml_quant.analysis._decorators import for_each_top_level_column as _for_each_top_level_column
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
@@ -40,9 +40,10 @@ def ta_atr(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
 
     return atr.rename(f"atr_{period}")
 
+
 @_for_each_top_level_column
 def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relative=True) -> _PANDAS:
-    from ..utils import difference
+    from .._utils import difference
     h = _get_pandas_object(df, high)
     l = _get_pandas_object(df, low)
 
