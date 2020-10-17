@@ -7,8 +7,15 @@ from pandas_ml_common import has_indexed_columns
 
 def for_each_column(func):
     def exec_on_each_column(df: Union[pd.DataFrame, pd.Series], *args, **kwargs):
+        def exec_on_group(group):
+            res = func(df[group], *args, **kwargs)
+            if isinstance(res, pd.DataFrame) and len(res.columns) > 1:
+                return res.add_multi_index(group, inplace=True)
+            else:
+                return res
+
         if has_indexed_columns(df):
-            groups = [func(df[group], *args, **kwargs).add_multi_index(group, inplace=True) for group in df.columns.to_list()]
+            groups = [exec_on_group(group) for group in df.columns.to_list()]
             return pd.concat(groups, axis=1)
         else:
             return func(df, *args, **kwargs)

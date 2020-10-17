@@ -1,18 +1,13 @@
-import pandas_ml_quant.analysis.normalizer as _norm
-from pandas_ml_quant import Typing, has_indexed_columns
 from arch import arch_model  # alternatively https://pyflux.readthedocs.io/en/latest/garch.html
-import pandas as pd
+
+import pandas_ml_quant.analysis.normalizer as _norm
+from pandas_ml_quant import Typing
+from pandas_ml_quant.analysis._decorators import for_each_column
 
 
 # TODO for_each_top_level_row
+@for_each_column
 def ta_garch11(df: Typing.PatchedPandas, period=200, forecast=1, returns='returns'):
-    if has_indexed_columns(df):
-        # FIXME use decorator
-        return pd.DataFrame(
-            {f"{col}_garch11({period})->{forecast}": ta_garch11(df[col], period, forecast, returns) for col in df.columns},
-            index=df.index
-        )
-
     r = getattr(_norm, f'ta_{returns}')(df) if returns is not None else df
 
     def model(x):
