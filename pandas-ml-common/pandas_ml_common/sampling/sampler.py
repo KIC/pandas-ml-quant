@@ -17,7 +17,7 @@ class Sampler(object):
             *dataframes: pd.DataFrame,
             splitter: Callable[[pd.Index, pd.DataFrame], Tuple[pd.Index, pd.Index]],
             training_samples_filter: Callable[[pd.Series], bool] = None,
-            cross_validation: Union['BaseCrossValidator', Callable[[pd.Index, pd.DataFrame], Tuple[List[int], List[int]]]] = None,
+            cross_validation: Union['BaseCrossValidator', Tuple[int, Callable[[pd.Index, pd.DataFrame], Tuple[List[int], List[int]]]]] = None,
             epochs: int = 1
     ):
         """
@@ -40,7 +40,7 @@ class Sampler(object):
         self.training_samples_filter = training_samples_filter[1] if training_samples_filter is not None else None
         if cross_validation is not None:
             if hasattr(cross_validation, 'get_n_splits') and hasattr(cross_validation, 'split'):
-                self.cross_validation_nr_folds = cross_validation.get_n_splits()
+                self.cross_validation_nr_folds = cross_validation.get_n_splits(self.common_index)
                 self.cross_validation = cross_validation.split
             elif isinstance(cross_validation, Tuple):
                 self.cross_validation_nr_folds = cross_validation[0]
