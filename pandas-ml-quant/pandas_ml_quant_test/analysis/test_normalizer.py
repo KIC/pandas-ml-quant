@@ -3,8 +3,8 @@ from unittest import TestCase
 import pandas as pd
 import numpy as np
 
-from pandas_ml_quant.analysis import ta_ma_ratio, ta_normalize_row
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ml_quant.analysis import ta_ma_ratio, ta_normalize_row, ta_delta_hedged_price
+from pandas_ml_quant_test.config import DF_TEST, DF_TEST2
 
 
 class TestNormalizer(TestCase):
@@ -29,3 +29,10 @@ class TestNormalizer(TestCase):
         print(ma_ration_scaled.columns)
         self.assertTrue(True)
 
+    def test_delta_hedged_prices(self):
+        df = DF_TEST
+        bench = DF_TEST2["Close"]
+
+        self.assertEqual((3788, 6), ta_delta_hedged_price(df, bench).shape)
+        self.assertEqual((3788,), ta_delta_hedged_price(df["Close"], bench).shape)
+        self.assertEqual((6763, 5), ta_delta_hedged_price(df, "Open").shape)

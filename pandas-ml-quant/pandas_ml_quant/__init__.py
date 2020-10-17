@@ -4,6 +4,7 @@ __version__ = '0.2.0'
 import importlib
 
 from pandas_ml_common import *
+from pandas_ml_utils import *
 from pandas_ml_quant.df.technical_analysis import TechnicalAnalysis as _TA
 from pandas_ml_quant.model import *
 

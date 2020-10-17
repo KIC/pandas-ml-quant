@@ -57,6 +57,7 @@ class Typing(object):
     PatchedDataFrame = pd.DataFrame
     PatchedSeries = pd.Series
     PatchedPandas = Union[PatchedDataFrame, PatchedSeries]
+    AnyPandasObject = PandasObject
 
     DataFrame = pd.DataFrame
     Series = pd.Series

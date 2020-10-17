@@ -4,7 +4,7 @@ from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from pandas_ml_common import Typing, has_indexed_columns
-from pandas_ml_common.utils import ReScaler
+from pandas_ml_common.utils import ReScaler, get_pandas_object, intersection_of_index
 from pandas_ml_common.utils.normalization import ecdf
 from pandas_ml_quant.analysis import filters as _f
 from pandas_ml_quant.utils import with_column_suffix as _wcs
@@ -115,3 +115,22 @@ def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform"):
             raise ValueError('unknown normalizer need to one of: [minmax01, minmax-11, uniform, standard, callable(r)]')
 
     return df.apply(scaler, axis=1, result_type='broadcast')
+
+
+# TODO for_each_top_level_row
+def ta_delta_hedged_price(df: Typing.PatchedDataFrame, benchmark):
+    df_bench = get_pandas_object(df, benchmark)
+    idx = intersection_of_index(df, df_bench)
+
+    df = df.loc[idx]
+    df_bench = df_bench.loc[idx]
+
+    if hasattr(df, "columns") and not isinstance(benchmark, Typing.AnyPandasObject) and benchmark in df.columns:
+        df = df.drop(benchmark, axis=1)
+
+    bench_returns = ta_log_returns(df_bench)
+    if df.ndim > 1:
+        bench_returns = np.repeat(bench_returns.values.reshape(-1, 1), df.shape[1], axis=1)
+
+    delta_hedged = ta_log_returns(df) - bench_returns
+    return np.exp(delta_hedged.cumsum())
