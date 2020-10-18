@@ -11,7 +11,8 @@ _log = logging.getLogger(__name__)
 
 
 def stratified_random_splitter(test_size=0.3, seed=42) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
-    def splitter(index: pd.Index, df_features, df_labels, *args) -> Tuple[pd.Index, pd.Index]:
+    def splitter(index: pd.Index, frames) -> Tuple[pd.Index, pd.Index]:
+        df_labels = frames[1]
         df = df_labels.reset_index()
         indices_per_class = df.groupby(df_labels.columns.to_list()).agg(lambda x: list(x))
 
@@ -72,3 +73,10 @@ def naive_splitter(test_size=0.3) -> Callable[[pd.Index], Tuple[pd.Index, pd.Ind
 
 
 dummy_splitter = naive_splitter(0)
+
+
+def duplicate_data() -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
+    def splitter(index: pd.Index, *args) -> Tuple[pd.Index, pd.Index]:
+        return index, index
+
+    return splitter

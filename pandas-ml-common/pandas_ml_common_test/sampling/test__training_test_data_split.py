@@ -64,7 +64,7 @@ class TestTrainTestData(TestCase):
                            "labelA": [1, 1, 1, 1, 1, 1, 2, 2, 3, 3]})
 
         """when"""
-        train_ix, test_ix = stratified_random_splitter(test_size=0.5)(df.index, None, df[["labelA"]])
+        train_ix, test_ix = stratified_random_splitter(test_size=0.5)(df.index, (None, df[["labelA"]]))
 
         """then each class is represented similarly often in each train and test set"""
         self.assertIn(2, df.loc[train_ix, "labelA"].to_list())

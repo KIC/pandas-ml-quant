@@ -177,7 +177,7 @@ class Sampler(object):
 
                         train_idx, test_idx = (idx, [])
                     else:
-                        train_idx, test_idx = self.splitter(idx, *self.frames)
+                        train_idx, test_idx = call_callable_dynamic_args(self.splitter, idx, frames=self.frames)
 
                         if self.training_samples_filter is not None:
                             df = self.frames[self.training_samples_filter_frame].loc[train_idx]
