@@ -1,8 +1,11 @@
+from typing import Generator, Tuple
+
 import numpy as np
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils.validation import _num_samples
 
-from pandas_ml_common.utils import temp_seed
+from pandas_ml_common.utils import temp_seed, call_callable_dynamic_args, unique_level_rows, PandasObject
+import pandas as pd
 
 
 class KFoldBoostRareEvents(KFold):
@@ -59,3 +62,22 @@ class KEquallyWeightEvents(object):
 
     def get_n_splits(self, X=None, y=None, groups=None):
         return self.n_splits
+
+
+class PartitionedOnRowMultiIndexCV(object):
+
+    def __init__(self, cross_validation):
+        self.delegated = cross_validation.split if hasattr(cross_validation, "split") else cross_validation
+
+    def split(self, x, *args, **kwargs) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+        if isinstance(x, pd.MultiIndex):
+            grp_offset = 0
+            for group in unique_level_rows(x):
+                grp_args = [v.loc[group] if isinstance(v, PandasObject) else v for v in args]
+                grp_kwargs = {k: v.loc[group] if isinstance(v, PandasObject) else v for k, v in kwargs.items()}
+                for train, test in call_callable_dynamic_args(self.delegated, x[x.get_loc(group)], *grp_args, **grp_kwargs):
+                    yield train + grp_offset, test + grp_offset
+
+                grp_offset += len(x[x.get_loc(group)])
+        else:
+            return call_callable_dynamic_args(self.delegated, x, **kwargs)

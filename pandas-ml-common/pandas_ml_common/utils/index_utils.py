@@ -13,6 +13,18 @@ from pandas_ml_common.utils.types import Constant
 _log = logging.getLogger(__name__)
 
 
+def concat_indices(indices: List[pd.Index]):
+    if indices is None or len(indices) < 2:
+        return indices
+
+    idx = indices[0] if isinstance(indices[0], pd.Index) else pd.Index(indices[0])
+
+    for i in range(1, len(indices)):
+        idx = idx.append(indices[i] if isinstance(indices[i], pd.Index) else pd.Index(indices[i]))
+
+    return idx
+
+
 def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
 

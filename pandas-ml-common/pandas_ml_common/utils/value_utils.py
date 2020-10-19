@@ -3,21 +3,20 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
+from pandas.core.base import PandasObject
 
 from pandas_ml_common.utils.index_utils import unique_level_rows
 
 _log = logging.getLogger(__name__)
 
 
-def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], dtype=None) -> Union[List[np.ndarray], np.ndarray]:
-    # in case of multiple assets stacked on top of each other
-    if isinstance(df, pd.DataFrame):
-        if isinstance(df.index, pd.MultiIndex):
-            return [unpack_nested_arrays(df.loc[group]) for group in unique_level_rows(df)]
+def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_multi_index_rows=True, dtype=None) -> Union[List[np.ndarray], np.ndarray]:
+    if isinstance(df, PandasObject):
+        # in case of multiple assets stacked on top of each other
+        if split_multi_index_rows and isinstance(df.index, pd.MultiIndex):
+            return [unpack_nested_arrays(df.loc[group], split_multi_index_rows, dtype) for group in unique_level_rows(df)]
         else:
             values = df.values
-    elif isinstance(df, pd.Series):
-        values = df.values
     else:
         values = df
 
