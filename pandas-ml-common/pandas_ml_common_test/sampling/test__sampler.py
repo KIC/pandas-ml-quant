@@ -19,15 +19,13 @@ class TestSampler(TestCase):
         sample_one = samples[0]
         batches, test_sets = sample_one
 
+        self.assertEqual(1, len(batches))
+        self.assertEqual(0, len(test_sets))
         self.assertEqual(3, len(batches[0]))
-        self.assertEqual(0, sample_one[0]) # this was th epoch fold stuf ...
-        self.assertEqual(-1, sample_one[1]) # this was th epoch fold stuf ...
-        self.assertEqual(4, len(sample_one[2]))
-        self.assertEqual(4, len(sample_one[3]))
-        self.assertEqual(5, len(sample_one[2][0]))
-        self.assertEqual(0, len(sample_one[3][0]))
-        self.assertIsNone(sample_one[2][1])
-        self.assertIsNone(sample_one[3][2])
+        self.assertEqual(5, len(batches[0].x))
+        self.assertEqual(5, len(batches[0].weight))
+        self.assertIsNone(batches[0].y)
+        self.assertIsNone(batches[0].y)
 
     def test_simple_sample_split(self):
         sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
