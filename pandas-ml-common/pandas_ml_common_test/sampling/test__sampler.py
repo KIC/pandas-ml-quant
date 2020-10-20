@@ -41,25 +41,47 @@ class TestSampler(TestCase):
         self.assertIsNone(batches[0].y)
         self.assertIsNone(testings[0].y)
 
+    def test_simple_batches(self):
+        sampler = Sampler(
+            XYWeight(TEST_DF, None, TEST_DF.tail()),
+            splitter=lambda x: (x[:3], x[3:]),
+            batch_size=2
+        )
+
+        samples = list(sampler.sample_for_training())
+
+        self.assertEqual(1, len(samples))
+        sample_one = samples[0]
+        batches, test_sets = sample_one
+
+        self.assertEqual(2, len(batches))
+        self.assertEqual(2, len(batches[0].x))
+        self.assertEqual(2, len(batches[0].x))  # in case of one single instance add the 2nd last as well
+
     def test_multiframe_decorator(self):
         sampler = Sampler(
-            MultiFrameDecorator((TEST_DF.tail(), TEST_DF)),
-            TEST_DF.tail(10),
+            XYWeight(MultiFrameDecorator((TEST_DF.tail(), TEST_DF)), TEST_DF.tail(10)),
             splitter=lambda x, *args: (x[:3], x[3:]),
             epochs=2
         )
-        samples = list(sampler.sample_cross_validation())
+
+        samples = list(sampler.sample_for_training())
 
         self.assertEqual(2, len(samples))
-        self.assertEqual(2, len(samples[0][3][0]))
+        self.assertEqual(1, len(samples[0].batches))
+        self.assertEqual(3, len(samples[0].batches[0].x))
+        self.assertEqual(3, len(samples[0].batches[0].y))
 
     def test_filter(self):
-        sampler = Sampler(TEST_DF,
+        sampler = Sampler(XYWeight(TEST_DF, TEST_DF),
                           splitter=lambda x, *args: (x[:-3], x[-3:]),
-                          training_samples_filter=(0, lambda r: r["Close"] > 300))
-        samples = list(sampler.sample_cross_validation())
+                          filter=lambda idx, y: y["Close"] > 300)
+        samples = list(sampler.sample_for_training())
 
-        self.assertEqual(101, len(samples[0][2][0]))
+        self.assertEqual(1, len(samples))
+        self.assertEqual(1, len(samples[0].batches))
+        self.assertEqual(101, len(samples[0].batches[0].x))
+        self.assertEqual(101, len(samples[0].batches[0].y))
 
     def test_cross_validation(self):
         sampler = Sampler(TEST_DF, TEST_DF, TEST_DF.tail(30),

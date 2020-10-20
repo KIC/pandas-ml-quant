@@ -12,8 +12,8 @@ _log = logging.getLogger(__name__)
 
 class XYWeight(NamedTuple):
     x: pd.DataFrame
-    y: pd.DataFrame
-    weight: pd.DataFrame
+    y: pd.DataFrame = None
+    weight: pd.DataFrame = None
 
 
 class Batch(NamedTuple):
