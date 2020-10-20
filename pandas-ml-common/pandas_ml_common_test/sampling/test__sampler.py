@@ -28,20 +28,18 @@ class TestSampler(TestCase):
         self.assertIsNone(batches[0].y)
 
     def test_simple_sample_split(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
-        samples = list(sampler.sample_cross_validation())
-        row1 = samples[0]
-        epoch, fold, train, test = row1
+        sampler = Sampler(XYWeight(TEST_DF, None, TEST_DF.tail()), splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
+        samples = list(sampler.sample_for_training())
+        epoch1 = samples[0]
+        batches, testings = epoch1
 
         self.assertEqual(2, len(samples))
-        self.assertEqual(4, len(row1))
-        self.assertEqual(-1, fold)
-        self.assertEqual(4, len(train))
-        self.assertEqual(4, len(test))
-        self.assertEqual(3, len(train[0]))
-        self.assertEqual(2, len(test[0]))
-        self.assertIsNone(train[1])
-        self.assertIsNone(test[2])
+        self.assertEqual(1, len(batches))
+        self.assertEqual(1, len(testings))
+        self.assertEqual(2, len(testings[0].x))
+        self.assertEqual(3, len(batches[0].weight))
+        self.assertIsNone(batches[0].y)
+        self.assertIsNone(testings[0].y)
 
     def test_multiframe_decorator(self):
         sampler = Sampler(

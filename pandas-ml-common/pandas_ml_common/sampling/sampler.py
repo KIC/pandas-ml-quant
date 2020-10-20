@@ -165,7 +165,10 @@ class Sampler(object):
                         else:
                             cv_test_frames = [XYWeight(*[loc_if_not_none(f, cv_train_idx[cv_test_i]) for f in self.frames[:3]])]
                     else:
-                        cv_test_frames = []
+                        if len(self.test_idx) <= 0:
+                            cv_test_frames = []
+                        else:
+                            cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames[:3]])]
 
                     yield Batch(batches, cv_test_frames)
 
