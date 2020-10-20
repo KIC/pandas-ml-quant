@@ -7,7 +7,7 @@ from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 from pandas_ml_common.utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
 
 
-class ML(object):
+class MLCompatibleValues(object):
 
     def __init__(self, df: pd.DataFrame):
         self.df = df

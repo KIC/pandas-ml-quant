@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import Sampler, NumpySampler
+from pandas_ml_common.sampling.sampler import Sampler, XYWeight
 from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common_test.config import TEST_MUTLI_INDEX_ROW_DF, TEST_DF
 
@@ -12,14 +12,16 @@ from pandas_ml_common_test.config import TEST_MUTLI_INDEX_ROW_DF, TEST_DF
 class TestSampler(TestCase):
 
     def test_simple_sample(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=None)
-        samples = list(sampler.sample_cross_validation())
-        sample_one = samples[0]
+        sampler = Sampler(XYWeight(TEST_DF, None,  TEST_DF.tail()), splitter=None)
+        samples = list(sampler.sample_for_training())
 
         self.assertEqual(1, len(samples))
-        self.assertEqual(4, len(sample_one))
-        self.assertEqual(0, sample_one[0])
-        self.assertEqual(-1, sample_one[1])
+        sample_one = samples[0]
+        batches, test_sets = sample_one
+
+        self.assertEqual(3, len(batches[0]))
+        self.assertEqual(0, sample_one[0]) # this was th epoch fold stuf ...
+        self.assertEqual(-1, sample_one[1]) # this was th epoch fold stuf ...
         self.assertEqual(4, len(sample_one[2]))
         self.assertEqual(4, len(sample_one[3]))
         self.assertEqual(5, len(sample_one[2][0]))
@@ -64,7 +66,7 @@ class TestSampler(TestCase):
         self.assertEqual(101, len(samples[0][2][0]))
 
     def test_cross_validation(self):
-        sampler = Sampler(TEST_DF, TEST_DF, None, TEST_DF.tail(30),
+        sampler = Sampler(TEST_DF, TEST_DF, TEST_DF.tail(30),
                           splitter=lambda x, *args: (x[:-3], x[-3:]),
                           cross_validation=(3, KFold(3).split),
                           epochs=2)
@@ -142,21 +144,3 @@ class TestSampler(TestCase):
         pd.testing.assert_frame_equal(samples[0][1][0], pd.concat([TEST_MUTLI_INDEX_ROW_DF.loc[["A"]][:-3], TEST_MUTLI_INDEX_ROW_DF.loc[["B"]][:-3]], axis=0))
         pd.testing.assert_frame_equal(samples[0][1][0], samples[1][1][0])
         pd.testing.assert_frame_equal(samples[0][2][0], samples[1][2][0])
-
-    def test_numpy_simple(self):
-        sampler = NumpySampler(Sampler(TEST_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2))
-        samples = list(sampler.sample_full_epochs())
-
-        self.assertEqual(2, len(samples))
-        self.assertIsInstance(samples[0], tuple)
-        self.assertIsInstance(samples[0][2][0], np.ndarray)
-        self.assertEqual((3, 6), samples[0][2][0].shape)
-
-    def test_numpy(self):
-        sampler = NumpySampler(Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2))
-        samples = list(sampler.sample_full_epochs())
-
-        self.assertEqual(2, len(samples))
-        self.assertIsInstance(samples[0], tuple)
-        self.assertIsInstance(samples[0][2][0], np.ndarray)
-        self.assertEqual((6, 6), samples[0][2][0].shape)

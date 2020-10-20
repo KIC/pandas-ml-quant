@@ -2,14 +2,14 @@ from unittest import TestCase
 
 import numpy as np
 
-from pandas_ml_common import ML, pd
+from pandas_ml_common import MLCompatibleValues, pd
 from pandas_ml_common_test.config import TEST_DF, TEST_MULTI_INDEX_DF
 
 
 class TestMLValues(TestCase):
 
     def test__property(self):
-        self.assertIsInstance(TEST_DF._, ML)
+        self.assertIsInstance(TEST_DF._, MLCompatibleValues)
 
     def test__values(self):
         df = TEST_DF[-5:].copy()

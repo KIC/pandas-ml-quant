@@ -13,6 +13,15 @@ class MultiFrameLocDecorator(object):
         return MultiFrameDecorator([f.loc[item] for f in self.frames])
 
 
+class MultiFrameILocDecorator(object):
+
+    def __init__(self, frames: Tuple[Typing.PatchedDataFrame]):
+        self.frames = frames
+
+    def __getitem__(self, item):
+        return MultiFrameDecorator([f.iloc[item] for f in self.frames])
+
+
 class MultiFrameExtDecorator(object):
 
     def __init__(self, frames: Tuple[Typing.PatchedDataFrame]):
@@ -44,6 +53,10 @@ class MultiFrameDecorator(object):
     @property
     def index(self):
         return self._index
+
+    @property
+    def iloc(self):
+        return MultiFrameILocDecorator(self._frames)
 
     @property
     def loc(self):

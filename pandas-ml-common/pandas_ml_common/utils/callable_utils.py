@@ -26,7 +26,10 @@ def kwpartial(func: Callable, **kwargs) -> Callable:
 
 def call_callable_dynamic_args(func, *args, **kwargs):
     if not callable(func):
-        raise ValueError(f"function {func} is not callable")
+        if func is None:
+            return None
+        else:
+            raise ValueError(f"function {func} is not callable")
 
     spec = inspect.getfullargspec(func)
     call_args = []
