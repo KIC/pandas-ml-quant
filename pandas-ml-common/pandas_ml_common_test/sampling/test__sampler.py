@@ -62,7 +62,6 @@ class TestSampler(TestCase):
             self.assertEqual('19930201', test_data[-1].x.index[0].strftime("%Y%m%d"))
             self.assertEqual('19930129', test_data[-1].x.index[1].strftime("%Y%m%d"))
 
-
         sampler = Sampler(
             XYWeight(TEST_DF),
             splitter=lambda i, *args: (i[:4], i[-3:]),
