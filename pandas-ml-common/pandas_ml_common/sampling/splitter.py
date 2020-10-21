@@ -16,11 +16,10 @@ def stratified_random_splitter(test_size=0.3, partition_row_multi_index=False, s
         arr[:] = x[0]
         return np.random.choice(arr, math.ceil(len(x[0]) * test_size)).tolist(),
 
-    def splitter(index: pd.Index, frames) -> Tuple[pd.Index, pd.Index]:
-        df_labels = frames[1]
-        df = df_labels.copy()
+    def splitter(index: pd.Index, y, *args, **kwargs) -> Tuple[pd.Index, pd.Index]:
+        df = y.copy()
         df["index"] = df.index.to_list()  # we want tuples in case of multi index
-        indices_per_class = df.groupby(df_labels.columns.to_list()).agg(lambda x: list(x))
+        indices_per_class = df.groupby(y.columns.to_list()).agg(lambda x: list(x))
 
         with temp_seed(seed):
             test_idx = concat_indices(
@@ -37,7 +36,7 @@ def random_splitter(test_size=0.3, youngest_size: float = None, partition_row_mu
     youngest_split_size = test_size * youngest_size if youngest_size is not None else 0
     random_sample_test_size = test_size * (1 - youngest_split_size)
 
-    def splitter(index: pd.Index, *args) -> Tuple[pd.Index, pd.Index]:
+    def splitter(index: pd.Index, *args, **kwargs) -> Tuple[pd.Index, pd.Index]:
         random_sample_train_index_size = int(len(index) - len(index) * (test_size - random_sample_test_size))
 
         if test_size <= 0:
@@ -64,7 +63,7 @@ def random_splitter(test_size=0.3, youngest_size: float = None, partition_row_mu
 
 
 def naive_splitter(test_size=0.3, partition_row_multi_index=False) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
-    def splitter(index: pd.Index, *args) -> Tuple[pd.Index, pd.Index]:
+    def splitter(index: pd.Index, *args, **kwargs) -> Tuple[pd.Index, pd.Index]:
         end_idx = int(len(index) * (1 - test_size))
         return index[0:end_idx], index[end_idx:]
 

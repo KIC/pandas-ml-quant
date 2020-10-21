@@ -15,10 +15,12 @@ class XYWeight(NamedTuple):
     y: pd.DataFrame = None
     weight: pd.DataFrame = None
 
+    def to_dict(self, loc=None):
+        d = {"x": self.x, "y": self.y, "weight": self.weight}
+        if loc is not None:
+            d = {k: loc_if_not_none(v, loc) for k, v in d.items()}
 
-class Batch(NamedTuple):
-    batches: List[XYWeight]
-    test: List[XYWeight]
+        return d
 
 
 class Sampler(object):
@@ -70,7 +72,7 @@ class Sampler(object):
                              "`partition_row_multi_index` parameter in your splitter")
 
             self.train_idx, self.test_idx = call_callable_dynamic_args(
-                self.splitter, self.common_index, y=self.frames.y, frames=self.frames)
+                self.splitter, self.common_index, **self.frames.to_dict())
         else:
             self.train_idx, self.test_idx = self.common_index, pd.Index([])
 
@@ -120,11 +122,10 @@ class Sampler(object):
             after_end
         )
 
-    def sample_for_training(self) -> Generator[Batch, None, None]:
+    def sample_for_training(self) -> Generator[XYWeight, None, None]:
         # filter samples
         if self.filter is not None:
-            train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(
-                self.filter, idx, y=self.frames.y.loc[idx], frames=[loc_if_not_none(f, idx) for f in self.frames])]
+            train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(self.filter, idx, **self.frames.to_dict(idx))]
         else:
             train_idx = self.train_idx
 
@@ -133,19 +134,36 @@ class Sampler(object):
 
         # generate samples
         call_callable_dynamic_args(self.on_start)
-        for epoch in range(self.epochs):
+        for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
             call_callable_dynamic_args(self.on_epoch, epoch=epoch)
-            fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, y=train_frames.y, frames=train_frames))
+            fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, **train_frames.to_dict()))
             for fold, (cv_train_i, cv_test_i) in fold_iter:
                 call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold)
+
+                # if we dont have any cross validation the training and test sets stay unchanged
+                cv_train_idx = train_idx if cv_train_i is None else train_idx[cv_train_i]
+
+                # build our test data sets
+                if cv_test_i is not None:
+                    if cv_test_i.ndim > 1:
+                        cv_test_frames = [
+                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i[:, i]]) for f in self.frames])
+                            for i in range(cv_test_i.shape[1])
+                        ]
+                    else:
+                        cv_test_frames = [
+                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i]) for f in self.frames])]
+                else:
+                    if len(self.test_idx) <= 0:
+                        cv_test_frames = []
+                    else:
+                        cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])]
+
                 for fold_epoch in range(self.fold_epochs):
                     call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
 
-                    # if we dont have any cross validation the training and test sets stay unchanged
-                    cv_train_idx = train_idx if cv_train_i is None else train_idx[cv_train_i]
-
                     # build our training data sets aka batches
-                    cv_train_frames = XYWeight(*[loc_if_not_none(f, cv_train_idx) for f in self.frames[:3]])
+                    cv_train_frames = XYWeight(*[loc_if_not_none(f, cv_train_idx) for f in self.frames])
 
                     # theoretically we could already yield cv_train_frames, cv_test_frames
                     # but lets create batches first and then yield all together
@@ -154,26 +172,14 @@ class Sampler(object):
                     bs = min(nr_instances, self.batch_size) if self.batch_size is not None else nr_instances
 
                     batch_iter = range(0, nr_instances, bs)
-                    batches = [XYWeight(*(f.iloc[i if i < nice_i else i-1:i+bs] if f is not None else None
-                                          for f in cv_train_frames)) for i in batch_iter]
+                    for i in batch_iter:
+                        call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
+                        yield XYWeight(*(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None
+                                         for f in cv_train_frames))
 
-                    # build our test data sets
-                    if cv_test_i is not None:
-                        if cv_test_i.ndim > 1:
-                            cv_test_frames = [XYWeight(*[loc_if_not_none(f, cv_train_idx[cv_test_i[:, i]]) for f in self.frames[:3]])
-                                              for i in cv_test_i.shape[1]]
-                        else:
-                            cv_test_frames = [XYWeight(*[loc_if_not_none(f, cv_train_idx[cv_test_i]) for f in self.frames[:3]])]
-                    else:
-                        if len(self.test_idx) <= 0:
-                            cv_test_frames = []
-                        else:
-                            cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames[:3]])]
-
-                    yield Batch(batches, cv_test_frames)
-
+                        call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
                     call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
-                call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold)
+                call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, test_data=cv_test_frames)
             call_callable_dynamic_args(self.after_epoch, epoch=epoch)
         call_callable_dynamic_args(self.after_end)
 
