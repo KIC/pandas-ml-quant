@@ -31,10 +31,12 @@ def call_callable_dynamic_args(func, *args, **kwargs):
         else:
             raise ValueError(f"function {func} is not callable")
 
+    # TODO we might replace this whole beast by: from inspect import getcallargs
+    is_bound = False  # hasattr(func, '__self__') and func.__self__ is not None
     spec = inspect.getfullargspec(func)
     call_args = []
 
-    for i in range(len(spec.args)):
+    for i in range(1 if is_bound else 0, len(spec.args)):
         if i < len(args):
             call_args.append(args[i])
         elif spec.args[i] in kwargs:
@@ -83,6 +85,10 @@ def suitable_kwargs(func, *args, **kwargs):
     _kwargs = {**_kwargs, **kwargs}
     suitable_args = inspect.getfullargspec(func).args
     return {arg: _kwargs[arg] for arg in _kwargs.keys() if arg in suitable_args}
+
+
+def exec_if_not_none(func, obj):
+    return func(obj) if obj is not None else None
 
 
 def call_if_not_none(obj, method, *args, **kwargs):

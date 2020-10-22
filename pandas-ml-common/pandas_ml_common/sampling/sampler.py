@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common.sampling.cross_validation import PartitionedOnRowMultiIndexCV
-from pandas_ml_common.utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none
+from pandas_ml_common.utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, exec_if_not_none
 
 _log = logging.getLogger(__name__)
 
@@ -85,8 +85,10 @@ class Sampler(object):
             if epochs > 1:
                 _log.warning("using epochs > 1 together with cross folding may lead to different folds for each epoch!")
 
+            self.nr_folds = cross_validation.get_n_splits() if hasattr(cross_validation, "get_n_splits") else -1
             self.cross_validation = cross_validation.split if hasattr(cross_validation, "split") else cross_validation
         else:
+            self.nr_folds = None
             self.cross_validation = lambda x: [(None, None)]
 
     def with_callbacks(
@@ -132,8 +134,15 @@ class Sampler(object):
         # update frame views
         train_frames = XYWeight(*[loc_if_not_none(f, train_idx) for f in self.frames])
 
+        # call for start ...
+        call_callable_dynamic_args(
+            self.on_start,
+            epochs=self.epochs, batch_size=self.batch_size, fold_epochs=self.fold_epochs,
+            features=exec_if_not_none(lambda x: x.columns.tolist(), self.frames.x),
+            labels=exec_if_not_none(lambda y: y.columns.tolist(), self.frames.y),
+            cross_validation=self.nr_folds is not None)
+
         # generate samples
-        call_callable_dynamic_args(self.on_start)
         for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
             call_callable_dynamic_args(self.on_epoch, epoch=epoch)
             fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, **train_frames.to_dict()))
@@ -178,23 +187,12 @@ class Sampler(object):
                                          for f in cv_train_frames))
 
                         call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                    call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
+                    call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, test_data=cv_test_frames)
                 call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, test_data=cv_test_frames)
             call_callable_dynamic_args(self.after_epoch, epoch=epoch)
         call_callable_dynamic_args(self.after_end)
 
-    def get_out_of_sample(self, repeat: int = 1) -> Generator[XYWeight, None, None]:
-        test_frames = XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])
+    def get_out_of_sample_features(self, repeat: int = 1) -> Generator[pd.DataFrame, None, None]:
         for i in range(repeat):
-            yield test_frames
-
-    def get_in_sample(self, repeat: int = 1) -> Generator[XYWeight, None, None]:
-        # TODO actually we should not need this here ... but we just pass the features frames directly?
-        #  but what is backtest doing ..
-        pass
-
-    # TODO later for new model implementation
-    #  model needs a callback at on_fold -> create new model
-    #  after_epoch -> fold cross folds
-
+            yield self.frames.x
 
