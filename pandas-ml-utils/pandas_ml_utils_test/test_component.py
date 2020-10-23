@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import naive_splitter, random_splitter
+from pandas_ml_common import naive_splitter, random_splitter, stratified_random_splitter
 from pandas_ml_utils import FeaturesAndLabels, SkModel
 from pandas_ml_utils.constants import *
 from pandas_ml_utils_test.config import DF_NOTES
@@ -25,7 +25,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            naive_splitter()
+            stratified_random_splitter()
         )
 
         print(fit)

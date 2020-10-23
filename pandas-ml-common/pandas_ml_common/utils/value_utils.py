@@ -11,7 +11,9 @@ _log = logging.getLogger(__name__)
 
 
 def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_multi_index_rows=True, dtype=None) -> Union[List[np.ndarray], np.ndarray]:
-    if isinstance(df, PandasObject):
+    if df is None:
+        return None
+    elif isinstance(df, PandasObject):
         # in case of multiple assets stacked on top of each other
         if split_multi_index_rows and isinstance(df.index, pd.MultiIndex):
             return [unpack_nested_arrays(df.loc[group], split_multi_index_rows, dtype) for group in unique_level_rows(df)]

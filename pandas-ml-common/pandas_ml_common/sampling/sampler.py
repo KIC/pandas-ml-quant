@@ -44,6 +44,7 @@ class Sampler(object):
             after_fold: Callable = None,
             after_fold_epoch: Callable = None,
             after_end: Callable = None,
+            **kwargs
     ):
         self.common_index = intersection_of_index(*frames)
         self.frames = XYWeight(*[loc_if_not_none(f, self.common_index) for f in frames])
@@ -133,6 +134,7 @@ class Sampler(object):
 
         # update frame views
         train_frames = XYWeight(*[loc_if_not_none(f, train_idx) for f in self.frames])
+        test_frames = XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])
 
         # call for start ...
         call_callable_dynamic_args(
@@ -187,12 +189,14 @@ class Sampler(object):
                                          for f in cv_train_frames))
 
                         call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                    call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, test_data=cv_test_frames)
-                call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, test_data=cv_test_frames)
-            call_callable_dynamic_args(self.after_epoch, epoch=epoch)
+                    call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, train_data=cv_train_frames, test_data=cv_test_frames)
+                call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, train_data=cv_train_frames, test_data=cv_test_frames)
+            call_callable_dynamic_args(self.after_epoch, epoch=epoch, train_data=train_frames, test_data=test_frames)
         call_callable_dynamic_args(self.after_end)
 
-    def get_out_of_sample_features(self, repeat: int = 1) -> Generator[pd.DataFrame, None, None]:
-        for i in range(repeat):
-            yield self.frames.x
+    def get_in_sample_features(self) -> pd.DataFrame:
+        return self.frames.x.loc[self.train_idx]
+
+    def get_out_of_sample_features(self) -> pd.DataFrame:
+        return self.frames.x.loc[self.test_idx]
 

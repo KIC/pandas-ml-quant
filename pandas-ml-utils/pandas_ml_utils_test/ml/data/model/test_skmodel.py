@@ -2,8 +2,8 @@ from unittest import TestCase
 
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPRegressor, MLPClassifier
-
-from pandas_ml_common import np, pd, naive_splitter
+from sklearn.datasets import make_regression
+from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels
@@ -38,6 +38,33 @@ class TestSkModel(TestAbstractModel, TestCase):
 
         backtest = df.model.backtest(fit.model)
         self.assertLess(backtest.model.sk_model.coef_[0], 1e-5)
+
+    def test_partial_fit(self):
+        data = make_regression(100, 2, 1)
+        df = pd.DataFrame(data[0])
+        df["label"] = data[1]
+
+        fit_partial = df.model.fit(
+            SkModel(
+                MLPRegressor(max_iter=1, random_state=42),
+                FeaturesAndLabels(features=[0, 1], labels=['label'])
+            ),
+            naive_splitter(0.3),
+            batch_size=2,
+            fold_epochs=10
+        )
+
+        fit = df.model.fit(
+            SkModel(
+                MLPRegressor(max_iter=10, random_state=42),
+                FeaturesAndLabels(features=[0, 1], labels=['label'])
+            ),
+            naive_splitter(0.3)
+        )
+
+        self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
+        print(len(fit.model._history))
+
 
     def provide_classification_model(self, features_and_labels):
         model = SkModel(
