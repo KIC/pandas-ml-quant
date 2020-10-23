@@ -57,7 +57,8 @@ class SkModel(Model):
         # use partial fit whenever possible partial_fit
         if self._fit_meta_data.partial_fit:
             if hasattr(self._sk_fold_models[-1], "partial_fit"):
-                self._sk_fold_models[-1] = self._sk_fold_models[-1].partial_fit(_x, _y)
+                kwa = {"classes": kwargs["classes"]} if "classes" in kwargs else {}
+                self._sk_fold_models[-1] = self._sk_fold_models[-1].partial_fit(_x, _y, **kwa)
             else:
                 raise ValueError(f"This of model does not support `partial_fit` {type(self.sk_model)} - "
                                  f"and therefore does not support epochs or batches.")

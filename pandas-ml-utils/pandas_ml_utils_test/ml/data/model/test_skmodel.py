@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPRegressor, MLPClassifier
-from sklearn.datasets import make_regression
+from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
@@ -39,7 +39,7 @@ class TestSkModel(TestAbstractModel, TestCase):
         backtest = df.model.backtest(fit.model)
         self.assertLess(backtest.model.sk_model.coef_[0], 1e-5)
 
-    def test_partial_fit(self):
+    def test_partial_fit_regression(self):
         data = make_regression(100, 2, 1)
         df = pd.DataFrame(data[0])
         df["label"] = data[1]
@@ -50,7 +50,7 @@ class TestSkModel(TestAbstractModel, TestCase):
                 FeaturesAndLabels(features=[0, 1], labels=['label'])
             ),
             naive_splitter(0.3),
-            batch_size=2,
+            batch_size=10,
             fold_epochs=10
         )
 
@@ -63,8 +63,33 @@ class TestSkModel(TestAbstractModel, TestCase):
         )
 
         self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
-        print(len(fit.model._history))
 
+
+    def test_partial_fit_classification(self):
+        data = make_classification(100, 2, 1, 0, n_clusters_per_class=1)
+        df = pd.DataFrame(data[0])
+        df["label"] = data[1]
+
+        fit_partial = df.model.fit(
+            SkModel(
+                MLPClassifier(max_iter=1, random_state=42),
+                FeaturesAndLabels(features=[0, 1], labels=['label'])
+            ),
+            stratified_random_splitter(0.3),
+            batch_size=10,
+            fold_epochs=10,
+            classes=np.unique(data[1])
+        )
+
+        fit = df.model.fit(
+            SkModel(
+                MLPClassifier(max_iter=10, random_state=42),
+                FeaturesAndLabels(features=[0, 1], labels=['label'])
+            ),
+            stratified_random_splitter(0.3)
+        )
+
+        self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 
     def provide_classification_model(self, features_and_labels):
         model = SkModel(
