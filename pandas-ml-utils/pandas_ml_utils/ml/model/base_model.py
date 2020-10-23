@@ -70,7 +70,6 @@ class Model(object):
     def summary_provider(self):
         return self._summary_provider
 
-    # TODO im normalen Modell und after_fold im rolling model. nach jedem merge folds darf halt nur noch ein Modell im Speicher sein.
     def fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         sampler = sampler.with_callbacks(
             on_start=self._record_meta,
@@ -200,13 +199,13 @@ class AutoEncoderModel(Model):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.mode = AutoEncoderModel.AUTOENCODE
 
-    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         if self.mode == AutoEncoderModel.AUTOENCODE:
-            return self._auto_encode(sampler, **kwargs)
+            return self._auto_encode(features, samples, **kwargs)
         elif self.mode == AutoEncoderModel.ENCODE:
-            return self._encode(sampler, **kwargs)
+            return self._encode(features, samples, **kwargs)
         elif self.mode == AutoEncoderModel.DECODE:
-            return self._decode(sampler, **kwargs)
+            return self._decode(features, samples, **kwargs)
         else:
             raise ValueError("Illegal mode")
 
@@ -226,15 +225,15 @@ class AutoEncoderModel(Model):
         return copy
 
     @abstractmethod
-    def _auto_encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     @abstractmethod
-    def _encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def _encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     @abstractmethod
-    def _decode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def _decode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
 

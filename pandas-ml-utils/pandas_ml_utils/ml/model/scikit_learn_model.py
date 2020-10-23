@@ -23,7 +23,7 @@ _log = logging.getLogger(__name__)
 ConvergenceWarning('ignore')
 
 
-class SkModel(Model):
+class _AbstractSkModel(Model):
 
     def __init__(self,
                  skit_model,
@@ -46,7 +46,7 @@ class SkModel(Model):
 
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, weight: pd.DataFrame, **kwargs):
         # convert data frames to numpy arrays
-        _x = _Utils.reshape_rnn_as_ar(unpack_nested_arrays(x, split_multi_index_rows=False))
+        _x = _AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(x, split_multi_index_rows=False))
         _y = unpack_nested_arrays(y, split_multi_index_rows=False)
         _w = unpack_nested_arrays(weight, split_multi_index_rows=False)
 
@@ -73,8 +73,27 @@ class SkModel(Model):
         # clear oll intermediate fold models, otherwise they get serialized to disk
         self._sk_fold_models = []
 
+    @staticmethod
+    def reshape_rnn_as_ar(arr3d):
+        if arr3d.ndim < 3:
+            return arr3d
+        else:
+            return arr3d.reshape(arr3d.shape[0], np.array(arr3d.shape[1:]).prod())
+
+
+
+class SkModel(_AbstractSkModel):
+
+    def __init__(self,
+                 skit_model,
+                 features_and_labels: FeaturesAndLabels,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(skit_model, features_and_labels, summary_provider, **kwargs)
+
     def calculate_loss(self, fold, x, y_true, weight):
-        y_pred = self._predict(x, fold=fold)
+        skm = self.sk_model if fold is None else self._sk_fold_models[0 if not self.overwrite_folds else fold]
+        y_pred = self._predict(skm, x, fold=fold)
         y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
 
         if isinstance(self.sk_model, ClassifierMixin):
@@ -85,13 +104,11 @@ class SkModel(Model):
             return metrics.mean_squared_error(y_true, y_pred, sample_weight=weight)
 
     def predict(self, features: pd.DataFrame, samples=1, **kwargs) -> Typing.PatchedDataFrame:
-        return to_pandas(self._predict(features, samples, **kwargs), features.index, self._labels_columns)
+        # FIXME if auto encoder do not call this method ->     # TODO factor this method out
+        return to_pandas(self._predict(self.sk_model, features, samples, **kwargs), features.index, self._labels_columns)
 
-    def _predict(self, features: pd.DataFrame, samples=1, fold=None, **kwargs) -> np.ndarray:
-        x = _Utils.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False))
-
-        i = 0 if not self.overwrite_folds else fold
-        skm = self.sk_model if fold is None else self._sk_fold_models[i]
+    def _predict(self, skm, features: pd.DataFrame, samples=1, **kwargs) -> np.ndarray:
+        x = _AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False))
         is_probabilistic = callable(getattr(skm, 'predict_proba', None))
 
         def predictor():
@@ -102,20 +119,89 @@ class SkModel(Model):
             else:
                 return skm.predict(x)
 
-        return np.array([predictor() for _ in range(samples)]).swapaxes(0, 1)
+        return np.array([predictor() for _ in range(samples)]).swapaxes(0, 1) if samples > 1 else predictor()
 
     def __call__(self, *args, **kwargs):
         return SkModel(
-            clone(self.sk_model),
+            deepcopy(self.sk_model),
             deepcopy(self.features_and_labels),
             self.summary_provider,
             **merge_kwargs(self.kwargs, kwargs)
         )
 
 
+class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
 
-class SkAutoEncoderModel(AutoEncoderModel):
-    pass
+    def __init__(self,
+                 encode_layers: List[int],
+                 decode_layers: List[int],
+                 features_and_labels: FeaturesAndLabels,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(
+            skit_model=call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": [*encode_layers, *decode_layers], **kwargs}),
+            features_and_labels=features_and_labels,
+            summary_provider=summary_provider,
+            **kwargs
+        )
+
+        # Implementation analog blog: https://i-systems.github.io/teaching/ML/iNotes/15_Autoencoder.html
+        self.encoder_layers = encode_layers
+        self.decoder_layers = decode_layers
+        self.layers = [*encode_layers, *decode_layers]
+
+    def calculate_loss(self, fold, x, y_true, weight):
+        # FIXME ...
+        #y_pred = self._predict(skm, x, fold=fold)
+        #y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
+
+        #return metrics.mean_squared_error(y_true, y_pred, sample_weight=weight)
+        return 0
+
+    def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        x = _AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False))
+        return to_pandas(self.sk_model.predict(x), features.index, self._labels_columns)
+
+    def _encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        skm = self.sk_model
+        if not hasattr(skm, 'coefs_'):
+            raise ValueError("Model needs to be 'fit' first!")
+
+        encoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.encoder_layers[1:], **self.kwargs})
+        encoder.coefs_ = skm.coefs_[:len(self.encoder_layers)].copy()
+        encoder.intercepts_ = skm.intercepts_[:len(self.encoder_layers)].copy()
+        encoder.n_layers_ = len(encoder.coefs_) + 1
+        encoder.n_outputs_ = len(self.features_and_labels.latent_names)
+        encoder.out_activation_ = skm.activation
+
+        encoded = encoder.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False)))
+        return to_pandas(encoded, features.index, self._features_and_labels.latent_names)
+
+    def _decode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        skm = self.sk_model
+        if not hasattr(skm, 'coefs_'):
+            raise ValueError("Model needs to be 'fit' first!")
+
+        decoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.decoder_layers, **self.kwargs})
+        decoder.coefs_ = skm.coefs_[len(self.encoder_layers):].copy()
+        decoder.intercepts_ = skm.intercepts_[len(self.encoder_layers):].copy()
+        decoder.n_layers_ = len(decoder.coefs_) + 1
+        decoder.n_outputs_ = self.layers[-1]
+        decoder.out_activation_ = skm.out_activation_
+
+        return decoder.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False)))
+
+    def __call__(self, *args, **kwargs):
+        copy = SkAutoEncoderModel(
+            self.encoder_layers,
+            self.decoder_layers,
+            deepcopy(self.features_and_labels),
+            self.summary_provider,
+            **merge_kwargs(self.kwargs, kwargs)
+        )
+
+        copy.sk_model = deepcopy(self.sk_model)
+        return copy
 
 """
 class SkAutoEncoderModel(NumpyAutoEncoderModel):
@@ -174,13 +260,3 @@ class SkAutoEncoderModel(NumpyAutoEncoderModel):
 
         return decoder.predict(SkModel.reshape_rnn_as_ar(x))
 """
-
-class _Utils(object):
-
-    @staticmethod
-    def reshape_rnn_as_ar(arr3d):
-        if arr3d.ndim < 3:
-            return arr3d
-        else:
-            return arr3d.reshape(arr3d.shape[0], np.array(arr3d.shape[1:]).prod())
-

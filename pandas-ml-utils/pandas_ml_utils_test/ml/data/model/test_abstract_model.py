@@ -96,7 +96,11 @@ class TestAbstractModel(object):
         fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
 
-        """then we can encoder"""
+        """then we can predict Autoencoded"""
+        auto_encoded_prediction = df.model.predict(fit.model)
+        self.assertEqual((4, 2), auto_encoded_prediction["prediction"].shape)
+
+        """and we can encoder"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
         self.assertEqual((4, 1), encoded_prediction["prediction"].shape)
