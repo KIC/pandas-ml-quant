@@ -202,7 +202,7 @@ class DfModelPatch(object):
         frames: FeaturesWithTargets = extract(model.features_and_labels, df, extract_features, **kwargs)
 
         # features, labels, targets, weights, gross_loss, latent,
-        predictions = model.predict(frames.features, samples, **kwargs)
+        predictions = model.predict(frames.features, frames.targets, frames.latent, samples, **kwargs)
         return assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
 
     def __call__(self, file_name=None):

@@ -103,8 +103,7 @@ class SkModel(_AbstractSkModel):
             # calculate: metrics.mean_squared_error
             return metrics.mean_squared_error(y_true, y_pred, sample_weight=weight)
 
-    def predict(self, features: pd.DataFrame, samples=1, **kwargs) -> Typing.PatchedDataFrame:
-        # FIXME if auto encoder do not call this method ->     # TODO factor this method out
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         return to_pandas(self._predict(self.sk_model, features, samples, **kwargs), features.index, self._labels_columns)
 
     def _predict(self, skm, features: pd.DataFrame, samples=1, **kwargs) -> np.ndarray:
@@ -120,14 +119,6 @@ class SkModel(_AbstractSkModel):
                 return skm.predict(x)
 
         return np.array([predictor() for _ in range(samples)]).swapaxes(0, 1) if samples > 1 else predictor()
-
-    def __call__(self, *args, **kwargs):
-        return SkModel(
-            deepcopy(self.sk_model),
-            deepcopy(self.features_and_labels),
-            self.summary_provider,
-            **merge_kwargs(self.kwargs, kwargs)
-        )
 
 
 class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
@@ -177,7 +168,7 @@ class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
         encoded = encoder.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False)))
         return to_pandas(encoded, features.index, self._features_and_labels.latent_names)
 
-    def _decode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+    def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         skm = self.sk_model
         if not hasattr(skm, 'coefs_'):
             raise ValueError("Model needs to be 'fit' first!")
@@ -189,19 +180,9 @@ class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
         decoder.n_outputs_ = self.layers[-1]
         decoder.out_activation_ = skm.out_activation_
 
-        return decoder.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False)))
+        decoded = decoder.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(latent_features, split_multi_index_rows=False)))
+        return to_pandas(decoded, latent_features.index, self._feature_columns)
 
-    def __call__(self, *args, **kwargs):
-        copy = SkAutoEncoderModel(
-            self.encoder_layers,
-            self.decoder_layers,
-            deepcopy(self.features_and_labels),
-            self.summary_provider,
-            **merge_kwargs(self.kwargs, kwargs)
-        )
-
-        copy.sk_model = deepcopy(self.sk_model)
-        return copy
 
 """
 class SkAutoEncoderModel(NumpyAutoEncoderModel):

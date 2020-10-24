@@ -10,7 +10,7 @@ import pandas as pd
 
 from pandas_ml_common import Typing, Sampler
 from pandas_ml_common.sampling.sampler import XYWeight
-from pandas_ml_common.utils import to_pandas, unique_level
+from pandas_ml_common.utils import to_pandas, unique_level, merge_kwargs
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 
@@ -59,6 +59,7 @@ class Model(object):
         self._summary_provider = summary_provider
         self._history = defaultdict(dict)
         self._labels_columns = None
+        self._feature_columns = None
         self._fit_meta_data: Model.MetaFit = None
         self.kwargs = kwargs
 
@@ -90,8 +91,9 @@ class Model(object):
 
         return df_training_prediction, df_test_prediction
 
-    def _record_meta(self, epochs, batch_size, fold_epochs, cross_validation, labels: List[str]):
+    def _record_meta(self, epochs, batch_size, fold_epochs, cross_validation, features, labels: List[str]):
         self._labels_columns = labels
+        self._feature_columns = features
         self._fit_meta_data = _MetaFit(
             epochs, batch_size, fold_epochs,
             cross_validation, any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
@@ -120,7 +122,7 @@ class Model(object):
         raise NotImplemented
 
     @abstractmethod
-    def predict(self, features: pd.DataFrame, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     @abstractmethod
@@ -179,10 +181,9 @@ class Model(object):
         :param kwargs: arguments which are eventually provided by hyperopt or by different targets
         :return:
         """
-        if not kwargs:
-            return deepcopy(self)
-        else:
-            raise ValueError(f"construction of model with new parameters is not supported\n{type(self)}: {kwargs}")
+        copy = deepcopy(self)
+        copy.kwargs = merge_kwargs(copy.kwargs, kwargs)
+        return copy
 
 
 class AutoEncoderModel(Model):
@@ -199,13 +200,13 @@ class AutoEncoderModel(Model):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.mode = AutoEncoderModel.AUTOENCODE
 
-    def predict(self, features: pd.DataFrame, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         if self.mode == AutoEncoderModel.AUTOENCODE:
             return self._auto_encode(features, samples, **kwargs)
         elif self.mode == AutoEncoderModel.ENCODE:
             return self._encode(features, samples, **kwargs)
         elif self.mode == AutoEncoderModel.DECODE:
-            return self._decode(features, samples, **kwargs)
+            return self._decode(latent, samples, **kwargs)
         else:
             raise ValueError("Illegal mode")
 
@@ -233,7 +234,7 @@ class AutoEncoderModel(Model):
         raise NotImplemented
 
     @abstractmethod
-    def _decode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+    def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
 
