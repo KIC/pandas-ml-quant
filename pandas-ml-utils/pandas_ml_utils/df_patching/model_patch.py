@@ -8,7 +8,7 @@ from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
 
 from pandas_ml_common import Typing, naive_splitter, Sampler, XYWeight
-from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs, merge_kwargs
+from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs, merge_kwargs, call_silent
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
@@ -84,7 +84,7 @@ class DfModelPatch(object):
             # fit model
             fit = m.fit(
                 SkModel(skm, features_and_labels=features_and_labels, summary_provider=FeatureSelectionSummary),
-                training_data_splitter=training_data_splitter,
+                splitter=training_data_splitter
             )
 
         # we hide the loss plot from this summary
@@ -145,16 +145,16 @@ class DfModelPatch(object):
         _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
         # assemble result objects
-        try:
-            # get training and test data tuples of the provided frames
-            ext_frames = frames.targets, frames.labels, frames.gross_loss, frames.sample_weights, frames.features_with_required_samples.features
-            df_train = assemble_result_frame(df_train_prediction, *ext_frames)
-            df_test = assemble_result_frame(df_test_prediction, *ext_frames)
+        # get training and test data tuples of the provided frames
+        ext_frames = frames.targets, frames.labels, frames.gross_loss, frames.sample_weights, frames.features_with_required_samples.features
+        df_train = assemble_result_frame(df_train_prediction, *ext_frames)
+        df_test = assemble_result_frame(df_test_prediction, *ext_frames)
 
-            # update model properties and return the fit
-            model.features_and_labels.set_min_required_samples(frames.features_with_required_samples.min_required_samples)
-            model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
+        # update model properties and return the fit
+        model.features_and_labels.set_min_required_samples(frames.features_with_required_samples.min_required_samples)
+        model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
 
+        def assemble_fit():
             return Fit(
                 model,
                 model.summary_provider(df_train, model, is_test=False, **kwargs),
@@ -162,12 +162,8 @@ class DfModelPatch(object):
                 trails,
                 **kwargs
             )
-        except Exception as e:
-            fex = FitException(e, model)
-            if not silent:
-                raise fex
-            else:
-                return fex
+
+        return call_silent(assemble_fit, lambda e: FitException(e, model)) if silent else assemble_fit()
 
     def backtest(self,
                  model: MlModel,

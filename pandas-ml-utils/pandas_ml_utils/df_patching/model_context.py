@@ -7,6 +7,7 @@ from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_common.utils.time_utils import seconds_since_midnight
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
+from pandas_ml_utils.ml.fitting import Fit
 from pandas_ml_utils.ml.model.base_model import Model
 
 
@@ -19,16 +20,30 @@ class ModelContext(object):
         }) if file_name is not None else None
 
     def fit(self,
-            model: Callable[[], Model],
-            training_data_splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),
-            training_samples_filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
+            model_provider: Callable[[], Model],
+            splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),
+            filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
             cross_validation: Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]] = None,
+            epochs: int = 1,
+            batch_size: int = None,
+            fold_epochs: int = 1,
             hyper_parameter_space: Dict = None,
+            silent: bool = False,
             **kwargs
-            ):
+            ) -> Fit:
 
         fit = self.df.model.fit(
-            model, training_data_splitter, training_samples_filter, cross_validation, hyper_parameter_space, **kwargs)
+            model_provider,
+            splitter,
+            filter,
+            cross_validation,
+            epochs,
+            batch_size,
+            fold_epochs,
+            hyper_parameter_space,
+            silent,
+            **kwargs
+        )
 
         if self.file_name is not None:
             fit.model.save(self.file_name)

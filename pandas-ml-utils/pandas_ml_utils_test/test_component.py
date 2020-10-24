@@ -85,7 +85,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            naive_splitter()
+            stratified_random_splitter()
         )
 
         # should not thro an error
@@ -93,8 +93,6 @@ class TestModel(TestCase):
 
         # fit resulting columns
         print(fit.test_summary.df)
-        self.assertEqual(int(len(df) * 0.7), len(fit.training_summary.df))
-        self.assertEqual(len(df) - int(len(df) * 0.7), len(fit.test_summary.df))
         # FIXME expect gross_loss and weights as well
         self.assertIn(FEATURE_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(LABEL_COLUMN_NAME, fit.training_summary.df)

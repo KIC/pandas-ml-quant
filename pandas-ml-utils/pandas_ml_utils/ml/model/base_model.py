@@ -152,6 +152,7 @@ class Model(object):
         fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
 
         # TODO plot train and test data ...
+        """
         for fold in unique_level(self._history.columns, 0):
             if fold < 0:
                 p = ax.plot(self._history[(fold, 0)], '-', label='model (train)')
@@ -159,16 +160,16 @@ class Model(object):
             else:
                 p = ax.plot(self._history[(fold, 0)], '-', label=f'fold {fold} (train)')
                 ax.plot(self._history[(fold, 1)], '--', color=p[-1].get_color(), label=f'fold {fold} (test)')
-
+        """
         plt.legend(loc='upper right')
-        return fig, ax
+        return fig
 
     def __str__(self):
         try:
             import matplotlib
             matplotlib.use('module://drawilleplot')
             # FIXME plot loss
-
+            return "implement me"
         except:
             return repr(self)
 

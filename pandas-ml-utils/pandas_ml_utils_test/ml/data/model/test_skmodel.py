@@ -111,16 +111,16 @@ class TestSkModel(TestAbstractModel, TestCase):
         model = SkAutoEncoderModel(
             [2, 1], [2],
             features_and_labels,
-            learning_rate_init=0.01,
-            solver='sgd',
+            #learning_rate_init=0.0001,
+            solver='lbfgs',
             validation_fraction=0,
-            activation='identity',
+            activation='logistic',
             momentum=0,
-            max_iter=1500,
+            max_iter=200,
             n_iter_no_change=500,
             nesterovs_momentum=False,
             shuffle=False,
-            random_state=42
+            random_state=10
         )
 
         return model

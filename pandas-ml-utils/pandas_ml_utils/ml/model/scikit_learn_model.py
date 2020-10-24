@@ -95,13 +95,14 @@ class SkModel(_AbstractSkModel):
         skm = self.sk_model if fold is None else self._sk_fold_models[0 if not self.overwrite_folds else fold]
         y_pred = self._predict(skm, x, fold=fold)
         y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
+        w = weight.values.reshape(-1, ) if weight is not None else None
 
         if isinstance(self.sk_model, ClassifierMixin):
             # calculate: # sklearn.metrics.log_loss
-            return metrics.log_loss(y_true, y_pred, sample_weight=weight)
+            return metrics.log_loss(y_true, y_pred, sample_weight=w)
         else:
             # calculate: metrics.mean_squared_error
-            return metrics.mean_squared_error(y_true, y_pred, sample_weight=weight)
+            return metrics.mean_squared_error(y_true, y_pred, sample_weight=w)
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         return to_pandas(self._predict(self.sk_model, features, samples, **kwargs), features.index, self._labels_columns)
@@ -114,7 +115,7 @@ class SkModel(_AbstractSkModel):
             if is_probabilistic:
                 y_hat = skm.predict_proba(x)
                 binary_classifier = len(self._label_shape) == 1 or self._label_shape[1] == 1
-                return y_hat[:, 1] if binary_classifier else y_hat.reshape(-1, *self._label_shape[1:])
+                return (1 - y_hat[:, 0]) if binary_classifier else y_hat.reshape(-1, *self._label_shape[1:])
             else:
                 return skm.predict(x)
 

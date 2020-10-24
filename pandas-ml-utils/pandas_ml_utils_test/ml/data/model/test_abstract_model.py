@@ -87,8 +87,8 @@ class TestAbstractModel(object):
 
         """and some toy classification data"""
         df = pd.DataFrame({
-            "a": [1, 0, 1, 0, ],
-            "b": [0, 1, 0, 1, ],
+            "a": [1, 0] * 10,
+            "b": [0, 1] * 10,
         })
 
         """when we fit the model"""
@@ -98,17 +98,16 @@ class TestAbstractModel(object):
 
         """then we can predict Autoencoded"""
         auto_encoded_prediction = df.model.predict(fit.model)
-        self.assertEqual((4, 2), auto_encoded_prediction["prediction"].shape)
+        self.assertEqual((20, 2), auto_encoded_prediction["prediction"].shape)
 
         """and we can encoder"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
-        self.assertEqual((4, 1), encoded_prediction["prediction"].shape)
+        self.assertEqual((20, 1), encoded_prediction["prediction"].shape)
 
         """and we can decoder"""
         decoded_prediction = encoded_prediction["prediction"].model.predict(fit.model.as_decoder())
         print(decoded_prediction)
-        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values[:2], fit.training_summary.df["prediction"].values, 1)
         np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5, df[["a", "b"]].values)
 
         """and we can encoder and decode after safe and load"""

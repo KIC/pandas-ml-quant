@@ -83,7 +83,7 @@ class Sampler(object):
                 _log.warning("The Data provided uses a `MultiIndex` but the cross validation is not wrapped in "
                              "`PartitionedOnRowMultiIndexCV`")
 
-            if epochs > 1:
+            if epochs is None or epochs > 1:
                 _log.warning("using epochs > 1 together with cross folding may lead to different folds for each epoch!")
 
             self.nr_folds = cross_validation.get_n_splits() if hasattr(cross_validation, "get_n_splits") else -1

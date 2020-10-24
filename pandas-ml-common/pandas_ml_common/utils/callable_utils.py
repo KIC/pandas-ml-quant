@@ -6,6 +6,13 @@ _log = logging.getLogger(__name__)
 _DEBUG = False
 
 
+def call_silent(func, default=None):
+    try:
+        return func()
+    except Exception as e:
+        return default(e) if callable(default) else default
+
+
 def kwpartial(func: Callable, **kwargs) -> Callable:
     """
     implements a partial function using kw arguments such that we can parse them back
