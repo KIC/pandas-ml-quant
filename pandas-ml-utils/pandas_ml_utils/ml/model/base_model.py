@@ -105,6 +105,12 @@ class Model(object):
         self._history["train", fold][(epoch, fold_epoch)] = train_loss
         self._history["test", fold][(epoch, fold_epoch)] = test_loss
 
+        # if is_verbose > 1:
+        #    print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
+
+    def init_fit(self, **kwargs):
+        pass
+
     @abstractmethod
     def init_fold(self, epoch: int, fold: int):
         raise NotImplemented
@@ -114,7 +120,7 @@ class Model(object):
         raise NotImplemented
 
     @abstractmethod
-    def calculate_loss(self, fold, y_true, y_pred, weight) -> float:
+    def calculate_loss(self, fold, x, y_true, weight) -> float:
         raise NotImplemented
 
     @abstractmethod

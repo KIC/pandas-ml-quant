@@ -142,13 +142,14 @@ class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
         self.decoder_layers = decode_layers
         self.layers = [*encode_layers, *decode_layers]
 
-    def calculate_loss(self, fold, x, y_true, weight):
-        # FIXME ...
-        #y_pred = self._predict(skm, x, fold=fold)
-        #y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
+    def calculate_loss(self, fold, x, y_true, weight) -> float:
+        skm = self.sk_model if fold is None else self._sk_fold_models[0 if not self.overwrite_folds else fold]
+        y_pred = skm.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(x)))
+        y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
+        w = weight.values.reshape(-1, ) if weight is not None else None
 
-        #return metrics.mean_squared_error(y_true, y_pred, sample_weight=weight)
-        return 0
+        return metrics.mean_squared_error(y_true, y_pred, sample_weight=w)
+
 
     def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         x = _AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(features, split_multi_index_rows=False))
