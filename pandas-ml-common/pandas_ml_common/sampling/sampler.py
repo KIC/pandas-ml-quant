@@ -145,54 +145,57 @@ class Sampler(object):
             cross_validation=self.nr_folds is not None)
 
         # generate samples
-        for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
-            call_callable_dynamic_args(self.on_epoch, epoch=epoch)
-            fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, **train_frames.to_dict()))
-            for fold, (cv_train_i, cv_test_i) in fold_iter:
-                call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold)
+        try:
+            for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
+                call_callable_dynamic_args(self.on_epoch, epoch=epoch)
+                fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, **train_frames.to_dict()))
+                for fold, (cv_train_i, cv_test_i) in fold_iter:
+                    call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold)
 
-                # if we dont have any cross validation the training and test sets stay unchanged
-                cv_train_idx = train_idx if cv_train_i is None else train_idx[cv_train_i]
+                    # if we dont have any cross validation the training and test sets stay unchanged
+                    cv_train_idx = train_idx if cv_train_i is None else train_idx[cv_train_i]
 
-                # build our test data sets
-                if cv_test_i is not None:
-                    if cv_test_i.ndim > 1:
-                        cv_test_frames = [
-                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i[:, i]]) for f in self.frames])
-                            for i in range(cv_test_i.shape[1])
-                        ]
+                    # build our test data sets
+                    if cv_test_i is not None:
+                        if cv_test_i.ndim > 1:
+                            cv_test_frames = [
+                                XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i[:, i]]) for f in self.frames])
+                                for i in range(cv_test_i.shape[1])
+                            ]
+                        else:
+                            cv_test_frames = [
+                                XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i]) for f in self.frames])]
                     else:
-                        cv_test_frames = [
-                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i]) for f in self.frames])]
-                else:
-                    if len(self.test_idx) <= 0:
-                        cv_test_frames = []
-                    else:
-                        cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])]
+                        if len(self.test_idx) <= 0:
+                            cv_test_frames = []
+                        else:
+                            cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])]
 
-                for fold_epoch in range(self.fold_epochs):
-                    call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
+                    for fold_epoch in range(self.fold_epochs):
+                        call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
 
-                    # build our training data sets aka batches
-                    cv_train_frames = XYWeight(*[loc_if_not_none(f, cv_train_idx) for f in self.frames])
+                        # build our training data sets aka batches
+                        cv_train_frames = XYWeight(*[loc_if_not_none(f, cv_train_idx) for f in self.frames])
 
-                    # theoretically we could already yield cv_train_frames, cv_test_frames
-                    # but lets create batches first and then yield all together
-                    nr_instances = len(cv_train_idx)
-                    nice_i = max(nr_instances - 2, 0)
-                    bs = min(nr_instances, self.batch_size) if self.batch_size is not None else nr_instances
+                        # theoretically we could already yield cv_train_frames, cv_test_frames
+                        # but lets create batches first and then yield all together
+                        nr_instances = len(cv_train_idx)
+                        nice_i = max(nr_instances - 2, 0)
+                        bs = min(nr_instances, self.batch_size) if self.batch_size is not None else nr_instances
 
-                    batch_iter = range(0, nr_instances, bs)
-                    for i in batch_iter:
-                        call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                        yield XYWeight(*(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None
-                                         for f in cv_train_frames))
+                        batch_iter = range(0, nr_instances, bs)
+                        for i in batch_iter:
+                            call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
+                            yield XYWeight(*(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None
+                                             for f in cv_train_frames))
 
-                        call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                    call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, train_data=cv_train_frames, test_data=cv_test_frames)
-                call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, train_data=cv_train_frames, test_data=cv_test_frames)
-            call_callable_dynamic_args(self.after_epoch, epoch=epoch, train_data=train_frames, test_data=test_frames)
-        call_callable_dynamic_args(self.after_end)
+                            call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
+                        call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, train_data=cv_train_frames, test_data=cv_test_frames)
+                    call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, train_data=cv_train_frames, test_data=cv_test_frames)
+                call_callable_dynamic_args(self.after_epoch, epoch=epoch, train_data=train_frames, test_data=test_frames)
+            call_callable_dynamic_args(self.after_end)
+        except StopIteration:
+            pass
 
     def get_in_sample_features(self) -> pd.DataFrame:
         return self.frames.x.loc[self.train_idx]

@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Dict, Callable, Union, List, Tuple
+from typing import Dict, Callable, Union, List, Tuple, Iterable
 
 _log = logging.getLogger(__name__)
 _DEBUG = False
@@ -32,6 +32,9 @@ def kwpartial(func: Callable, **kwargs) -> Callable:
 
 
 def call_callable_dynamic_args(func, *args, **kwargs):
+    if isinstance(func, Iterable):
+        return [call_callable_dynamic_args(f, *args, *kwargs) for f in func]
+
     if not callable(func):
         if func is None:
             return None
@@ -106,81 +109,16 @@ def flatten_nested_list(l: Union[List, Tuple], func: callable) -> List:
         return [func(l)]
 
 
-class Signature:
+class Signature(inspect.Signature):
     """1:1 copy of inspect.Signtature but without exceptions!"""
-    __slots__ = ('_return_annotation', '_parameters')
-
-    _parameter_cls = inspect.Parameter
-    _bound_arguments_cls = inspect.BoundArguments
-
-    empty = inspect._empty
 
     def __init__(self, parameters=None, *, return_annotation=inspect._empty, __validate_parameters__=True):
-        if parameters is None:
-            params = inspect.OrderedDict()
-        else:
-            if __validate_parameters__:
-                params = inspect.OrderedDict()
-                top_kind = inspect._POSITIONAL_ONLY
-                kind_defaults = False
-
-                for idx, param in enumerate(parameters):
-                    kind = param.kind
-                    name = param.name
-
-                    if kind < top_kind:
-                        msg = (
-                            'wrong parameter order: {} parameter before {} '
-                            'parameter'
-                        )
-                        msg = msg.format(inspect._get_paramkind_descr(top_kind), inspect._get_paramkind_descr(kind))
-                        raise ValueError(msg)
-                    elif kind > top_kind:
-                        kind_defaults = False
-                        top_kind = kind
-
-                    if kind in (inspect._POSITIONAL_ONLY, inspect._POSITIONAL_OR_KEYWORD):
-                        if param.default is inspect._empty:
-                            if kind_defaults:
-                                # No default for this parameter, but the
-                                # previous parameter of the same kind had
-                                # a default
-                                msg = 'non-default argument follows default ' \
-                                      'argument'
-                                raise ValueError(msg)
-                        else:
-                            # There is a default for this parameter.
-                            kind_defaults = True
-
-                    if name in params:
-                        msg = 'duplicate parameter name: {!r}'.format(name)
-                        raise ValueError(msg)
-
-                    params[name] = param
-            else:
-                params = inspect.OrderedDict(((param.name, param) for param in parameters))
-
-        self._parameters = inspect.types.MappingProxyType(params)
-        self._return_annotation = return_annotation
-
+        super().__init__(parameters=parameters, return_annotation=return_annotation)
 
     @classmethod
     def from_callable(cls, obj, *, follow_wrapped=True):
         """Constructs Signature for the given callable object."""
         return inspect._signature_from_callable(obj, sigcls=cls, follow_wrapper_chains=follow_wrapped)
-
-    @property
-    def parameters(self):
-        return self._parameters
-
-    def replace(self, *, parameters=inspect._void, return_annotation=inspect._void):
-        if parameters is inspect._void:
-            parameters = self.parameters.values()
-
-        if return_annotation is inspect._void:
-            return_annotation = self._return_annotation
-
-        return type(self)(parameters, return_annotation=return_annotation)
 
     def _bind(self, args, kwargs, *, partial=False):
         """Private method. Don't use directly."""
@@ -299,9 +237,3 @@ class Signature:
                 arguments[kwargs_param.name] = {k: v for k, v in kwargs.items() if k not in arguments}
 
         return self._bound_arguments_cls(self, arguments)
-
-    def bind(*args, **kwargs):
-        return args[0]._bind(args[1:], kwargs)
-
-    def bind_partial(*args, **kwargs):
-        return args[0]._bind(args[1:], kwargs, partial=True)

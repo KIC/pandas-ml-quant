@@ -152,3 +152,23 @@ class TestSampler(TestCase):
 
         batches = list(sampler.sample_for_training())
         self.assertEqual(4, len(batches))
+
+    def test_callback_early_stop(self):
+        class Stopper(object):
+
+            def __init__(self):
+                self.i = 0
+
+            def callback(self, epoch):
+                self.i += 1
+                if self.i > 2:
+                    raise StopIteration
+
+        sampler = Sampler(
+            XYWeight(TEST_MUTLI_INDEX_ROW_DF, TEST_MUTLI_INDEX_ROW_DF),
+            splitter=None,
+            fold_epochs=100,
+            after_fold_epoch=Stopper().callback
+        )
+
+        self.assertEqual(3, len(list(sampler.sample_for_training())))
