@@ -93,7 +93,7 @@ class TestModel(TestCase):
 
         # fit resulting columns
         print(fit.test_summary.df)
-        # FIXME expect gross_loss and weights as well
+        self.assertIn(GROSS_LOSS_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(FEATURE_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(LABEL_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(TARGET_COLUMN_NAME, fit.training_summary.df)
@@ -109,10 +109,11 @@ class TestModel(TestCase):
         self.assertIn(TARGET_COLUMN_NAME, prediction)
 
         # backtest resulting columns
-        # FIXME expect gross_loss and weights as well
         backtest = df.model.backtest(fit.model)
         print(backtest.df)
+
         self.assertEqual(len(df), len(backtest.df))
         self.assertIn(FEATURE_COLUMN_NAME, backtest.df)
         self.assertIn(LABEL_COLUMN_NAME, backtest.df)
         self.assertIn(TARGET_COLUMN_NAME, backtest.df)
+        self.assertIn(GROSS_LOSS_COLUMN_NAME, backtest.df)

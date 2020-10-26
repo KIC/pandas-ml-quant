@@ -1,2 +1,2 @@
-from .fitter import *
 from .fit import Fit
+from .exception import FitException

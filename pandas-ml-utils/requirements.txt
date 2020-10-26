@@ -10,6 +10,5 @@ numpy
 pandas
 pymongo
 scikit-learn
-seaborn
 sortedcontainers
 statsmodels

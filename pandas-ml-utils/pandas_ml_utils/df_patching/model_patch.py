@@ -90,24 +90,6 @@ class DfModelPatch(object):
         # we hide the loss plot from this summary
         return fit.with_hidden_loss_plot()
 
-    # Obsolete ... might be part of the report of the feature analysis/selection section
-    def plot_features(self, data: Union[FeaturesAndLabels, MlModel]):
-        # FIXME this is the only seaborn dependency left, get rid of it if possible
-        fnl = data.features_and_labels if isinstance(data, MlModel) else data
-        fl: FeaturesWithLabels = self.df._.extract(fnl)
-
-        def plot_features(joined_features_andLabels_df, label_column):
-            import seaborn as sns
-
-            # fixme if labels are contonious, we need to bin them
-            # fixme if one hot encoded label column use np.argmax
-            return sns.pairplot(joined_features_andLabels_df, hue=label_column)
-
-        return plot_features(
-            fl.features_with_required_samples.features.join(fl.labels),
-            fl.labels.columns[0] if has_indexed_columns(fl.labels) else fl.labels.name
-        )
-
     def fit(self,
             model_provider: Callable[[], MlModel],
             splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),

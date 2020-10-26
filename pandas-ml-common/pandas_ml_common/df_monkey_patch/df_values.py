@@ -41,7 +41,11 @@ class MLCompatibleValues(object):
 
     def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
         """
-        # FIXME add text, can be regex ... dynamic call etc .. .
+        This is a magic way to access columns in a DataFrame. We can use regex and even lambdas to select and
+        calculate columns.
+
+        df._[".*Close$"]  # gets all close columns
+        df._[lambda df: df["Close"] * 2  # get a column and calculates something
 
         :param item:
         :return:

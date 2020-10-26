@@ -50,8 +50,6 @@ setattr(pd.DataFrame, "has_indexed_columns", lambda self: has_indexed_columns(se
 setattr(pd.DataFrame, "add_multi_index", lambda self, *args, **kwargs: add_multi_index(self, *args, **kwargs))
 
 setattr(pd.MultiIndex, "unique_level", lambda self, *args: unique_level(self, *args))
-# setattr(pd.Series, 'columns', lambda self: [self.name]) # FIXME leads to problems where we do hasattr(?, columns)
-
 
 class Typing(object):
     PatchedDataFrame = pd.DataFrame
