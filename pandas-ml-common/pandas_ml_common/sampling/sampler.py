@@ -23,6 +23,15 @@ class XYWeight(NamedTuple):
         return d
 
 
+class FoldXYWeight(NamedTuple):
+    epoch: int
+    fold: int
+    epoch_fold: int
+    x: pd.DataFrame
+    y: pd.DataFrame = None
+    weight: pd.DataFrame = None
+
+
 class Sampler(object):
 
     def __init__(
@@ -125,7 +134,7 @@ class Sampler(object):
             after_end
         )
 
-    def sample_for_training(self) -> Generator[XYWeight, None, None]:
+    def sample_for_training(self) -> Generator[FoldXYWeight, None, None]:
         # filter samples
         if self.filter is not None:
             train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(self.filter, idx, **self.frames.to_dict(idx))]
@@ -186,8 +195,10 @@ class Sampler(object):
                         batch_iter = range(0, nr_instances, bs)
                         for i in batch_iter:
                             call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                            yield XYWeight(*(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None
-                                             for f in cv_train_frames))
+                            yield FoldXYWeight(
+                                epoch, fold, fold_epoch,
+                                *(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None for f in cv_train_frames)
+                            )
 
                             call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
                         call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, train_data=cv_train_frames, test_data=cv_test_frames)

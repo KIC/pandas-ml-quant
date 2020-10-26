@@ -72,6 +72,8 @@ class Model(object):
         return self._summary_provider
 
     def fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        self.init_fit(**kwargs)
+
         sampler = sampler.with_callbacks(
             on_start=self._record_meta,
             on_fold=self.init_fold,
@@ -81,7 +83,7 @@ class Model(object):
         )
 
         for batch in sampler.sample_for_training():
-            self.fit_batch(batch.x, batch.y, batch.weight, **kwargs)
+            self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
 
         training_data = sampler.get_in_sample_features()
         df_training_prediction = self.predict(training_data, **kwargs)
@@ -105,7 +107,9 @@ class Model(object):
         self._history["train", fold][(epoch, fold_epoch)] = train_loss
         self._history["test", fold][(epoch, fold_epoch)] = test_loss
 
-        # if is_verbose > 1:
+        self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
+        # TODO ... implement global early stopping -> just throw StopIteraton
+        # TODO if is_verbose > 1:  eventually pass kwargs through the sampler ??
         #    print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
 
     def init_fit(self, **kwargs):
@@ -116,8 +120,11 @@ class Model(object):
         raise NotImplemented
 
     @abstractmethod
-    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, **kwargs):
+    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
         raise NotImplemented
+
+    def after_fold_epoch(self, epoch, fold, fold_epoch, loss, val_loss):
+        pass
 
     @abstractmethod
     def calculate_loss(self, fold, x, y_true, weight) -> float:

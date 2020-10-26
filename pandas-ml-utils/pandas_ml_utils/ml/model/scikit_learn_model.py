@@ -44,7 +44,7 @@ class _AbstractSkModel(Model):
         else:
             self._sk_fold_models[i] = clone(self.sk_model)
 
-    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, weight: pd.DataFrame, **kwargs):
+    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, weight: pd.DataFrame, fold: int, **kwargs):
         # convert data frames to numpy arrays
         _x = _AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(x, split_multi_index_rows=False))
         _y = unpack_nested_arrays(y, split_multi_index_rows=False)
@@ -185,61 +185,3 @@ class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
         decoded = decoder.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(latent_features, split_multi_index_rows=False)))
         return to_pandas(decoded, latent_features.index, self._feature_columns)
 
-
-"""
-class SkAutoEncoderModel(NumpyAutoEncoderModel):
-
-    def __init__(self,
-                 encode_layers: List[int],
-                 decode_layers: List[int],
-                 features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
-
-        # Implementation analog blog: https://i-systems.github.io/teaching/ML/iNotes/15_Autoencoder.html
-        self.encoder_layers = encode_layers
-        self.decoder_layers = decode_layers
-        self.layers = [*encode_layers, *decode_layers]
-        self.auto_encoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.layers, **kwargs})
-
-    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
-
-    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
-        if nr_epochs > 1:
-            raise ValueError("partial_fit not implemented")
-
-        self.auto_encoder = self.auto_encoder.fit(train[0], train[1])
-        loss_curve = getattr(self.auto_encoder, 'loss_curve_', [])
-        return np.array(loss_curve), np.array([np.nan] * len(loss_curve))
-
-    def _auto_encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        return self.auto_encoder.predict(SkModel.reshape_rnn_as_ar(x))
-
-    def _encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        if not hasattr(self.auto_encoder, 'coefs_'):
-            raise ValueError("Model needs to be 'fit' first!")
-
-        encoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.encoder_layers[1:], **self.kwargs})
-        encoder.coefs_ = self.auto_encoder.coefs_[:len(self.encoder_layers)].copy()
-        encoder.intercepts_ = self.auto_encoder.intercepts_[:len(self.encoder_layers)].copy()
-        encoder.n_layers_ = len(encoder.coefs_) + 1
-        encoder.n_outputs_ = len(self.features_and_labels.latent_names)
-        encoder.out_activation_ = self.auto_encoder.activation
-
-        return encoder.predict(SkModel.reshape_rnn_as_ar(x))
-
-    def _decode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        if not hasattr(self.auto_encoder, 'coefs_'):
-            raise ValueError("Model needs to be 'fit' first!")
-
-        decoder = call_callable_dynamic_args(MLPRegressor, **{"hidden_layer_sizes": self.decoder_layers, **self.kwargs})
-        decoder.coefs_ = self.auto_encoder.coefs_[len(self.encoder_layers):].copy()
-        decoder.intercepts_ = self.auto_encoder.intercepts_[len(self.encoder_layers):].copy()
-        decoder.n_layers_ = len(decoder.coefs_) + 1
-        decoder.n_outputs_ = self.layers[-1]
-        decoder.out_activation_ = self.auto_encoder.out_activation_
-
-        return decoder.predict(SkModel.reshape_rnn_as_ar(x))
-"""
