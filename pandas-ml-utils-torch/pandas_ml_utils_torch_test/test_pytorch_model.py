@@ -8,7 +8,7 @@ from pandas_ml_common import naive_splitter
 from pandas_ml_utils import pd, FeaturesAndLabels
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils_torch import PytorchModel, PytorchNN
+from pandas_ml_utils_torch import PytorchModel, PytorchAutoEncoderModel, PytorchNN
 
 
 class RegressionModule(nn.Module):
@@ -105,7 +105,7 @@ class TestPytorchModel(TestAbstractModel, TestCase):
 
             return AutoEncoderModule()
 
-        model = PytorchModel(
+        model = PytorchAutoEncoderModel(
             features_and_labels,
             module_provider,
             nn.MSELoss,
