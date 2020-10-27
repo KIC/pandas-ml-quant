@@ -1,9 +1,9 @@
 from datetime import datetime
+from functools import wraps
 from string import Template
-from typing import Callable, Tuple, Dict, Union, List
+from typing import Union
 
 from pandas_ml_common import Typing
-from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_common.utils.time_utils import seconds_since_midnight
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
@@ -19,31 +19,9 @@ class ModelContext(object):
             "V": f'{datetime.now().strftime("%Y%m-%d")}-{seconds_since_midnight()}'
         }) if file_name is not None else None
 
-    def fit(self,
-            model_provider: Callable[[], Model],
-            splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),
-            filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
-            cross_validation: Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]] = None,
-            epochs: int = 1,
-            batch_size: int = None,
-            fold_epochs: int = 1,
-            hyper_parameter_space: Dict = None,
-            silent: bool = False,
-            **kwargs
-            ) -> Fit:
-
-        fit = self.df.model.fit(
-            model_provider,
-            splitter,
-            filter,
-            cross_validation,
-            epochs,
-            batch_size,
-            fold_epochs,
-            hyper_parameter_space,
-            silent,
-            **kwargs
-        )
+    @wraps(Model.fit)
+    def fit(self, *args, **kwargs) -> Fit:
+        fit = self.df.model.fit(*args, **kwargs)
 
         if self.file_name is not None:
             fit.model.save(self.file_name)
@@ -57,7 +35,6 @@ class ModelContext(object):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-
         if exc_type:
             print(f'exc_type: {exc_type}')
             print(f'exc_value: {exc_value}')

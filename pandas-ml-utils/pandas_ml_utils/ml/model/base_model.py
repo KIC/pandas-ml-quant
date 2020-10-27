@@ -1,6 +1,7 @@
 import os
 from abc import abstractmethod
 from copy import deepcopy
+from functools import partial
 from typing import Callable, Tuple, Iterable, Generator, Union, List, NamedTuple
 from collections import defaultdict
 
@@ -71,13 +72,13 @@ class Model(object):
     def summary_provider(self):
         return self._summary_provider
 
-    def fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+    def fit(self, sampler: Sampler, early_stopping: int = None, verbose: int = 0, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         self.init_fit(**kwargs)
 
         sampler = sampler.with_callbacks(
             on_start=self._record_meta,
             on_fold=self.init_fold,
-            after_fold_epoch=self._record_loss,
+            after_fold_epoch=partial(self._record_loss, early_stopping=early_stopping, verbose=verbose),
             after_epoch=self.merge_folds,
             after_end=self.finish_learning
         )
@@ -101,7 +102,7 @@ class Model(object):
             cross_validation, any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
         )
 
-    def _record_loss(self, epoch, fold, fold_epoch, train_data: List[XYWeight], test_data: List[XYWeight]):
+    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], early_stopping, verbose):
         train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
         test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data]).mean()
         self._history["train", fold][(epoch, fold_epoch)] = train_loss
@@ -109,8 +110,8 @@ class Model(object):
 
         self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
         # TODO ... implement global early stopping -> just throw StopIteraton
-        # TODO if is_verbose > 1:  eventually pass kwargs through the sampler ??
-        #    print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
+        if verbose > 0:
+            print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
 
     def init_fit(self, **kwargs):
         pass

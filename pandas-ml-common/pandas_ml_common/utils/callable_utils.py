@@ -13,24 +13,6 @@ def call_silent(func, default=None):
         return default(e) if callable(default) else default
 
 
-def kwpartial(func: Callable, **kwargs) -> Callable:
-    """
-    implements a partial function using kw arguments such that we can parse them back
-    via the dependency injection: call_callable_dynamic_args
-
-    :param func: a callable with keyword arguments only
-    :param kwargs: key word arguments which get pre-assigned to the callable
-    :return: a callable with named arguments except the once passed in and assigned by the kwargs argument
-    """
-    sa = suitable_kwargs(func, **kwargs)
-    rest = inspect.getfullargspec(func).args
-    rest = set(rest) - set(sa.keys())
-
-    f = eval(f"lambda {','.join(rest)}: __func(**__suitable_kwargs, {','.join(['%s=%s' % (x, x) for x in rest])})",
-             {"__func": func, "__suitable_kwargs": sa, **globals()})
-    return f
-
-
 def call_callable_dynamic_args(func, *args, **kwargs):
     if isinstance(func, Iterable):
         return [call_callable_dynamic_args(f, *args, *kwargs) for f in func]
@@ -170,7 +152,7 @@ class Signature(inspect.Signature):
                         else:
                             msg = 'missing a required argument: {arg!r}'
                             msg = msg.format(arg=param.name)
-                            raise TypeError(msg) from None
+                            # raise TypeError(msg) from None
             else:
                 # We have a positional argument to process
                 try:

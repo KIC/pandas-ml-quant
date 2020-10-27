@@ -25,7 +25,7 @@ class MLCompatibleValues(object):
         values = unpack_nested_arrays(self.df)
 
         # return in multi level shape if multi index is used
-        def reshape_when_multi_index_colum(values):
+        def reshape_when_multi_index_column(values):
             if has_indexed_columns(self.df) and isinstance(self.df.columns, pd.MultiIndex):
                 index_shape = multi_index_shape(self.df.columns)
                 values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
@@ -33,8 +33,8 @@ class MLCompatibleValues(object):
             return values
 
         # if values is list reshape each array
-        return [reshape_when_multi_index_colum(v) for v in values] if isinstance(values, List) else \
-            reshape_when_multi_index_colum(values)
+        return [reshape_when_multi_index_column(v) for v in values] if isinstance(values, List) else \
+            reshape_when_multi_index_column(values)
 
     def extract(self, func: callable, *args, **kwargs):
         return call_callable_dynamic_args(func, self.df, *args, **kwargs)
