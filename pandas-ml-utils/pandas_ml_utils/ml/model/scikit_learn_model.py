@@ -81,7 +81,6 @@ class _AbstractSkModel(Model):
             return arr3d.reshape(arr3d.shape[0], np.array(arr3d.shape[1:]).prod())
 
 
-
 class SkModel(_AbstractSkModel):
 
     def __init__(self,

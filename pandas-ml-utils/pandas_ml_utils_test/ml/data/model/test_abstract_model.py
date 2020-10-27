@@ -168,6 +168,7 @@ class TestAbstractModel(object):
         batch_size, epochs = self.provide_batch_size_and_epoch()
         fit = df.model.fit(model, random_splitter(0.3, partition_row_multi_index=True), verbose=0, batch_size=batch_size, epochs=epochs)
         prediction = df.model.predict(fit.model)
+        # fit.training_summary.df.to_pickle('/tmp/multi_index_row_summary.df')
 
         """then we get a prediction for A and B rows"""
         self.assertEqual(8, len(fit.training_summary.df))

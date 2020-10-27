@@ -1,10 +1,15 @@
+from collections import defaultdict
+from collections import defaultdict
 from typing import Callable
 
-from pandas_ml_common.utils import get_correlation_pairs
-from pandas_ml_common.utils.numpy_utils import one_hot, clean_one_hot_classification
-from pandas_ml_utils.constants import *
-from sklearn.metrics import roc_curve, auc, mean_squared_error
 import numpy as np
+import pandas as pd
+from sklearn import metrics
+from sklearn.metrics import roc_curve, auc, mean_squared_error
+
+from pandas_ml_common.utils import get_correlation_pairs, unique_level_rows, call_callable_dynamic_args
+from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
+from pandas_ml_utils.constants import *
 
 
 def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1, **kwargs):
@@ -146,7 +151,6 @@ def plot_feature_importance(df,
                        **kwargs):
     from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
     from pandas_ml_utils.ml.data.extraction import extract, extract_feature_labels_weights
-    from pandas_ml_common import Sampler
 
     frames: FeaturesWithLabels = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
     features, labels, targets, weights, gross_loss, latent = frames
@@ -186,20 +190,27 @@ def df_tail(df, model, **kwargs):
 
 
 def df_regression_scores(df, model, **kwargs):
-    # TODO calculate r2 score and such and return as data frame
-    #	metrics.explained_variance_score(y_true, …)	Explained variance regression score function
-    #	metrics.max_error(y_true, y_pred)	max_error metric calculates the maximum residual error.
-    #	metrics.mean_absolute_error(y_true, y_pred, *)	Mean absolute error regression loss
-    #	metrics.mean_squared_error(y_true, y_pred, *)	Mean squared error regression loss
-    #	metrics.mean_squared_log_error(y_true, y_pred, *)	Mean squared logarithmic error regression loss
-    #	metrics.median_absolute_error(y_true, y_pred, *)	Median absolute error regression loss
-    #	metrics.r2_score(y_true, y_pred, *[, …])	R^2 (coefficient of determination) regression score function.
-    #	metrics.mean_poisson_deviance(y_true, y_pred, *)	Mean Poisson deviance regression loss.
-    #	metrics.mean_gamma_deviance(y_true, y_pred, *)	Mean Gamma deviance regression loss.
-    #	metrics.mean_tweedie_deviance(y_true, y_pred, *)	Mean Tweedie deviance regression loss.
+    rm = metrics._regression
 
-    pass
+    def score_regression(df):
+        y_true = df[LABEL_COLUMN_NAME]._.values
+        y_pred = df[PREDICTION_COLUMN_NAME]._.values
+        sample_weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
+        scores = defaultdict(lambda: [])
 
+        for scorer in rm.__ALL__:
+            try:
+                score = call_callable_dynamic_args(rm.__dict__[scorer], y_true, y_pred, sample_weight=sample_weights)
+                scores[scorer].append(score)
+            except Exception as e:
+                scores[scorer].append(str(e))
+
+        return pd.DataFrame(scores)
+
+    return score_regression(df) if not isinstance(df.index, pd.MultiIndex) else pd.concat(
+        [score_regression(df.loc[group]).add_multi_index(group, inplace=True, axis=0) for group in unique_level_rows(df)],
+        axis=0
+    )
 
 def df_classification_scores(df, model, **kwargs):
     # TODO calculate f1 score and such and return as data frame
