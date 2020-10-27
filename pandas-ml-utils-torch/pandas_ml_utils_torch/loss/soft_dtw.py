@@ -87,7 +87,7 @@ class SoftDTW(torch.nn.Module):
     return dist
 
   def forward(self, x, y):
-    assert x.ndim == y.ndim
+    assert x.ndim == y.ndim, f"{x.shape} != {y.shape}"
     squeeze = False
     if x.ndim < 3:
       x = x.unsqueeze(0)

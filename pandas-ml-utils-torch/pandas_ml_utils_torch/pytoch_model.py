@@ -95,7 +95,7 @@ class _PytorchModeBase(Model):
 
         with t.no_grad():
             y_pred = module(from_pandas(x, cuda))
-            w = from_pandas(weight, cuda, t.ones(y_pred.shape[0]))
+            w = from_pandas(weight, cuda, t.ones(y_true.shape[0]))
             y_true = from_pandas(y_true, cuda)
             return self._calc_weighted_loss(criterion, y_pred, y_true, w).cpu().item()
 
@@ -180,6 +180,7 @@ class PytorchModel(_PytorchModeBase):
                          restore_best_weights, use_same_model_for_cv, callbacks, **kwargs)
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+        self.module = self.module.eval()
         return self._predict(features, self._labels_columns, samples, **kwargs)
 
 
@@ -194,12 +195,15 @@ class PytorchAutoEncoderModel(_PytorchModeBase, AutoEncoderModel):
                          restore_best_weights, use_same_model_for_cv, callbacks, **kwargs)
 
     def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        self.module = self.module.eval()
         return self._predict(features, self._labels_columns, samples, **kwargs)
 
     def _encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        self.module = self.module.eval()
         return self._predict(features, self._features_and_labels.latent_names, samples, **kwargs)
 
     def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        self.module = self.module.eval()
         return self._predict(latent_features,  self._labels_columns, samples, **kwargs)
 
 

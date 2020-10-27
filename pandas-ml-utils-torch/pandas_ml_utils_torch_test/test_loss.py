@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.optim import Adam
 
 from pandas_ml_utils import FeaturesAndLabels
-from pandas_ml_utils_torch import PytorchModel
+from pandas_ml_utils_torch import PytorchModel, PytorchNN
 from pandas_ml_utils import pd, np
 from pandas_ml_common.sampling import naive_splitter
 from pandas_ml_utils_torch.loss import MultiObjectiveLoss, RegularizedLoss
@@ -27,7 +27,7 @@ class TestLoss(TestCase):
             [1, 1, 1],
         ]), columns=["f1", "f2", "l"])
 
-        class XorModule(nn.Module):
+        class XorModule(PytorchNN):
 
             def __init__(self):
                 super().__init__()
@@ -37,11 +37,12 @@ class TestLoss(TestCase):
                 self.s2 = nn.Sigmoid()
                 self.s = nn.Softmax()
 
-            def forward(self, x):
-                if self.training:
-                    return self.s1(self.x1(x)), self.s2(self.x2(x))
-                else:
-                    return self.s1(self.x1(x))
+            def forward_training(self, x):
+                return self.s1(self.x1(x)), self.s2(self.x2(x))
+
+            def forward_predict(self, x):
+                return self.s1(self.x1(x))
+
 
         fit = df.model.fit(
             PytorchModel(

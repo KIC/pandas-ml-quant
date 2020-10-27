@@ -9,7 +9,7 @@ from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_common import np
 from pandas_ml_common_test.config import TEST_DF
 from pandas_ml_utils import PostProcessedFeaturesAndLabels
-from pandas_ml_utils_torch import PytorchModel, PytorchNN
+from pandas_ml_utils_torch import PytorchAutoEncoderModel, PytorchNN
 from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, DifferentiableArgmax
 
 
@@ -112,7 +112,7 @@ class TestCustomLoss(TestCase):
                 x, _ = self._encoder(x, hidden_encoder)
                 x = t.repeat_interleave(x[:,-2:-1], x.shape[1], dim=1)
                 x, hidden = self._decoder(x, hidden_decoder)
-                return x
+                return x.squeeze()
 
             def encode(self, x):
                 x = x.reshape(-1, self.seq_size, self.input_size)
@@ -134,7 +134,7 @@ class TestCustomLoss(TestCase):
                         t.zeros(self.num_layers * self.num_directions, batch_size, self.input_size))
                     return self._decoder(x.float(), hidden)[0]
 
-        model = PytorchModel(
+        model = PytorchAutoEncoderModel(
             PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
                                            df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
                                            ["condensed-a", "condensed-b"]),
