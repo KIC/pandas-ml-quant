@@ -191,6 +191,18 @@ def df_tail(df, model, **kwargs):
 
 def df_regression_scores(df, model, **kwargs):
     rm = metrics._regression
+    ALL = [
+        "max_error",
+        "mean_absolute_error",
+        "mean_squared_error",
+        "mean_squared_log_error",
+        "median_absolute_error",
+        "mean_tweedie_deviance",
+        "mean_poisson_deviance",
+        "r2_score",
+        "explained_variance_score",
+        "mean_gamma_deviance",
+    ]
 
     def score_regression(df):
         y_true = df[LABEL_COLUMN_NAME]._.values
@@ -198,7 +210,7 @@ def df_regression_scores(df, model, **kwargs):
         sample_weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
         scores = defaultdict(lambda: [])
 
-        for scorer in rm.__ALL__:
+        for scorer in ALL:
             try:
                 score = call_callable_dynamic_args(rm.__dict__[scorer], y_true, y_pred, sample_weight=sample_weights)
                 scores[scorer].append(score)
