@@ -59,20 +59,32 @@ class TestLoss(TestCase):
         print(fit.test_summary.df)
 
     def test_regularized_loss(self):
+        df = pd.DataFrame({"f": np.random.random(20), "l": np.random.random(20)})
 
-        class TestModel(nn.Module):
+        class TestModel(PytorchNN):
 
             def __init__(self):
                 super().__init__()
                 self.net = nn.Sequential(
+                    nn.Linear(1, 10),
+                    nn.ReLU(),
                     RegularizedLayer(nn.Linear(10, 2)),
-                    nn.ReLU()
+                    nn.ReLU(),
+                    nn.Linear(2, 1),
+                    nn.Sigmoid()
                 )
 
-            def forward(self, x):
+            def forward_training(self, x):
                 return self.net(x)
 
-        m = TestModel()
-        RegularizedLoss(m.parameters(), nn.MSELoss(reduction='none'))
+        fit = df.model.fit(
+            PytorchModel(
+                FeaturesAndLabels(["f"], ["l"]),
+                TestModel,
+                lambda params: RegularizedLoss(params, nn.MSELoss(reduction='none')),
+                Adam
+            ),
+            naive_splitter(0.5)
+        )
 
-        # FIXME allow PytorchModel loss with parameters
+        # assert no exception is thrown ;-)

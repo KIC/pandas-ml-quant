@@ -65,7 +65,8 @@ class _PytorchModeBase(Model):
         def init_new_module():
             cuda = self._cuda
             new_module = (module.cuda() if cuda else module.cpu()).train()
-            criterion = self.criterion_provider().cuda() if cuda else self.criterion_provider().cpu()
+            criterion = call_callable_dynamic_args(self.criterion_provider, module=new_module, params=new_module.named_parameters())
+            criterion = criterion.cuda() if cuda else criterion.cpu()
             optimizer = self.optimizer_provider(module.parameters())
             return new_module, criterion, optimizer
 
@@ -91,7 +92,8 @@ class _PytorchModeBase(Model):
     def calculate_loss(self, fold, x, y_true, weight) -> float:
         cuda = self._cuda
         module = self.module.cuda() if cuda else self.module.cpu()
-        criterion = self.criterion_provider().cuda() if cuda else self.criterion_provider().cpu()
+        criterion = call_callable_dynamic_args(self.criterion_provider, module=module, params=module.named_parameters())
+        criterion = criterion.cuda() if cuda else criterion.cpu()
 
         with t.no_grad():
             y_pred = module(from_pandas(x, cuda))

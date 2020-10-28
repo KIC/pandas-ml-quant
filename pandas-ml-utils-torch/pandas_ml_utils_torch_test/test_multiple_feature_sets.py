@@ -54,4 +54,4 @@ class TestMultiFeatureSet(TestCase):
         print(fl.features_with_required_samples.features)
 
 #        fit = df.model.fit(model)
-        # FIXME print(fit)
+        # FIXME multi feature models print(fit)

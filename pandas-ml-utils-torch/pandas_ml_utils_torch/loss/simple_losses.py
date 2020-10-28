@@ -77,10 +77,10 @@ class RegularizedLoss(nn.Module):
     def __init__(self, parameters, loss):
         super().__init__()
         self.loss = loss
-        # FIXME
+        # FIXME find tensors where we want to apply a penalty to
         self.l1_tensors = []
         self.l2_tensors = []
 
     def forward(self, y_pred, y_true):
         # TODO loss = loss + lambda * t.norm(l1_weights, dim=1, p=1) + delta * t.norm(l1_weights, dim=1, p=2) ** 2
-        return self.loss(y_pred, y_true) + 0  # FIXME
+        return self.loss(y_pred, y_true) + 0  # FIXME implement loss term from the book
