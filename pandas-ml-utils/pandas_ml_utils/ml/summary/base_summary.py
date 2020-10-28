@@ -51,6 +51,7 @@ class Summary(object):
                 table.pop()
 
             self.layout = table
+            self.laypout_nr_columns = grid.shape[1]
         else:
             self.layout = None
 
@@ -67,7 +68,7 @@ class Summary(object):
         figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_()) for f in figures]
 
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
-        return template.render(summary=self, figures=figures, layout=self.layout)
+        return template.render(summary=self, figures=figures, layout=self.layout, laypout_nr_columns=self.laypout_nr_columns)
 
 
 class RegressionSummary(Summary):
@@ -77,14 +78,12 @@ class RegressionSummary(Summary):
             df,
             model,
             plot_true_pred_scatter,
+            df_regression_scores,
             df_tail,
-            layout=[[0, -1], [1, 1]],
+            layout=[[0, 1],
+                    [2, 2]],
             **kwargs
         )
-        # TODO we should also add some figures as table like r2 ...
-
-    def __str__(self):
-        return f"... to be implemented ... "  # return r2 and such
 
 
 class ClassificationSummary(Summary):

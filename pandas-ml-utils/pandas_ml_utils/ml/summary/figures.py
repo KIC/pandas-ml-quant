@@ -87,7 +87,7 @@ def plot_confusion_matrix(df, figsize=(6, 6), **kwargs):
     return fig
 
 
-def plot_feature_correlation(df, model=None, cmap='seismic', width=15, **kwargs):
+def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs):
     import matplotlib.pyplot as plt
 
     # extract features or use whole data frame
@@ -207,10 +207,38 @@ def df_regression_scores(df, model, **kwargs):
 
         return pd.DataFrame(scores)
 
-    return score_regression(df) if not isinstance(df.index, pd.MultiIndex) else pd.concat(
+    fig_df = score_regression(df) if not isinstance(df.index, pd.MultiIndex) else pd.concat(
         [score_regression(df.loc[group]).add_multi_index(group, inplace=True, axis=0) for group in unique_level_rows(df)],
         axis=0
     )
+
+    try:
+        # we try to apply styling for relative indicators if matplotlib is installed
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import to_hex
+        cmap = plt.get_cmap('RdYlGn')
+
+        def color_scaler(x, min, max, sign=1):
+            out = (0, 1) if sign > 0 else (1, 0)
+            try:
+                col_val = np.interp(x, (min, max), out)
+            except:
+                col_val = out[0]
+
+            return to_hex(cmap(col_val)) + "95"
+
+        return fig_df.T.style\
+            .apply(lambda x: [f"background-color: {color_scaler(x.item(), -1, 1)}"],
+                   subset=pd.IndexSlice["r2_score", :]) \
+            .apply(lambda x: [f"background-color: {color_scaler(x.item(), -1, 1)}"],
+                   subset=pd.IndexSlice["explained_variance_score", :]) \
+            .apply(lambda x: [f"background-color: {color_scaler(x.item(), 2, 0, -1)}"],
+                   subset=pd.IndexSlice["mean_gamma_deviance", :]) \
+            .set_precision(2)
+
+    except:
+        return fig_df.T
+
 
 def df_classification_scores(df, model, **kwargs):
     # TODO calculate f1 score and such and return as data frame

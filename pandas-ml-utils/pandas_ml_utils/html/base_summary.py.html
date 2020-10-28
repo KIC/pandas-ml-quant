@@ -6,7 +6,7 @@
             % for row in layout:
                 <tr class="no-border">
                     % for fig, rowspan, colspan in row:
-                        <td class="no-border" rowspan="${rowspan}" colspan="${colspan}">
+                        <td class="no-border va-top" rowspan="${rowspan}" colspan="${colspan}" width="${100 / laypout_nr_columns * colspan}%">
                             % if fig < 0:
                                 <br/>
                             % elif figures[fig][0] == 'img':
