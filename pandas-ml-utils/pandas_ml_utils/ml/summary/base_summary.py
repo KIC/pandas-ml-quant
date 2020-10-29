@@ -54,6 +54,7 @@ class Summary(object):
             self.laypout_nr_columns = grid.shape[1]
         else:
             self.layout = None
+            self.laypout_nr_columns = None
 
     @property
     def df(self):

@@ -11,7 +11,7 @@ import pandas as pd
 
 from pandas_ml_common import Typing, Sampler
 from pandas_ml_common.sampling.sampler import XYWeight
-from pandas_ml_common.utils import to_pandas, unique_level, merge_kwargs
+from pandas_ml_common.utils import to_pandas, unique_level, merge_kwargs, call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 
@@ -72,18 +72,20 @@ class Model(object):
     def summary_provider(self):
         return self._summary_provider
 
-    def fit(self, sampler: Sampler, early_stopping: int = None, verbose: int = 0, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+    def fit(self, sampler: Sampler, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         self.init_fit(**kwargs)
+        stopped_folds = set()
 
         sampler = sampler.with_callbacks(
             on_start=self._record_meta,
             on_fold=self.init_fold,
-            after_fold_epoch=partial(self._record_loss, early_stopping=early_stopping, verbose=verbose),
+            after_fold_epoch=partial(self._record_loss, callbacks=callbacks, verbose=verbose),
             after_epoch=self.merge_folds,
             after_end=self.finish_learning
         )
 
         for batch in sampler.sample_for_training():
+            if batch.fold in stopped_folds or -1 in stopped_folds: continue
             self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
 
         training_data = sampler.get_in_sample_features()
@@ -102,16 +104,17 @@ class Model(object):
             cross_validation, any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
         )
 
-    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], early_stopping, verbose):
+    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks):
         train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
         test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data]).mean()
         self._history["train", fold][(epoch, fold_epoch)] = train_loss
         self._history["test", fold][(epoch, fold_epoch)] = test_loss
 
         self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
-        # TODO ... implement global early stopping -> just throw StopIteraton
         if verbose > 0:
             print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
+
+        call_callable_dynamic_args(callbacks, epoch=epoch, fold=fold, fold_epoch=fold_epoch, loss=train_loss, val_loss=test_loss)
 
     def init_fit(self, **kwargs):
         pass

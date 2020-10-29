@@ -38,7 +38,7 @@ class _AbstractSkModel(Model):
         self._sk_fold_models = []
 
     def init_fold(self, epoch: int, fold: int):
-        i = 0 if not self.overwrite_folds else fold
+        i = 0 if self.overwrite_folds else fold
         if len(self._sk_fold_models) <= i:
             self._sk_fold_models.append(clone(self.sk_model))
         else:

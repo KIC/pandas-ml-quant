@@ -10,5 +10,5 @@ from pandas_ml_utils_test.config import DF_SUMMARY
 class TestFigures(TestCase):
 
     def test_regression_figures(self):
-        print(df_regression_scores(DF_SUMMARY, None))
-        self.assertFalse(df_regression_scores(DF_SUMMARY, None).isnull().values.any())
+        print(df_regression_scores(DF_SUMMARY, None, no_style=True))
+        self.assertFalse(df_regression_scores(DF_SUMMARY, None, no_style=True).isnull().values.any())

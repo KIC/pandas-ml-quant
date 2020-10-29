@@ -99,7 +99,9 @@ class DfModelPatch(object):
             batch_size: int = None,
             fold_epochs: int = 1,
             hyper_parameter_space: Dict = None,
-            silent: bool = False,
+            verbose: int = 0,
+            callbacks: Union[Callable, List[Callable]] = None,
+            fail_silent: bool = False,
             **kwargs
             ) -> Fit:
         df = self.df
@@ -121,6 +123,8 @@ class DfModelPatch(object):
                 fold_epochs=fold_epochs,
                 batch_size=batch_size
             ),
+            verbose,
+            callbacks,
             **kwargs
         )
 
@@ -145,7 +149,7 @@ class DfModelPatch(object):
                 **kwargs
             )
 
-        return call_silent(assemble_fit, lambda e: FitException(e, model)) if silent else assemble_fit()
+        return call_silent(assemble_fit, lambda e: FitException(e, model)) if fail_silent else assemble_fit()
 
     def backtest(self,
                  model: MlModel,

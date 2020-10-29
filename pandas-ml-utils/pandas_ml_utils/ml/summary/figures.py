@@ -185,7 +185,6 @@ def plot_feature_importance(df,
 
 
 def df_tail(df, model, **kwargs):
-    # TODO if multiindex row make sure each level 0 element gets printed
     return df.tail()
 
 
@@ -223,6 +222,9 @@ def df_regression_scores(df, model, **kwargs):
         [score_regression(df.loc[group]).add_multi_index(group, inplace=True, axis=0) for group in unique_level_rows(df)],
         axis=0
     )
+
+    if kwargs.get("no_style", False):
+        return fig_df.T
 
     try:
         # we try to apply styling for relative indicators if matplotlib is installed
