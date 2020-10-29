@@ -6,8 +6,9 @@ import numpy as np
 
 class EarlyStopping(object):
 
-    def __init__(self, patience: int = 0):
-        self.patiece = patience
+    def __init__(self, patience: int = 0, stop_all_folds: bool = False):
+        self.patience = patience
+        self.stop_all_folds = stop_all_folds
         self.last_best_losses = defaultdict(lambda: float('inf'))
         self.counts = defaultdict(lambda: 0)
         self.call_conter = 0
@@ -18,5 +19,8 @@ class EarlyStopping(object):
             self.last_best_losses[fold] = val_loss
         else:
             self.counts[fold] += 1
-            if self.counts[fold] > self.patiece:
-                raise StopIteration(fold)
+            if self.counts[fold] > self.patience:
+                if self.stop_all_folds:
+                    raise StopIteration()
+                else:
+                    raise StopIteration(fold)

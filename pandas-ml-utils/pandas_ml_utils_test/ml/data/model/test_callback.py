@@ -27,3 +27,4 @@ class TestCallBack(TestCase):
 
         """then not all epochs were executed"""
         self.assertLess(cb.call_conter, 50)
+        self.assertGreaterEqual(cb.call_conter, cb.patience)
