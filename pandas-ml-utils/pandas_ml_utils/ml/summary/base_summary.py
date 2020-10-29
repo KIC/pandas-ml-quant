@@ -60,6 +60,9 @@ class Summary(object):
     def df(self):
         return self._df
 
+    def __str__(self):
+        return str(self.df.groupby(level=0).tail(1)) if isinstance(self.df.index, pd.MultiIndex) else str(self.df.tail())
+
     def _repr_html_(self):
         from mako.template import Template
         from mako.lookup import TemplateLookup
@@ -85,6 +88,9 @@ class RegressionSummary(Summary):
                     [2, 2]],
             **kwargs
         )
+
+    def __str__(self):
+        return f"{self.args[1](self.df, model=self.model)}\n{super().__str__()}"
 
 
 class ClassificationSummary(Summary):
