@@ -83,9 +83,11 @@ class RegressionSummary(Summary):
             model,
             plot_true_pred_scatter,
             df_regression_scores,
+            plot_feature_importance,
             df_tail,
             layout=[[0, 1],
-                    [2, 2]],
+                    [2, 2],
+                    [3, 3]],
             **kwargs
         )
 
@@ -102,9 +104,11 @@ class ClassificationSummary(Summary):
             plot_confusion_matrix,
             plot_receiver_operating_characteristic,
             df_classification_scores,
+            plot_feature_importance,
             df_tail,
             layout=[[2, 0, 0, 1, 1],
-                    [3, 3, 3, 3, 3]],
+                    [3, 3, 3, 3, 3],
+                    [4, 4, 4, 4, 4]],
             **kwargs
         )
 

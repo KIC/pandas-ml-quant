@@ -125,66 +125,32 @@ def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs):
     return fig
 
 
-def plot_partial_dependence(df, model, **kwargs):
-    """
-    def __plot_acf(series, lags, figsize):
-    try:
-        from matplotlib import pyplot as plt
-        from statsmodels.graphics.tsaplots import plot_acf
+def plot_feature_importance(df, model, **kwargs):
+    import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(figsize=figsize)
-        fig.suptitle(series.name, fontsize=14)
+    mutation_steps = len(df) // 2
+    dff = df[FEATURE_COLUMN_NAME]
+    dfl = df[LABEL_COLUMN_NAME]
+    dfw = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
+    loss_star = model.calculate_loss(None, dff, dfl, dfw)
+    permuted_feature_loss = defaultdict(lambda: [])
 
-        plot_acf(series, lags=lags, ax=ax)
-        plt.show()
-    except:
-        return None
+    for col in dff.columns:
+        x = dff.copy()
+        x[col] = np.roll(x[col], mutation_steps)
+        loss = model.calculate_loss(None, x, dfl, dfw)
+        permuted_feature_loss[col].append(loss - loss_star)
 
-    :param df:
-    :param model:
-    :param kwargs:
-    :return:
-    """
-    raise NotImplemented
+    def sort_by_mean_error(item):
+        return np.array(item[1]).mean()
 
+    # more important features should cause a higher loss
+    permuted_feature_loss = {k: v for k, v in sorted(permuted_feature_loss.items(), key=sort_by_mean_error, reverse=True)}
 
-def plot_feature_importance(df,
-                       model,
-                       loss_function: Callable[[np.ndarray, np.ndarray, np.ndarray], float] = mean_squared_error,
-                       **kwargs):
-    from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
-    from pandas_ml_utils.ml.data.extraction import extract, extract_feature_labels_weights
-
-    frames: FeaturesWithLabels = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
-    features, labels, targets, weights, gross_loss, latent = frames
-
-    df_pred = df[PREDICTION_COLUMN_NAME]
-    df_true = df[LABEL_COLUMN_NAME]
-
-    loss_star = loss_function(df_pred.values, df_true.values, weights.values)
-    # TODO implement the algorithm
-    # for each feature  # FIXME how can we loop non lagged features? or should we just loop evey lag individually?
-    #    shuffled_features = df[features].copy()
-    #    do some shuffling
-    #      features[feature] = np.roll(features[feature], len(features[feature]) // 2)
-    #    sampler = Sampler(shuffled_features, labels, None, weights, None, None, splitter=None)
-    #     df_pred = model.predict(sampler)
-    #
-
-    #  loss = df.model[feature].predict(features)  # uuu here it gets tricky ... we need to bypass the feature
-    #                                              # extraction of the fitter
-    # plot(loss - loss_star)
-
-    # frames: FeaturesWithTargets = extract(model.features_and_labels, df, extract_features, **kwargs)
-    #
-    # if samples > 1:
-    #     print(f"draw {samples} samples")
-    #
-    # # features, labels, targets, weights, gross_loss, latent,
-    # sampler = Sampler(frames.features, None, frames.targets, None, None, frames.latent, splitter=None, epochs=samples)
-    # predictions = model.predict(sampler, **kwargs)
-
-    pass
+    fig, ax = plt.subplots(1, 1, figsize=(20, 6))
+    pd.DataFrame(permuted_feature_loss).plot.bar(ax=ax)
+    ax.set_title('Featureimportance')
+    return fig
 
 
 def df_tail(df, model, **kwargs):
@@ -218,7 +184,7 @@ def df_regression_scores(df, model, **kwargs):
                 scores[scorer].append(score)
             except Exception as e:
                 _log.warning(f"{scorer} failed: {e}")
-                scores[scorer].append(str(e))
+                scores[scorer].append(np.nan)
 
         return pd.DataFrame(scores)
 
@@ -295,7 +261,7 @@ def df_classification_scores(df, model, **kwargs):
                 scores[scorer].append(score)
             except Exception as e:
                 _log.warning(f"{scorer} failed: {e}")
-                scores[scorer].append(str(e))
+                scores[scorer].append(np.nan)
 
         for scorer in losses.keys():
             try:
@@ -303,6 +269,7 @@ def df_classification_scores(df, model, **kwargs):
                 scores[scorer].append(score)
             except Exception as e:
                 _log.warning(f"{scorer} failed: {e}")
+                scores[scorer].append(np.nan)
 
         return pd.DataFrame(scores)
 

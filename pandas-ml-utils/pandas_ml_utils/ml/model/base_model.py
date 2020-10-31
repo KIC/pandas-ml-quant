@@ -131,7 +131,7 @@ class Model(object):
         pass
 
     @abstractmethod
-    def calculate_loss(self, fold, x, y_true, weight) -> float:
+    def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
         raise NotImplemented
 
     @abstractmethod
@@ -139,7 +139,7 @@ class Model(object):
         raise NotImplemented
 
     @abstractmethod
-    def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples = 1, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     @abstractmethod

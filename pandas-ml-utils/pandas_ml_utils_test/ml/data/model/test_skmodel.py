@@ -6,7 +6,7 @@ from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, ClassificationSummary
+from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, ClassificationSummary, RegressionSummary
 from pandas_ml_utils_test.config import DF_NOTES
 
 
@@ -104,6 +104,7 @@ class TestSkModel(TestAbstractModel, TestCase):
         model = SkModel(
             MLPRegressor(1, learning_rate_init=0.01, solver='sgd', activation='identity', momentum=0, max_iter=1500, n_iter_no_change=500, nesterovs_momentum=False, shuffle=False, validation_fraction=0.0, random_state=42),
             features_and_labels,
+            summary_provider=RegressionSummary
         )
 
         return model

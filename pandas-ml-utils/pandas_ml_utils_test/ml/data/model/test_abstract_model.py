@@ -26,7 +26,8 @@ class TestAbstractModel(object):
         fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
         # fit.training_summary.df.to_pickle('/tmp/classifier.df')
-        print(fit._repr_html_())
+        # print(fit._repr_html_())
+
         """then we get a html summary and can predict"""
         self.assertIn('<style>', fit.training_summary._repr_html_())
 
@@ -171,6 +172,7 @@ class TestAbstractModel(object):
         prediction = df.model.predict(fit.model)
         print(fit)
         # fit.training_summary.df.to_pickle('/tmp/multi_index_row_summary.df')
+        print(fit._repr_html_())
 
         """then we get a prediction for A and B rows"""
         self.assertEqual(8, len(fit.training_summary.df))
