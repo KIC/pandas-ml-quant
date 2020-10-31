@@ -128,6 +128,9 @@ def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs):
 def plot_feature_importance(df, model, **kwargs):
     import matplotlib.pyplot as plt
 
+    if FEATURE_COLUMN_NAME not in df:
+        return f"DataFrame does not contain {FEATURE_COLUMN_NAME}!"
+
     mutation_steps = len(df) // 2
     dff = df[FEATURE_COLUMN_NAME]
     dfl = df[LABEL_COLUMN_NAME]

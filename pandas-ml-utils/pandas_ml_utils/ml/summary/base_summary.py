@@ -69,7 +69,7 @@ class Summary(object):
         plot = "<class 'matplotlib.figure.Figure'>"
 
         figures = [arg(self.df, model=self.model) for arg in self.args]
-        figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_()) for f in figures]
+        figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_() if hasattr(f, "_repr_html_") else str(f)) for f in figures]
 
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
         return template.render(summary=self, figures=figures, layout=self.layout, laypout_nr_columns=self.laypout_nr_columns)

@@ -14,7 +14,7 @@ class TestFigures(TestCase):
         self.assertFalse(df_regression_scores(DF_SUMMARY_REGRESSION, None, no_style=True).isnull().values.any())
 
     def test_classification_figures(self):
-        #print(df_classification_scores(DF_SUMMARY_CLASSIFICATION, None, no_style=True))
-        print(df_classification_scores(DF_SUMMARY_CLASSIFICATION, None)._repr_html_())
-        self.assertFalse(df_classification_scores(DF_SUMMARY_CLASSIFICATION, None, no_style=True).isnull().values.any())
+        print(df_classification_scores(DF_SUMMARY_CLASSIFICATION, None, no_style=True))
+        #print(df_classification_scores(DF_SUMMARY_CLASSIFICATION, None)._repr_html_())
+        self.assertNotEqual(df_classification_scores(DF_SUMMARY_CLASSIFICATION, None, no_style=True).max().item(), np.nan)
 

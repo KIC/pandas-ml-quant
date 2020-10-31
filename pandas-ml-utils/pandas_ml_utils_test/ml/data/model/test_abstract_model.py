@@ -172,7 +172,7 @@ class TestAbstractModel(object):
         prediction = df.model.predict(fit.model)
         print(fit)
         # fit.training_summary.df.to_pickle('/tmp/multi_index_row_summary.df')
-        print(fit._repr_html_())
+        # print(fit._repr_html_())
 
         """then we get a prediction for A and B rows"""
         self.assertEqual(8, len(fit.training_summary.df))
