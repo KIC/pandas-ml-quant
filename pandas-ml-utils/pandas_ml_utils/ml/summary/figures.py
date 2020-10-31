@@ -1,7 +1,8 @@
 from collections import defaultdict
 from collections import defaultdict
+from itertools import chain
 from typing import Callable
-
+import logging
 import numpy as np
 import pandas as pd
 from sklearn import metrics
@@ -10,6 +11,8 @@ from sklearn.metrics import roc_curve, auc, mean_squared_error
 from pandas_ml_common.utils import get_correlation_pairs, unique_level_rows, call_callable_dynamic_args
 from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
 from pandas_ml_utils.constants import *
+
+_log = logging.getLogger(__name__)
 
 
 def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1, **kwargs):
@@ -191,6 +194,9 @@ def df_tail(df, model, **kwargs):
 def df_regression_scores(df, model, **kwargs):
     rm = metrics._regression
     ALL = [
+        "r2_score",
+        "explained_variance_score",
+        "mean_gamma_deviance",
         "max_error",
         "mean_absolute_error",
         "mean_squared_error",
@@ -198,9 +204,6 @@ def df_regression_scores(df, model, **kwargs):
         "median_absolute_error",
         "mean_tweedie_deviance",
         "mean_poisson_deviance",
-        "r2_score",
-        "explained_variance_score",
-        "mean_gamma_deviance",
     ]
 
     def score_regression(df):
@@ -214,6 +217,7 @@ def df_regression_scores(df, model, **kwargs):
                 score = call_callable_dynamic_args(rm.__dict__[scorer], y_true, y_pred, sample_weight=sample_weights)
                 scores[scorer].append(score)
             except Exception as e:
+                _log.warning(f"{scorer} failed: {e}")
                 scores[scorer].append(str(e))
 
         return pd.DataFrame(scores)
@@ -255,34 +259,80 @@ def df_regression_scores(df, model, **kwargs):
 
 
 def df_classification_scores(df, model, **kwargs):
-    # TODO calculate f1 score and such and return as data frame
-    #  binary:
-    #   average_precision_score(y_true, y_score, *)     Compute average precision(AP) from prediction scores
-    #  multi class: Multiclass classification: classification task with more than two classes.
-    #  Each sample can only be labelled as one class.
-    #	balanced_accuracy_score(y_true, y_pred, *[, …])	Compute the balanced accuracy
-    #	cohen_kappa_score(y1, y2, *[, labels, …])	Cohen’s kappa: a statistic that measures inter-annotator agreement.
-    #	confusion_matrix(y_true, y_pred, *[, …])	Compute confusion matrix to evaluate the accuracy of a classification.
-    #	hinge_loss(y_true, pred_decision, *[, …])	Average hinge loss (non-regularized)
-    #	matthews_corrcoef(y_true, y_pred, *[, …])	Compute the Matthews correlation coefficient (MCC)
-    #	roc_auc_score(y_true, y_score, *[, average, …])	Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores.
+    class_scores = {  # [worst, best]
+        "balanced_accuracy_score":  [0, 1],
+        "cohen_kappa_score":    [0, 1],
+        "matthews_corrcoef":    [0, 1],
+        "f1_score": [0, 1],
+        "jaccard_score":    [0, 1],
+        "precision_score":  [0, 1],
+        "recall_score": [0, 1],
+        "accuracy_score":   [0, 1],
+    }
+    losses = {
+        "roc_auc_score": [0.5, 1],
+        "zero_one_loss": None,
+        "hinge_loss": None,
+        "log_loss": None,
+        "hamming_loss": None,
+    }
 
-    #  Multilabel classification: classification task labelling each sample with x labels from n_classes possible
-    #  classes, where x can be 0 to n_classes inclusive. This can be thought of as predicting properties of a sample
-    #  that are not mutually exclusive.
-    #	accuracy_score(y_true, y_pred, *[, …])	Accuracy classification score.
-    #	classification_report(y_true, y_pred, *[, …])	Build a text report showing the main classification metrics.
-    #	f1_score(y_true, y_pred, *[, labels, …])	Compute the F1 score, also known as balanced F-score or F-measure
-    #	fbeta_score(y_true, y_pred, *, beta[, …])	Compute the F-beta score
-    #	hamming_loss(y_true, y_pred, *[, sample_weight])	Compute the average Hamming loss.
-    #	jaccard_score(y_true, y_pred, *[, labels, …])	Jaccard similarity coefficient score
-    #	log_loss(y_true, y_pred, *[, eps, …])	Log loss, aka logistic loss or cross-entropy loss.
-    #	multilabel_confusion_matrix(y_true, y_pred, *)	Compute a confusion matrix for each class or sample
-    #	precision_recall_fscore_support(y_true, …)	Compute precision, recall, F-measure and support for each class
-    #	precision_score(y_true, y_pred, *[, labels, …])	Compute the precision
-    #	recall_score(y_true, y_pred, *[, labels, …])	Compute the recall
-    #	roc_auc_score(y_true, y_score, *[, average, …])	Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores.
-    #	zero_one_loss(y_true, y_pred, *[, …])	Zero-one classification loss.
+    def score_classification(df):
+        y_true = df[LABEL_COLUMN_NAME]._.values
+        y_pred = df[PREDICTION_COLUMN_NAME]._.values
+        sample_weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
+        scores = defaultdict(lambda: [])
 
-    pass
+        y_true_class = np.argmax(y_true, axis=1) if y_true.ndim > 1 and y_true.shape[1] > 1 else y_true
+        y_pred_class = np.argmax(y_pred, axis=1) if y_pred.ndim > 1 and y_pred.shape[1] > 1 else y_pred > 0.5
+
+        for scorer in class_scores.keys():
+            try:
+                score = call_callable_dynamic_args(metrics.__dict__[scorer], y_true_class, y_pred_class, sample_weight=sample_weights)
+                if scorer == 'log_loss' and y_pred.ndim > 1:
+                    score /= np.log(y_pred.shape[1])
+
+                scores[scorer].append(score)
+            except Exception as e:
+                _log.warning(f"{scorer} failed: {e}")
+                scores[scorer].append(str(e))
+
+        for scorer in losses.keys():
+            try:
+                score = call_callable_dynamic_args(metrics.__dict__[scorer], y_true_class, y_pred, sample_weight=sample_weights)
+                scores[scorer].append(score)
+            except Exception as e:
+                _log.warning(f"{scorer} failed: {e}")
+
+        return pd.DataFrame(scores)
+
+    fig_df = score_classification(df) if not isinstance(df.index, pd.MultiIndex) else pd.concat(
+        [score_classification(df.loc[group]).add_multi_index(group, inplace=True, axis=0) for group in unique_level_rows(df)],
+        axis=0
+    )
+
+    if kwargs.get("no_style", False):
+        return fig_df.T
+
+    try:
+        # we try to apply styling for relative indicators if matplotlib is installed
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import to_hex
+        cmap = plt.get_cmap('RdYlGn')
+
+        def color_scaler(x, min, max):
+            col_val = np.interp(x, (min, max), (0, 1))
+            return to_hex(cmap(col_val)) + "95"
+
+        styled = fig_df.T.style.set_precision(2)
+        for scorer, domain in chain(class_scores.items(), losses.items()):
+            if domain is None:
+                continue
+            styled = styled.apply(lambda x, d=domain: [f"background-color: {color_scaler(x.item(), *d)}"],
+                                  subset=pd.IndexSlice[scorer, :])
+
+        return styled
+    except Exception as e:
+        return fig_df.T
+
 

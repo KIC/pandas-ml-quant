@@ -25,7 +25,8 @@ class TestAbstractModel(object):
         batch_size, epochs = self.provide_batch_size_and_epoch()
         fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
-
+        # fit.training_summary.df.to_pickle('/tmp/classifier.df')
+        print(fit._repr_html_())
         """then we get a html summary and can predict"""
         self.assertIn('<style>', fit.training_summary._repr_html_())
 

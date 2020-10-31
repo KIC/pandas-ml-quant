@@ -39,7 +39,7 @@ class Summary(object):
                 if j > 0:
                     if grid[i, j-1] == grid[i, j]:
                         # colspan += 1
-                        cell = table[i][j-1]
+                        cell = table[i][-1]
                         table[i][-1] = Summary.Cell(cell.index, cell.rowspan, cell.colspan + 1)
                     else:
                         table[i].append(Summary.Cell(grid[i, j], 1, 1))
@@ -101,11 +101,12 @@ class ClassificationSummary(Summary):
             model,
             plot_confusion_matrix,
             plot_receiver_operating_characteristic,
+            df_classification_scores,
             df_tail,
-            layout=[[0, 1], [2, 2]],
+            layout=[[2, 0, 0, 1, 1],
+                    [3, 3, 3, 3, 3]],
             **kwargs
         )
-        # TODO we should also add some figures as table like f1 ...
 
     def __str__(self):
         from mlxtend.evaluate import confusion_matrix

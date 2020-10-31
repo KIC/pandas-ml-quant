@@ -6,7 +6,7 @@ from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels
+from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, ClassificationSummary
 from pandas_ml_utils_test.config import DF_NOTES
 
 
@@ -95,6 +95,7 @@ class TestSkModel(TestAbstractModel, TestCase):
         model = SkModel(
             MLPClassifier(activation='logistic', max_iter=1000, hidden_layer_sizes=(3,), alpha=0.001, solver='lbfgs', random_state=42),
             features_and_labels,
+            summary_provider=ClassificationSummary
         )
 
         return model
