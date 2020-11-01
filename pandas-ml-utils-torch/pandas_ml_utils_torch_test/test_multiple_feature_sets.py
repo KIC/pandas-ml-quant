@@ -7,13 +7,14 @@ from torch.optim import Adam
 from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_utils import pd
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
-from pandas_ml_utils_torch import PytorchModel
+from pandas_ml_utils_torch import PytorchModel, PytorchNN
 from pandas_ml_utils import FeaturesAndLabels
+import torch as t
+import numpy as np
 
 
 class TestMultiFeatureSet(TestCase):
 
-    @unittest.skip("implement later for RL cases")
     def test_pytorch_mfs(self):
         df = pd.DataFrame({
             "a": [1, 0, 1, 0, 1, 0, 1, 0,],
@@ -22,20 +23,26 @@ class TestMultiFeatureSet(TestCase):
         })
 
         def module_provider():
-            class ClassificationModule(nn.Module):
+            class ClassificationModule(PytorchNN):
 
                 def __init__(self):
                     super().__init__()
-                    self.classifier = nn.Sequential(
+                    self.net0 = nn.Sequential(
+                        nn.Linear(1, 5),
+                        nn.ReLU(),
+                        nn.Linear(5, 1),
+                        nn.Sigmoid()
+                    )
+                    self.net1 = nn.Sequential(
                         nn.Linear(2, 5),
                         nn.ReLU(),
                         nn.Linear(5, 1),
                         nn.Sigmoid()
                     )
 
-                def forward(self, x):
-                    x = self.classifier(x)
-                    return x
+                def forward_training(self, x) -> t.Tensor:
+                    x0, x1 = x
+                    return self.net0(x0) + self.net1(x1)
 
             return ClassificationModule()
 
@@ -53,5 +60,6 @@ class TestMultiFeatureSet(TestCase):
         self.assertIsInstance(fl.features_with_required_samples.features, MultiFrameDecorator)
         print(fl.features_with_required_samples.features)
 
-#        fit = df.model.fit(model)
-        # FIXME multi feature models print(fit)
+        fit = df.model.fit(model, fold_epochs=10)
+        print(fit.test_summary.df)
+        np.testing.assert_almost_equal(np.array([0, 0, 1]), fit.test_summary.df["label"].values.squeeze())

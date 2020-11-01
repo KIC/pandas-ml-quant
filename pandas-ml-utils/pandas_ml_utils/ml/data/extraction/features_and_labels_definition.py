@@ -23,7 +23,7 @@ class FeaturesAndLabels(object):
     """
 
     def __init__(self,
-                 features: Union[Typing._Selector,Tuple[Typing._Selector]],
+                 features: Union[Typing._Selector, Tuple[Typing._Selector]],
                  labels: Typing._Selector = [],
                  latent: Typing._Selector = None,
                  latent_names: List[str] = None,

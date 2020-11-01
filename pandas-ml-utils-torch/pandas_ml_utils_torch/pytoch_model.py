@@ -167,6 +167,7 @@ class _PytorchModeBase(Model):
         if module_state_dict is not None:
             self.module.load_state_dict(module_state_dict)
 
+
 class PytorchModel(_PytorchModeBase):
 
     def __init__(self, features_and_labels: FeaturesAndLabels, module_provider: Type[PytorchNN],

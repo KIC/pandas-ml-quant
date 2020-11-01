@@ -82,7 +82,7 @@ class TestLoss(TestCase):
 
             def L2(self) -> Dict[str, float]:
                 return {
-                    '**/2/**/weight': 999999999.99
+                    '**/2/**/weight': 99999999999.99
                 }
 
         fit = df.model.fit(

@@ -1,18 +1,22 @@
 import sys
 from collections import namedtuple
 from copy import deepcopy
-from typing import Callable, Dict
+from typing import Callable, Dict, Tuple, Union
 
 import pandas as pd
 import torch as t
 from wcmatch import glob
 
+from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common.utils import unpack_nested_arrays, call_callable_dynamic_args
 
 
-def from_pandas(df: pd.DataFrame, cuda: bool = False, default: t.Tensor = None) -> t.Tensor:
+def from_pandas(df: pd.DataFrame, cuda: bool = False, default: t.Tensor = None) -> Union[t.Tensor, Tuple[t.Tensor, ...]]:
     if df is None and default is None:
         return None
+
+    if isinstance(df, MultiFrameDecorator):
+        return tuple([from_pandas(f, cuda, default) for f in df.frames()])
 
     val = (t.from_numpy(unpack_nested_arrays(df, split_multi_index_rows=False)) if df is not None else default).float()
     return val.cuda() if cuda else val.cpu()
@@ -78,7 +82,7 @@ class FittingContext(object):
             if self.l2_penalty_tensors is None:
                 return t.zeros(1)
 
-            return t.stack([penalty * tensor.norm(p=2) for tensor, penalty in self.l2_penalty_tensors.items()]).sum()
+            return t.stack([penalty * tensor.norm(p=2) ** 2 for tensor, penalty in self.l2_penalty_tensors.items()]).sum()
 
         @property
         def criterion_l1_l2(self):
