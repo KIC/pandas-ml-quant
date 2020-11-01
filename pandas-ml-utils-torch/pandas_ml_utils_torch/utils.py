@@ -78,7 +78,7 @@ class FittingContext(object):
             if self.l2_penalty_tensors is None:
                 return t.zeros(1)
 
-            return t.stack([penalty * tensor.norm(p=2) ** 2 for tensor, penalty in self.l2_penalty_tensors.items()]).sum()
+            return t.stack([penalty * tensor.norm(p=2) for tensor, penalty in self.l2_penalty_tensors.items()]).sum()
 
         @property
         def criterion_l1_l2(self):
