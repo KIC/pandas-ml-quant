@@ -61,16 +61,12 @@ class _PytorchModeBase(Model):
 
     def init_fold(self, epoch: int, fold: int):
         module = self.module_provider if self.module is None else deepcopy(self.module)
-
-        def init_new_module():
-            cuda = self._cuda
-            new_module = (module.cuda() if cuda else module.cpu()).train()
-            criterion = call_callable_dynamic_args(self.criterion_provider, module=new_module, params=new_module.named_parameters())
-            criterion = criterion.cuda() if cuda else criterion.cpu()
-            optimizer = self.optimizer_provider(module.parameters())
-            return new_module, criterion, optimizer
-
-        self._fitting_context.init_if_not_exists(fold, init_new_module)
+        self._fitting_context.init_if_not_exists(fold, lambda: FittingContext.FoldContext(
+            module,
+            self.criterion_provider,
+            self.optimizer_provider,
+            self._cuda
+        ))
 
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
         cuda = self._cuda
@@ -92,17 +88,16 @@ class _PytorchModeBase(Model):
     def calculate_loss(self, fold, x, y_true, weight) -> float:
         cuda = self._cuda
         module = self.module.cuda() if cuda else self.module.cpu()
-        criterion = call_callable_dynamic_args(self.criterion_provider, module=module, params=module.named_parameters())
-        criterion = criterion.cuda() if cuda else criterion.cpu()
+        ctx = FittingContext.FoldContext(module, self.criterion_provider, lambda p: None, self._cuda)
 
         with t.no_grad():
             y_pred = module(from_pandas(x, cuda))
             w = from_pandas(weight, cuda, t.ones(y_true.shape[0]))
             y_true = from_pandas(y_true, cuda)
-            return self._calc_weighted_loss(criterion, y_pred, y_true, w).cpu().item()
+            return self._calc_weighted_loss(ctx.criterion_l1_l2, y_pred, y_true, w).cpu().item()
 
     def _calc_weighted_loss(self, criterion, y_hat, y, weights):
-        loss = criterion(y_hat, y)
+        loss = criterion.loss_function(y_hat, y) + criterion.l1 + criterion.l2
 
         if loss.ndim > 0:
             if loss.ndim == weights.ndim:
@@ -127,6 +122,7 @@ class _PytorchModeBase(Model):
 
         # TODO implement cross folding, like: "take the best", "average them all", "average all weighted", ... what so ever ...
         self.module = self._fitting_context.get_module(0)[0]
+        self._fitting_context = FittingContext(self._override_cv_model)
 
     def _predict(self, features: pd.DataFrame, col_names, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         cuda = kwargs.get("cuda", False)
@@ -226,15 +222,20 @@ class PytorchNN(nn.Module):
                 return self.forward_predict(*input)
 
     @abstractmethod
-    def forward_training(self, *input):
+    def forward_training(self, *input) -> t.Tensor:
         pass
 
-    def forward_predict(self, *input):
+    def forward_predict(self, *input) -> t.Tensor:
         return self.forward_training(*input)
 
-    def encode(self, *input):
+    def encode(self, *input) -> t.Tensor:
         raise NotImplementedError("For autoencoders the methods `encode` and `decode` need to be implemented!")
 
-    def decode(self, *input):
+    def decode(self, *input) -> t.Tensor:
         raise NotImplementedError("For autoencoders the methods `encode` and `decode` need to be implemented!")
 
+    def L1(self) -> Dict[str, float]:
+        return {}
+
+    def L2(self) -> Dict[str, float]:
+        return {}

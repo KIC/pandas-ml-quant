@@ -1,3 +1,4 @@
+from typing import Dict
 from unittest import TestCase
 
 import torch.nn as nn
@@ -7,8 +8,7 @@ from pandas_ml_utils import FeaturesAndLabels
 from pandas_ml_utils_torch import PytorchModel, PytorchNN
 from pandas_ml_utils import pd, np
 from pandas_ml_common.sampling import naive_splitter
-from pandas_ml_utils_torch.loss import MultiObjectiveLoss, RegularizedLoss
-from pandas_ml_utils_torch.layers import RegularizedLayer
+from pandas_ml_utils_torch.loss import MultiObjectiveLoss
 
 
 class TestLoss(TestCase):
@@ -59,16 +59,19 @@ class TestLoss(TestCase):
         print(fit.test_summary.df)
 
     def test_regularized_loss(self):
-        df = pd.DataFrame({"f": np.random.random(20), "l": np.random.random(20)})
+        df = pd.DataFrame({
+            "f": np.sin(np.linspace(0, 12, 40)),
+            "l": np.sin(np.linspace(5, 17, 40))
+        })
 
         class TestModel(PytorchNN):
 
             def __init__(self):
                 super().__init__()
                 self.net = nn.Sequential(
-                    nn.Linear(1, 10),
+                    nn.Linear(1, 3),
                     nn.ReLU(),
-                    RegularizedLayer(nn.Linear(10, 2)),
+                    nn.Linear(3, 2),
                     nn.ReLU(),
                     nn.Linear(2, 1),
                     nn.Sigmoid()
@@ -77,14 +80,23 @@ class TestLoss(TestCase):
             def forward_training(self, x):
                 return self.net(x)
 
+            def L2(self) -> Dict[str, float]:
+                return {
+                    '**/2/**/weight': 999999999999.99
+                }
+
         fit = df.model.fit(
             PytorchModel(
                 FeaturesAndLabels(["f"], ["l"]),
                 TestModel,
-                lambda params: RegularizedLoss(params, nn.MSELoss(reduction='none')),
+                nn.MSELoss,
                 Adam
             ),
-            naive_splitter(0.5)
+            naive_splitter(0.5),
+            fold_epochs=1000
         )
 
-        # assert no exception is thrown ;-)
+        print(fit.model.module.net[2].weight.detach().numpy())
+        print(fit.model.module.net[2].weight.norm().detach().item())
+        self.assertLess(fit.model.module.net[2].weight.norm().detach().item(), 0.1)
+

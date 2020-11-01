@@ -89,26 +89,3 @@ class Time2Vec(nn.Module):
         sin_trans = t.sin((x @ self.W) + self.B)
         return t.cat([sin_trans, original], -1)
 
-
-class RegularizedLayer(nn.Module):
-
-    def __init__(self, regularized_module, l1=0, l2=0, has_bias=None):
-        super().__init__()
-        self.rm = regularized_module
-        self.l1 = l1
-        self.l2 = l2
-
-        # tag parameters to be penalized
-        parameters = list(regularized_module.parameters())
-        if has_bias is None:
-            has_bias = hasattr(regularized_module, 'bias') and isinstance(regularized_module.bias, t.Tensor)
-
-        if has_bias:
-            parameters = parameters[:-int(has_bias)]
-
-        for p in parameters:
-            p._regularizers = {"l1": l1, "l2": l2}
-
-    def forward(self, x):
-        return self.rm(x)
-
