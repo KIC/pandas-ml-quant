@@ -6,7 +6,7 @@ import torch.nn as nn
 from pandas_ml_common import np
 from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_utils_test.config import DF_TEST
-from pandas_ml_utils_torch.layers import KerasLikeLSTM, RegularizedLayer, Time2Vec
+from pandas_ml_utils_torch.layers import KerasLikeLSTM, Time2Vec
 
 
 class TestPytorchLayer(TestCase):
@@ -18,22 +18,6 @@ class TestPytorchLayer(TestCase):
 
         self.assertEqual((1, 2), lstm(data).shape)
         self.assertEqual((1, 10, 2), lstm2(data).shape)
-
-    def test_regularizer_wrapper(self):
-        m = nn.Sequential(
-            nn.Linear(10, 2),
-            nn.ReLU(),
-            RegularizedLayer(nn.Linear(2, 1), 0.01),
-            nn.ReLU(),
-            nn.Linear(2, 55, bias=False),
-        )
-
-        # print(list(m.parameters()))
-        regularized = [p for p in m.parameters() if hasattr(p, "_regularizers")]
-        print(regularized)
-
-        self.assertEqual(len(list(m.parameters())), 5)
-        self.assertEqual(len(regularized), 1)
 
     def test_time2vec(self):
         df = DF_TEST.copy()

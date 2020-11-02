@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import naive_splitter, random_splitter
+from pandas_ml_common import naive_splitter, random_splitter, stratified_random_splitter
 from pandas_ml_utils import FeaturesAndLabels, SkModel
 from pandas_ml_utils.constants import *
 from pandas_ml_utils_test.config import DF_NOTES
@@ -25,7 +25,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            naive_splitter()
+            stratified_random_splitter()
         )
 
         print(fit)
@@ -85,7 +85,7 @@ class TestModel(TestCase):
                     label_type=bool
                 )
             ),
-            naive_splitter()
+            stratified_random_splitter()
         )
 
         # should not thro an error
@@ -93,9 +93,7 @@ class TestModel(TestCase):
 
         # fit resulting columns
         print(fit.test_summary.df)
-        self.assertEqual(int(len(df) * 0.7), len(fit.training_summary.df))
-        self.assertEqual(len(df) - int(len(df) * 0.7), len(fit.test_summary.df))
-        # FIXME expect gross_loss and weights as well
+        self.assertIn(GROSS_LOSS_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(FEATURE_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(LABEL_COLUMN_NAME, fit.training_summary.df)
         self.assertIn(TARGET_COLUMN_NAME, fit.training_summary.df)
@@ -111,10 +109,11 @@ class TestModel(TestCase):
         self.assertIn(TARGET_COLUMN_NAME, prediction)
 
         # backtest resulting columns
-        # FIXME expect gross_loss and weights as well
         backtest = df.model.backtest(fit.model)
         print(backtest.df)
+
         self.assertEqual(len(df), len(backtest.df))
         self.assertIn(FEATURE_COLUMN_NAME, backtest.df)
         self.assertIn(LABEL_COLUMN_NAME, backtest.df)
         self.assertIn(TARGET_COLUMN_NAME, backtest.df)
+        self.assertIn(GROSS_LOSS_COLUMN_NAME, backtest.df)

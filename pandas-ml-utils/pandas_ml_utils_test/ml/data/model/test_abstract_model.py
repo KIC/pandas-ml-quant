@@ -1,6 +1,7 @@
 import os
 import tempfile
 import uuid
+from typing import Tuple
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter
 from pandas_ml_utils import FeaturesAndLabels, Model
@@ -21,8 +22,11 @@ class TestAbstractModel(object):
         model = self.provide_classification_model(FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int))
 
         """when we fit the model"""
-        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=1700)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
+        # fit.training_summary.df.to_pickle('/tmp/classifier.df')
+        # print(fit._repr_html_())
 
         """then we get a html summary and can predict"""
         self.assertIn('<style>', fit.training_summary._repr_html_())
@@ -51,9 +55,11 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=800)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
-        self.assertLess(len(fit.training_summary.df), len(df))
+        self.assertEqual(4, len(fit.training_summary.df))
+        self.assertEqual(2, len(fit.test_summary.df))
 
         """then we can predict"""
         prediction = df.model.predict(fit.model)
@@ -83,23 +89,27 @@ class TestAbstractModel(object):
 
         """and some toy classification data"""
         df = pd.DataFrame({
-            "a": [1, 0, 1, 0, ],
-            "b": [0, 1, 0, 1, ],
+            "a": [1, 0] * 10,
+            "b": [0, 1] * 10,
         })
 
         """when we fit the model"""
-        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, epochs=500)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
 
-        """then we can encoder"""
+        """then we can predict Autoencoded"""
+        auto_encoded_prediction = df.model.predict(fit.model)
+        self.assertEqual((20, 2), auto_encoded_prediction["prediction"].shape)
+
+        """and we can encoder"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
-        self.assertEqual((4, 1), encoded_prediction["prediction"].shape)
+        self.assertEqual((20, 1), encoded_prediction["prediction"].shape)
 
         """and we can decoder"""
         decoded_prediction = encoded_prediction["prediction"].model.predict(fit.model.as_decoder())
         print(decoded_prediction)
-        np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values[:2], fit.training_summary.df["prediction"].values, 1)
         np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5, df[["a", "b"]].values)
 
         """and we can encoder and decode after safe and load"""
@@ -138,7 +148,8 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, random_splitter(0.3), verbose=0, batch_size=batch_size, epochs=epochs)
         print(fit.training_summary.df)
 
         """then we can predict"""
@@ -156,8 +167,12 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, random_splitter(0.3, partition_row_multi_index=True), verbose=0, batch_size=batch_size, epochs=epochs)
         prediction = df.model.predict(fit.model)
+        print(fit)
+        # fit.training_summary.df.to_pickle('/tmp/multi_index_row_summary.df')
+        # print(fit._repr_html_())
 
         """then we get a prediction for A and B rows"""
         self.assertEqual(8, len(fit.training_summary.df))
@@ -183,15 +198,16 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, epochs=500)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, random_splitter(0.3, partition_row_multi_index=True), verbose=0, batch_size=batch_size, epochs=epochs)
 
         self.assertEqual(8, len(fit.training_summary.df))
         self.assertEqual(4, len(fit.test_summary.df))
 
         prediction = df.model.predict(fit.model, samples=2)
-        self.assertEqual((12, 2), prediction.iloc[:, 0]._.values.shape)
-        self.assertEqual(2, fit.model._history.shape[1])
-        self.assertGreater(fit.model._history.shape[0], 2)
+        self.assertEqual(2, len(prediction.iloc[:, 0]._.values))
+        self.assertEqual((6, 2), prediction.loc["A"].iloc[:, 0]._.values.shape)
+        self.assertEqual((6, 2), prediction.loc["B"].iloc[:, 0]._.values.shape)
 
     def test_no_test_data(self):
         """given some toy regression data"""
@@ -204,7 +220,8 @@ class TestAbstractModel(object):
         model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
-        fit = df.model.fit(model, naive_splitter(0), verbose=0, epochs=800)
+        batch_size, epochs = self.provide_batch_size_and_epoch()
+        fit = df.model.fit(model, naive_splitter(0), verbose=0, batch_size=batch_size, epochs=epochs)
         # print(fit.training_summary.df)
         print(fit.test_summary.df)
 
@@ -214,6 +231,9 @@ class TestAbstractModel(object):
 
 
     # Abstract methods
+    def provide_batch_size_and_epoch(self) -> Tuple[int, int]:
+        return (None, 1)
+
     def provide_regression_model(self, features_and_labels) -> Model:
         pass
 

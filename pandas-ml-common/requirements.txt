@@ -1,8 +1,4 @@
 sortedcontainers
-mpldatacursor
-mplfinance
-matplotlib
-numpy
 pandas
 numpy
 dill

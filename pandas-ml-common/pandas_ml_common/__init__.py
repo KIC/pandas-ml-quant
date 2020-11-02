@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from pandas.core.base import PandasObject
 
-from pandas_ml_common.df.ml import ML
-from pandas_ml_common.lazy import LazyInit
+from pandas_ml_common.df_monkey_patch.df_values import MLCompatibleValues
+from pandas_ml_common.utils.lazy_value import LazyInit
 from pandas_ml_common.utils import (
     Constant,
     ReScaler,
@@ -38,7 +38,7 @@ _log.debug(f"numpy version {np.__version__}")
 _log.debug(f"pandas version {pd.__version__}")
 
 np.nans = np_nans
-setattr(PandasObject, "_", property(lambda self: ML(self)))
+setattr(PandasObject, "_", property(lambda self: MLCompatibleValues(self)))
 setattr(PandasObject, "inner_join", inner_join)
 setattr(PandasObject, "has_multi_index_columns", lambda self: isinstance(self, pd.DataFrame) and isinstance(self.columns, pd.MultiIndex))
 setattr(PandasObject, "has_multi_index_rows", lambda self: isinstance(self.index, pd.MultiIndex))
@@ -50,8 +50,6 @@ setattr(pd.DataFrame, "has_indexed_columns", lambda self: has_indexed_columns(se
 setattr(pd.DataFrame, "add_multi_index", lambda self, *args, **kwargs: add_multi_index(self, *args, **kwargs))
 
 setattr(pd.MultiIndex, "unique_level", lambda self, *args: unique_level(self, *args))
-# setattr(pd.Series, 'columns', lambda self: [self.name]) # FIXME leads to problems where we do hasattr(?, columns)
-
 
 class Typing(object):
     PatchedDataFrame = pd.DataFrame

@@ -1,3 +1,5 @@
+import inspect
+from functools import partial
 from unittest import TestCase
 
 from pandas_ml_common import pd, np

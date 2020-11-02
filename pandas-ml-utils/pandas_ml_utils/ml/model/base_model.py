@@ -1,39 +1,22 @@
 import os
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Tuple, Iterable
+from functools import partial
+from typing import Callable, Tuple, Iterable, Generator, Union, List, NamedTuple
+from collections import defaultdict
 
 import dill as pickle
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common import Typing, Sampler, NumpySampler
-from pandas_ml_common.utils import to_pandas, unique_level
+from pandas_ml_common import Typing, Sampler
+from pandas_ml_common.sampling.sampler import XYWeight
+from pandas_ml_common.utils import to_pandas, unique_level, merge_kwargs, call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
 
 
-class SamplerFrameConstants(object):
-    FEATURES = 0
-    LABELS = 1
-    TARGETS = 2
-    WEIGHTS = 3
-    GROSS_LOSS = 4
-    LATENT = 5
-
-
-class _Model(object):
-
-    @abstractmethod
-    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
-        raise NotImplemented
-
-    @abstractmethod
-    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        raise NotImplemented
-
-
-class Model(_Model):
+class Model(object):
     """
     Represents a statistical or ML model and holds the necessary information how to interpret the columns of a
     pandas *DataFrame* ( :class:`.FeaturesAndLabels` ). Currently available implementations are:
@@ -75,7 +58,10 @@ class Model(_Model):
         """
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
-        self._history = []
+        self._history = defaultdict(dict)
+        self._labels_columns = None
+        self._feature_columns = None
+        self._fit_meta_data: Model.MetaFit = None
         self.kwargs = kwargs
 
     @property
@@ -86,24 +72,79 @@ class Model(_Model):
     def summary_provider(self):
         return self._summary_provider
 
-    def fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
-        self._history, training_prediction, test_prediction = self._fit(sampler, **kwargs)
-        return training_prediction, test_prediction
+    def fit(self, sampler: Sampler, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        self.init_fit(**kwargs)
+        stopped_folds = set()
 
-    def predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        return self._predict(sampler)
+        sampler = sampler.with_callbacks(
+            on_start=self._record_meta,
+            on_fold=self.init_fold,
+            after_fold_epoch=partial(self._record_loss, callbacks=callbacks, verbose=verbose),
+            after_epoch=self.merge_folds,
+            after_end=self.finish_learning
+        )
 
-    def __getitem__(self, item):
-        """
-        returns arguments which are stored in the kwargs filed. By providing a tuple, a default in case of missing
-        key can be specified
-        :param item: name of the item im the kwargs dict or tuple of name, default
-        :return: item or default
-        """
-        if isinstance(item, tuple) and len(item) == 2:
-            return self.kwargs[item[0]] if item[0] in self.kwargs else item[1]
-        else:
-            return self.kwargs[item] if item in self.kwargs else None
+        for batch in sampler.sample_for_training():
+            if batch.fold in stopped_folds or -1 in stopped_folds: continue
+            self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
+
+        training_data = sampler.get_in_sample_features()
+        df_training_prediction = self.predict(training_data, **kwargs)
+
+        test_data = sampler.get_out_of_sample_features()
+        df_test_prediction = self.predict(test_data) if len(test_data) > 0 else pd.DataFrame({})
+
+        return df_training_prediction, df_test_prediction
+
+    def _record_meta(self, epochs, batch_size, fold_epochs, cross_validation, features, labels: List[str]):
+        self._labels_columns = labels
+        self._feature_columns = features
+        self._fit_meta_data = _MetaFit(
+            epochs, batch_size, fold_epochs,
+            cross_validation, any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
+        )
+
+    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks):
+        train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
+        test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data]).mean()
+        self._history["train", fold][(epoch, fold_epoch)] = train_loss
+        self._history["test", fold][(epoch, fold_epoch)] = test_loss
+
+        self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
+        if verbose > 0:
+            print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
+
+        call_callable_dynamic_args(callbacks, epoch=epoch, fold=fold, fold_epoch=fold_epoch, loss=train_loss, val_loss=test_loss)
+
+    def init_fit(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def init_fold(self, epoch: int, fold: int):
+        raise NotImplemented
+
+    @abstractmethod
+    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
+        raise NotImplemented
+
+    def after_fold_epoch(self, epoch, fold, fold_epoch, loss, val_loss):
+        pass
+
+    @abstractmethod
+    def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
+        raise NotImplemented
+
+    @abstractmethod
+    def merge_folds(self, epoch: int):
+        raise NotImplemented
+
+    @abstractmethod
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples = 1, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
+
+    @abstractmethod
+    def finish_learning(self):
+        raise NotImplemented
 
     def save(self, filename: str):
         """
@@ -123,17 +164,13 @@ class Model(_Model):
         """
 
         import matplotlib.pyplot as plt
+        cm = 'tab20c'  # 'Pastel1'
+        df = pd.DataFrame(self._history)
         fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
-        for fold in unique_level(self._history.columns, 0):
-            if fold < 0:
-                p = ax.plot(self._history[(fold, 0)], '-', label='model (train)')
-                ax.plot(self._history[(fold, 1)], '--', color=p[-1].get_color(), label='model (test)')
-            else:
-                p = ax.plot(self._history[(fold, 0)], '-', label=f'fold {fold} (train)')
-                ax.plot(self._history[(fold, 1)], '--', color=p[-1].get_color(), label=f'fold {fold} (test)')
-
+        df['test'].plot(style='--', colormap=cm, ax=ax)
+        df['train'].plot(colormap=cm, ax=ax)
         plt.legend(loc='upper right')
-        return fig, ax
+        return fig
 
     def __call__(self, *args, **kwargs):
         """
@@ -144,10 +181,9 @@ class Model(_Model):
         :param kwargs: arguments which are eventually provided by hyperopt or by different targets
         :return:
         """
-        if not kwargs:
-            return deepcopy(self)
-        else:
-            raise ValueError(f"construction of model with new parameters is not supported\n{type(self)}: {kwargs}")
+        copy = deepcopy(self)
+        copy.kwargs = merge_kwargs(copy.kwargs, kwargs)
+        return copy
 
 
 class AutoEncoderModel(Model):
@@ -164,13 +200,13 @@ class AutoEncoderModel(Model):
         super().__init__(features_and_labels, summary_provider, **kwargs)
         self.mode = AutoEncoderModel.AUTOENCODE
 
-    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         if self.mode == AutoEncoderModel.AUTOENCODE:
-            return self._auto_encode(sampler, **kwargs)
+            return self._auto_encode(features, samples, **kwargs)
         elif self.mode == AutoEncoderModel.ENCODE:
-            return self._encode(sampler, **kwargs)
+            return self._encode(features, samples, **kwargs)
         elif self.mode == AutoEncoderModel.DECODE:
-            return self._decode(sampler, **kwargs)
+            return self._decode(latent, samples, **kwargs)
         else:
             raise ValueError("Illegal mode")
 
@@ -190,150 +226,23 @@ class AutoEncoderModel(Model):
         return copy
 
     @abstractmethod
-    def _auto_encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     @abstractmethod
-    def _encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def _encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     @abstractmethod
-    def _decode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
+    def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
 
-class _NumpyModelFit(object):
-
-    def __init__(self, **kwargs):
-        self.labels_columns = None
-
-    def _fit_with_numpy(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
-        # remember the label column names for reconstruction
-        self.labels_columns = sampler.frames[SamplerFrameConstants.LABELS].columns.tolist()
-
-        # wrap sampler into a numpy sampler and fit each epoch
-        nr_epochs = sampler.epochs
-        last_epoch = (nr_epochs - 1) if nr_epochs is not None else float('inf')
-        nr_folds = sampler.nr_of_cross_validation_folds
-        numpy_sampler = NumpySampler(sampler)
-
-        # init result holder data structures
-        losses = {(fold, train_test): [] for fold in range(-1, nr_folds) for train_test in range(2)}
-        test_predictions, train_predictions = [], []
-
-        for epoch, fold, train_idx, train, test_idx, test in numpy_sampler.sample_cross_validation():
-            if fold < 0 < nr_folds:
-                # merge a cross validated model
-                train_loss, test_loss = self._fold_epoch(train, test, nr_epochs, **kwargs)
-            else:
-                # train one fold of an eventually cross validation model
-                train_loss, test_loss = self._fit_epoch_fold(fold, train, test, nr_folds, nr_epochs, **kwargs)
-
-            # append losses
-            if isinstance(train_loss, Iterable):
-                losses[(fold, 0)].extend(train_loss)
-                losses[(fold, 1)].extend(test_loss)
-            else:
-                losses[(fold, 0)].append(train_loss)
-                losses[(fold, 1)].append(test_loss)
-
-            # fix length of losses
-            if fold < 0:
-                max_len = max([len(v) for v in losses.values()])
-                for k, v in losses.items():
-                    v.extend([np.nan] * (max_len - len(v)))
-
-            # assemble history data frame when done
-            if epoch >= last_epoch and fold < 0:
-                train_predictions.append(to_pandas(self._predict_epoch(train[0]), train_idx, self.labels_columns))
-                if len(test_idx) > 0:
-                    test_predictions.append(to_pandas(self._predict_epoch(test[0]), test_idx, self.labels_columns))
-
-        # reconstruct pandas data frames
-        df_losses = pd.DataFrame(losses, columns=pd.MultiIndex.from_tuples(losses.keys()))
-        df_train_prediction = pd.concat(train_predictions, axis=0)
-        df_test_prediction = pd.concat(test_predictions, axis=0) if len(test_predictions) > 0 else pd.DataFrame({})
-
-        return df_losses, df_train_prediction, df_test_prediction
-
-    @abstractmethod
-    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
-
-    @abstractmethod
-    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
-
-    @abstractmethod
-    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        raise NotImplemented
-
-
-class NumpyModel(Model, _NumpyModelFit):
-
-    def __init__(self,
-                 features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
-        self.labels_columns = None
-
-    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
-        return super()._fit_with_numpy(sampler, **kwargs)
-
-    def _predict(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        ns = NumpySampler(sampler)
-        prediction = np.array([self._predict_epoch(t[0], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
-        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
-
-
-class NumpyAutoEncoderModel(AutoEncoderModel, _NumpyModelFit):
-
-    def __init__(self,
-                 features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
-
-    def _fit(self, sampler: Sampler, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
-        return super()._fit_with_numpy(sampler)
-
-    def _auto_encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        ns = NumpySampler(sampler)
-        prediction = np.array([self._auto_encode_epoch(t[SamplerFrameConstants.FEATURES], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
-        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
-
-    def _encode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        ns = NumpySampler(sampler)
-        prediction = np.array([self._encode_epoch(t[SamplerFrameConstants.FEATURES], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
-        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self._features_and_labels.latent_names)
-
-    def _decode(self, sampler: Sampler, **kwargs) -> Typing.PatchedDataFrame:
-        ns = NumpySampler(sampler)
-        prediction = np.array([self._decode_epoch(t[SamplerFrameConstants.LATENT], **kwargs) for (_, t, _) in ns.sample_full_epochs()]).swapaxes(0, 1)
-        return to_pandas(prediction, sampler.frames[SamplerFrameConstants.FEATURES].index, self.labels_columns)
-
-    def _predict_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        return self._auto_encode_epoch(x, **kwargs)
-
-    @abstractmethod
-    def _fold_epoch(self, train, test, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
-
-    @abstractmethod
-    def _fit_epoch_fold(self, fold, train, test, nr_of_folds, nr_epochs, **kwargs) -> Tuple[float, float]:
-        raise NotImplemented
-
-    @abstractmethod
-    def _auto_encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        raise NotImplemented
-
-    @abstractmethod
-    def _encode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        raise NotImplemented
-
-    @abstractmethod
-    def _decode_epoch(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        raise NotImplemented
+class _MetaFit(NamedTuple):
+    epochs: int
+    batch_size: int
+    fold_epochs: int
+    cross_validation: bool
+    partial_fit: bool
 
 

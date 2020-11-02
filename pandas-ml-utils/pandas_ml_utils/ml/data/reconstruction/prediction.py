@@ -2,14 +2,15 @@ from typing import Dict
 
 # make sure to import monkey patched data frame
 from pandas_ml_common import pd, np, get_pandas_object
+from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, TARGET_COLUMN_NAME
 from pandas_ml_utils.constants import *
 
 
-def assemble_result_frame(targets, prediction, labels, gross_loss, weights, features):
+def assemble_result_frame(prediction, targets, labels, gross_loss, weights, features):
     return assemble_prediction_frame(
-        {TARGET_COLUMN_NAME: targets,
-         PREDICTION_COLUMN_NAME: prediction,
+        {PREDICTION_COLUMN_NAME: prediction,
+         TARGET_COLUMN_NAME: targets,
          LABEL_COLUMN_NAME: labels,
          GROSS_LOSS_COLUMN_NAME: gross_loss,
          SAMPLE_WEIGHTS_COLUMN_NAME: weights,
@@ -18,7 +19,8 @@ def assemble_result_frame(targets, prediction, labels, gross_loss, weights, feat
 
 def assemble_prediction_frame(frames: Dict[str, pd.DataFrame]):
     # filter non frames
-    valid_frames = {head: frame.copy() for head, frame in frames.items() if frame is not None}
+    valid_frames = {head: frame.copy() for head, frame in frames.items()
+                    if frame is not None and not isinstance(frame, MultiFrameDecorator)}
 
     for head, frame in valid_frames.items():
         frame.columns = pd.MultiIndex.from_product([[head], frame.columns.to_list()])

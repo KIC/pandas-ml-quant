@@ -72,10 +72,20 @@ class Fit(object):
                    **self._kwargs)
 
     def __str__(self):
-        return f"train:\n" \
-               f"{self.training_summary}" \
-               f"\ntest:\n" \
-               f"{self.test_summary}"
+        summaries = f"train:\n{self.training_summary}\ntest:\n{self.test_summary}"
+        backend = None
+        try:
+            import matplotlib
+            backend = matplotlib.get_backend()
+            matplotlib.use('module://drawilleplot')
+            fig = self.model.plot_loss()
+            return f"{fig}\n{summaries}"
+        except:
+            return summaries
+        finally:
+            if backend is not None:
+                import matplotlib
+                matplotlib.use(backend)
 
     def _repr_html_(self):
         from mako.template import Template

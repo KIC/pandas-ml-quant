@@ -1,238 +1,226 @@
 import logging
-from typing import Callable, Tuple, Generator, List, Union
+from typing import Tuple, Callable, Any, Generator, NamedTuple, Union, List
 
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.utils import unpack_nested_arrays, call_callable_dynamic_args
-from pandas_ml_common.utils.index_utils import intersection_of_index, loc_if_not_none, unique_level_rows
+from pandas_ml_common.sampling.cross_validation import PartitionedOnRowMultiIndexCV
+from pandas_ml_common.utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, exec_if_not_none
 
 _log = logging.getLogger(__name__)
+
+
+class XYWeight(NamedTuple):
+    x: pd.DataFrame
+    y: pd.DataFrame = None
+    weight: pd.DataFrame = None
+
+    def to_dict(self, loc=None):
+        d = {"x": self.x, "y": self.y, "weight": self.weight}
+        if loc is not None:
+            d = {k: loc_if_not_none(v, loc) for k, v in d.items()}
+
+        return d
+
+
+class FoldXYWeight(NamedTuple):
+    epoch: int
+    fold: int
+    epoch_fold: int
+    x: pd.DataFrame
+    y: pd.DataFrame = None
+    weight: pd.DataFrame = None
 
 
 class Sampler(object):
 
     def __init__(
             self,
-            *dataframes: pd.DataFrame,
-            splitter: Callable[[pd.Index, pd.DataFrame], Tuple[pd.Index, pd.Index]],
-            training_samples_filter: Callable[[pd.Series], bool] = None,
-            cross_validation: Union['BaseCrossValidator', Tuple[int, Callable[[pd.Index, pd.DataFrame], Tuple[List[int], List[int]]]]] = None,
+            frames: XYWeight,
+            splitter: Callable[[Any], Tuple[pd.Index, pd.Index]] = None,
+            filter: Callable[[Any], bool] = None,
+            cross_validation: Union['BaseCrossValidator', Callable[[Any], Generator[Tuple[np.ndarray, np.ndarray], None, None]]] = None,
+            epochs: int = 1,
+            batch_size: int = None,
+            fold_epochs: int = 1,
+            on_start: Callable = None,
             on_epoch: Callable = None,
+            on_batch: Callable = None,
             on_fold: Callable = None,
-            epochs: int = 1
+            on_fold_epoch: Callable = None,
+            after_epoch: Callable = None,
+            after_batch: Callable = None,
+            after_fold: Callable = None,
+            after_fold_epoch: Callable = None,
+            after_end: Callable = None,
+            **kwargs
     ):
-        """
-        This Class is used to sample from DataFrames training and test data sets
-
-        :param dataframes: a lit of dataframes like features, labels, sample weights, ...
-        :param splitter: a function which gets the intersection index of all passed data frames and returns the train
-            and test indices
-        :param training_samples_filter: a function which might filter out data from the training set on a given dataframe
-            index. This is useful i.e. to filter out unclear cases like data on the border of a bucket
-        :param cross_validation: a tuple with the number of folds and a function which splits the training data index
-            further into number of folds
-        :param epochs:
-            the number of epochs tells the generator how often the dataset split will be yielded before the generator
-            ends. None can ne passed as well which leads to an infinite generator useful for reinforceent learning
-        """
-        self.common_index = intersection_of_index(*dataframes)
-        self.frames = [loc_if_not_none(f, self.common_index) for f in dataframes]
-        self.training_samples_filter_frame = training_samples_filter[0] if training_samples_filter is not None else None
-        self.training_samples_filter = training_samples_filter[1] if training_samples_filter is not None else None
-        if cross_validation is not None:
-            if hasattr(cross_validation, 'get_n_splits') and hasattr(cross_validation, 'split'):
-                self.cross_validation_nr_folds = cross_validation.get_n_splits(self.common_index)
-                self.cross_validation = cross_validation.split
-            elif isinstance(cross_validation, Tuple):
-                self.cross_validation_nr_folds = cross_validation[0]
-                self.cross_validation = cross_validation[1]
-            else:
-                raise ValueError("Expected scikit BaseCrossValidator or Tuple[nr_of_folds, splitter()]")
-        else:
-            self.cross_validation_nr_folds = 0
-            self.cross_validation = None
-
-        self.splitter = splitter
+        self.common_index = intersection_of_index(*frames)
+        self.frames = XYWeight(*[loc_if_not_none(f, self.common_index) for f in frames])
         self.epochs = epochs
+        self.batch_size = batch_size
+        self.fold_epochs = fold_epochs
+        self.splitter = splitter
+        self.filter = filter
 
+        # callbacks
+        self.on_start = on_start
         self.on_epoch = on_epoch
+        self.on_batch = on_batch
         self.on_fold = on_fold
+        self.on_fold_epoch = on_fold_epoch
+        self.after_epoch = after_epoch
+        self.after_batch = after_batch
+        self.after_fold = after_fold
+        self.after_fold_epoch = after_fold_epoch
+        self.after_end = after_end
 
-        if self.cross_validation is not None and not isinstance(self.epochs, int):
-            raise ValueError(f"epochs need to be finite integer in case of cross validation: {self.epochs}")
+        # split training and test data
+        if self.splitter is not None:
+            if isinstance(self.common_index, pd.MultiIndex):
+                _log.warning("The Data provided uses a `MultiIndex`, eventually you want to set the "
+                             "`partition_row_multi_index` parameter in your splitter")
 
-    def with_callbacks(self, on_epoch=None, on_fold=None):
+            self.train_idx, self.test_idx = call_callable_dynamic_args(
+                self.splitter, self.common_index, **self.frames.to_dict())
+        else:
+            self.train_idx, self.test_idx = self.common_index, pd.Index([])
+
+        if cross_validation is not None:
+            if isinstance(self.common_index, pd.MultiIndex) and not isinstance(cross_validation, PartitionedOnRowMultiIndexCV):
+                # cross validators need to fold within each group of a multi index row index, a wrapper can be provided
+                _log.warning("The Data provided uses a `MultiIndex` but the cross validation is not wrapped in "
+                             "`PartitionedOnRowMultiIndexCV`")
+
+            if epochs is None or epochs > 1:
+                _log.warning("using epochs > 1 together with cross folding may lead to different folds for each epoch!")
+
+            self.nr_folds = cross_validation.get_n_splits() if hasattr(cross_validation, "get_n_splits") else -1
+            self.cross_validation = cross_validation.split if hasattr(cross_validation, "split") else cross_validation
+        else:
+            self.nr_folds = None
+            self.cross_validation = lambda x: [(None, None)]
+
+    def with_callbacks(
+            self,
+            on_start: Callable = None,
+            on_epoch: Callable = None,
+            on_batch: Callable = None,
+            on_fold: Callable = None,
+            on_fold_epoch: Callable = None,
+            after_epoch: Callable = None,
+            after_batch: Callable = None,
+            after_fold: Callable = None,
+            after_fold_epoch: Callable = None,
+            after_end: Callable = None,
+    ):
         return Sampler(
-            *self.frames,
-            splitter=self.splitter,
-            training_samples_filter=self.training_samples_filter,
-            cross_validation=(self.cross_validation_nr_folds, self.cross_validation),
-            on_epoch=on_epoch,
-            on_fold=on_fold,
-            epochs=self.epochs
+            self.frames,
+            self.splitter,
+            self.filter,
+            self.cross_validation,
+            self.epochs,
+            self.batch_size,
+            self.fold_epochs,
+            on_start,
+            on_epoch,
+            on_batch,
+            on_fold,
+            on_fold_epoch,
+            after_epoch,
+            after_batch,
+            after_fold,
+            after_fold_epoch,
+            after_end
         )
 
-    @property
-    def nr_of_cross_validation_folds(self):
-        return self.cross_validation_nr_folds
-
-    def sample_cross_validation(self) -> Generator[Tuple[int, int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
-        """
-        Samples training data and test data from the given data frames using cross validation. For each fold
-        a separate model should be trained. All fold models then might be averaged together or only the best one might
-        be used.
-
-        :param on_epoch: optional callback called before each epoch starts
-        :param on_fold: optional callback called before each fold starts
-        :return: returns a generator of a tuple(nr of fold, training data, val data, test data)
-        """
-
-        if self.cross_validation is None:
-            # simply wrapping the sample generator to return the same data structure as if it would be cross validated
-            for epoch, train_data, test_data in self.sample():
-                yield epoch, -1, train_data, test_data
+    def sample_for_training(self) -> Generator[FoldXYWeight, None, None]:
+        # filter samples
+        if self.filter is not None:
+            train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(self.filter, idx, **self.frames.to_dict(idx))]
         else:
-            # here we only need one epoch for each frame!
-            row_frame_folds = [(train_idx, test_idx, list(enumerate(self.cross_validation(train_idx, unpack_nested_arrays(self.frames[1].loc[train_idx].values)))))
-                               for epoch, train_idx, test_idx in self._sample(self.common_index, 1, False)]
+            train_idx = self.train_idx
 
-            # loop epochs
-            for epoch in range(self.epochs):
-                if callable(self.on_epoch):
-                    call_callable_dynamic_args(self.on_epoch, epoch=epoch, frames=self.frames)
+        # update frame views
+        train_frames = XYWeight(*[loc_if_not_none(f, train_idx) for f in self.frames])
+        test_frames = XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])
 
-                # in each epoch loop all frames
-                for train_idx, test_idx, folds in row_frame_folds:
-                    # and within each frame loop all folds. Just looping one fold after the other is not very useful
-                    # but reflects the current behaviour. It would be better to train different models for each fold.
-                    # Therefore wre to loop folds is less important.
-                    for f, (cv_train_idx, cv_val_idx) in folds:
-                        if callable(self.on_fold):
-                            call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=f,
-                                                       train_idx=cv_train_idx, test_idx=cv_val_idx, frames=self.frames)
+        # call for start ...
+        call_callable_dynamic_args(
+            self.on_start,
+            epochs=self.epochs, batch_size=self.batch_size, fold_epochs=self.fold_epochs,
+            features=exec_if_not_none(lambda x: x.columns.tolist(), self.frames.x),
+            labels=exec_if_not_none(lambda y: y.columns.tolist(), self.frames.y),
+            cross_validation=self.nr_folds is not None)
 
-                        yield (
-                            epoch,
-                            f,
-                            [loc_if_not_none(f, train_idx[cv_train_idx]) for f in self.frames],
-                            [loc_if_not_none(f, train_idx[cv_val_idx]) for f in self.frames]
-                        )
+        # generate samples
+        for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
+            call_callable_dynamic_args(self.on_epoch, epoch=epoch)
+            fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, **train_frames.to_dict()))
+            for fold, (cv_train_i, cv_test_i) in fold_iter:
+                call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold)
 
-                    yield (
-                        epoch,
-                        -1,
-                        [loc_if_not_none(f, train_idx) for f in self.frames],
-                        [loc_if_not_none(f, test_idx) for f in self.frames]
-                    )
+                # if we dont have any cross validation the training and test sets stay unchanged
+                cv_train_idx = train_idx if cv_train_i is None else train_idx[cv_train_i]
 
-    def sample_full_epochs(self) -> Generator[Tuple[int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
-        return self.sample(full_epoch=True)
-
-    def sample(self, full_epoch: bool = False) -> Generator[Tuple[int, List[pd.DataFrame], List[pd.DataFrame]], None, None]:
-        """
-        Samples training data and test data from the given data frames
-
-        :param full_epoch: enforce a full epoch which keeps the multi index row otherwiese we get a sample for each
-            epoch and for each top level row in a multi index row data frame
-        :param on_epoch: optional callback called before each epoch starts
-        :return: returns a generator of a tuple( training data, test data)
-        """
-        for epoch, train_idx, test_idx in self._sample(self.common_index, self.epochs, full_epoch):
-            yield (
-                epoch,
-                [loc_if_not_none(f, train_idx) for f in self.frames],
-                [loc_if_not_none(f, test_idx) for f in self.frames]
-            )
-
-    def _sample(self, idx: pd.Index, epochs, full_epochs) -> Generator[Tuple[int, pd.Index, pd.Index], None, None]:
-        # lazy initialize the training and test index arrays
-        train_idx, test_idx = (None, None)
-
-        # loop for all epochs there is a way to infinitely loop epoch which is needed i.e. for reinforcement learning
-        for epoch in (range(epochs) if epochs is not None else iter(int, 1)):
-            if callable(self.on_epoch):
-                call_callable_dynamic_args(self.on_epoch, epoch=epoch, frames=self.frames)
-
-            if isinstance(idx, pd.MultiIndex):
-                train_test = (pd.Index([]), pd.Index([])) if full_epochs else None
-
-                for group in unique_level_rows(idx):
-                    grp_idx = idx[idx.get_loc(group)].to_flat_index()
-                    for _, train, test in self._sample(grp_idx, 1, False):
-                        if not full_epochs:
-                            yield epoch, train, test
-                        else:
-                            train_test = (train_test[0].append(train), train_test[1].append(test))
-
-                if train_test is not None:
-                    yield (epoch, *train_test)
-
-            else:
-                if train_idx is None:
-                    # lazily initialize the training test data split
-                    if self.splitter is None:
-                        if self.training_samples_filter is not None:
-                            _log.warning("training_samples_filter is not None but no test index is defined ... skipped")
-
-                        train_idx, test_idx = (idx, [])
+                # build our test data sets
+                if cv_test_i is not None:
+                    if cv_test_i.ndim > 1:
+                        cv_test_frames = [
+                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i[:, i]]) for f in self.frames])
+                            for i in range(cv_test_i.shape[1])
+                        ]
                     else:
-                        train_idx, test_idx = call_callable_dynamic_args(self.splitter, idx, frames=self.frames)
+                        cv_test_frames = [
+                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i]) for f in self.frames])]
+                else:
+                    if len(self.test_idx) <= 0:
+                        cv_test_frames = []
+                    else:
+                        cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])]
 
-                        if self.training_samples_filter is not None:
-                            df = self.frames[self.training_samples_filter_frame].loc[train_idx]
-                            train_idx = train_idx[df.apply(self.training_samples_filter, axis=1).values]
+                for fold_epoch in range(self.fold_epochs):
+                    call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
 
-                yield epoch, train_idx, test_idx
+                    # build our training data sets aka batches
+                    cv_train_frames = XYWeight(*[loc_if_not_none(f, cv_train_idx) for f in self.frames])
 
+                    # theoretically we could already yield cv_train_frames, cv_test_frames
+                    # but lets create batches first and then yield all together
+                    nr_instances = len(cv_train_idx)
+                    nice_i = max(nr_instances - 2, 0)
+                    bs = min(nr_instances, self.batch_size) if self.batch_size is not None else nr_instances
 
-class NumpySampler(object):
+                    batch_iter = range(0, nr_instances, bs)
+                    for i in batch_iter:
+                        call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
+                        yield FoldXYWeight(epoch, fold, fold_epoch, *(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None for f in cv_train_frames))
+                        call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
 
-    def __init__(self, sampler: Sampler):
-        self.sampler = sampler
+                    # end of fold epoch
+                    try:
+                        call_callable_dynamic_args(self.after_fold_epoch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, train_data=cv_train_frames, test_data=cv_test_frames)
+                    except StopIteration as sie:
+                        call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, train_data=cv_train_frames, test_data=cv_test_frames)
 
-    def with_callbacks(self, on_epoch=None, on_fold=None):
-        return NumpySampler(self.sampler.with_callbacks(on_epoch, on_fold))
+                        if str(sie).isnumeric() and int(str(sie)) == fold:
+                            # we just want to stop this fold
+                            break
+                        else:
+                            # we need to stop any further generation of sample and call all left callbacks
+                            call_callable_dynamic_args(self.after_epoch, epoch=epoch, train_data=train_frames, test_data=test_frames)
+                            call_callable_dynamic_args(self.after_end)
+                            return
+                # end of fold
+                call_callable_dynamic_args(self.after_fold, epoch=epoch, fold=fold, train_data=cv_train_frames, test_data=cv_test_frames)
+            # end of epoch
+            call_callable_dynamic_args(self.after_epoch, epoch=epoch, train_data=train_frames, test_data=test_frames)
+        # end of generator
+        call_callable_dynamic_args(self.after_end)
 
-    @property
-    def nr_of_cross_validation_folds(self):
-        return self.sampler.nr_of_cross_validation_folds
+    def get_in_sample_features(self) -> pd.DataFrame:
+        return self.frames.x.loc[self.train_idx]
 
-    def sample_cross_validation(self) -> Generator[Tuple[int, int, pd.Index, List[np.ndarray], pd.Index, List[np.ndarray]], None, None]:
-        for epoch, fold, train, test in self.sampler.sample_cross_validation():
-            yield (
-                epoch,
-                fold,
-                train[0].index,
-                tuple([NumpySampler._to_numpy(t) for t in train]),
-                test[0].index,
-                tuple([NumpySampler._to_numpy(t) for t in test])
-            )
+    def get_out_of_sample_features(self) -> pd.DataFrame:
+        return self.frames.x.loc[self.test_idx]
 
-    def sample_full_epochs(self) -> Generator[Tuple[int, List[np.ndarray], List[np.ndarray]], None, None]:
-        for epoch, train, test in self.sampler.sample_full_epochs():
-            yield (
-                epoch,
-                tuple([NumpySampler._to_numpy(t) for t in train]),
-                tuple([NumpySampler._to_numpy(t) for t in test])
-            )
-
-    def sample(self, full_epoch: bool = False) -> Generator[Tuple[int, List[np.ndarray], List[np.ndarray]], None, None]:
-        for epoch, train, test in self.sampler.sample(full_epoch=full_epoch):
-            yield (
-                epoch,
-                tuple([NumpySampler._to_numpy(t) for t in train]),
-                tuple([NumpySampler._to_numpy(t) for t in test])
-            )
-
-    @staticmethod
-    def _to_numpy(df):
-        if df is None or len(df) <= 0:
-            return None
-
-        values = df._.values
-
-        if isinstance(values, list):
-            return np.concatenate(values, axis=0)
-        else:
-            return values

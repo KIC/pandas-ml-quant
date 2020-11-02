@@ -39,7 +39,7 @@ class Summary(object):
                 if j > 0:
                     if grid[i, j-1] == grid[i, j]:
                         # colspan += 1
-                        cell = table[i][j-1]
+                        cell = table[i][-1]
                         table[i][-1] = Summary.Cell(cell.index, cell.rowspan, cell.colspan + 1)
                     else:
                         table[i].append(Summary.Cell(grid[i, j], 1, 1))
@@ -51,12 +51,17 @@ class Summary(object):
                 table.pop()
 
             self.layout = table
+            self.laypout_nr_columns = grid.shape[1]
         else:
             self.layout = None
+            self.laypout_nr_columns = None
 
     @property
     def df(self):
         return self._df
+
+    def __str__(self):
+        return str(self.df.groupby(level=0).tail(1)) if isinstance(self.df.index, pd.MultiIndex) else str(self.df.tail())
 
     def _repr_html_(self):
         from mako.template import Template
@@ -64,10 +69,10 @@ class Summary(object):
         plot = "<class 'matplotlib.figure.Figure'>"
 
         figures = [arg(self.df, model=self.model) for arg in self.args]
-        figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_()) for f in figures]
+        figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_() if hasattr(f, "_repr_html_") else str(f)) for f in figures]
 
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
-        return template.render(summary=self, figures=figures, layout=self.layout)
+        return template.render(summary=self, figures=figures, layout=self.layout, laypout_nr_columns=self.laypout_nr_columns)
 
 
 class RegressionSummary(Summary):
@@ -77,14 +82,17 @@ class RegressionSummary(Summary):
             df,
             model,
             plot_true_pred_scatter,
+            df_regression_scores,
+            plot_feature_importance,
             df_tail,
-            layout=[[0, -1], [1, 1]],
+            layout=[[0, 1],
+                    [2, 2],
+                    [3, 3]],
             **kwargs
         )
-        # TODO we should also add some figures as table like r2 ...
 
     def __str__(self):
-        return f"... to be implemented ... "  # return r2 and such
+        return f"{self.args[1](self.df, model=self.model)}\n{super().__str__()}"
 
 
 class ClassificationSummary(Summary):
@@ -95,11 +103,14 @@ class ClassificationSummary(Summary):
             model,
             plot_confusion_matrix,
             plot_receiver_operating_characteristic,
+            df_classification_scores,
+            plot_feature_importance,
             df_tail,
-            layout=[[0, 1], [2, 2]],
+            layout=[[2, 0, 0, 1, 1],
+                    [3, 3, 3, 3, 3],
+                    [4, 4, 4, 4, 4]],
             **kwargs
         )
-        # TODO we should also add some figures as table like f1 ...
 
     def __str__(self):
         from mlxtend.evaluate import confusion_matrix

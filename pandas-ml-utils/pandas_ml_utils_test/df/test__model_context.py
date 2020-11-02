@@ -56,7 +56,6 @@ class TestModelContext(TestCase):
         print(out)
 
         self.assertIn(MODEL_FILE, out)
-        self.assertIn("MLPRegressor", out)
         self.assertIn("authentic", out)
 
 

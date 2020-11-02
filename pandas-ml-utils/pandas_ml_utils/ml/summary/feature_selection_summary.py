@@ -7,7 +7,7 @@ from sklearn.ensemble._forest import ForestClassifier, ForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV
 
-from pandas_ml_common import Typing, Sampler
+from pandas_ml_common import Typing, Sampler, XYWeight
 from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
@@ -80,7 +80,7 @@ class FeatureSelectionSummary(Summary):
             weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
 
             test_model = model()
-            test_model.fit(Sampler(features, labels, None, weights, None, None, splitter=None, epochs=1))
+            test_model.fit(Sampler(XYWeight(features, labels, weights), splitter=None, epochs=1))
             validation_kpis = get_kpis(test_model)
 
             self.kpis = self.kpis.join(validation_kpis, how='outer', rsuffix=" (Test)")

@@ -1,162 +1,174 @@
 from unittest import TestCase
 
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import Sampler, NumpySampler
+from pandas_ml_common import naive_splitter
 from pandas_ml_common.decorator import MultiFrameDecorator
+from pandas_ml_common.sampling.cross_validation import PartitionedOnRowMultiIndexCV
+from pandas_ml_common.sampling.sampler import Sampler, XYWeight
 from pandas_ml_common_test.config import TEST_MUTLI_INDEX_ROW_DF, TEST_DF
 
 
 class TestSampler(TestCase):
 
     def test_simple_sample(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=None)
-        samples = list(sampler.sample_cross_validation())
-        sample_one = samples[0]
+        def check_test(test_data):
+            self.assertEqual(0, len(test_data))
 
-        self.assertEqual(1, len(samples))
-        self.assertEqual(4, len(sample_one))
-        self.assertEqual(0, sample_one[0])
-        self.assertEqual(-1, sample_one[1])
-        self.assertEqual(4, len(sample_one[2]))
-        self.assertEqual(4, len(sample_one[3]))
-        self.assertEqual(5, len(sample_one[2][0]))
-        self.assertEqual(0, len(sample_one[3][0]))
-        self.assertIsNone(sample_one[2][1])
-        self.assertIsNone(sample_one[3][2])
+        sampler = Sampler(XYWeight(TEST_DF, None,  TEST_DF.tail()), splitter=None, after_fold=check_test)
+        batches = list(sampler.sample_for_training())
+
+        self.assertEqual(1, len(batches))
+        batch1 = batches[0]
+
+        self.assertEqual(5, len(batch1.x))
+        self.assertEqual(5, len(batch1.weight))
+        self.assertIsNone(batch1.y)
+        self.assertIsNone(batch1.y)
 
     def test_simple_sample_split(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
-        samples = list(sampler.sample_cross_validation())
-        row1 = samples[0]
-        epoch, fold, train, test = row1
+        def check_test(test_data):
+            self.assertEqual(1, len(test_data))
+            self.assertEqual(2, len(test_data[0].x))
+            self.assertIsNone(test_data[0].y)
 
-        self.assertEqual(2, len(samples))
-        self.assertEqual(4, len(row1))
-        self.assertEqual(-1, fold)
-        self.assertEqual(4, len(train))
-        self.assertEqual(4, len(test))
-        self.assertEqual(3, len(train[0]))
-        self.assertEqual(2, len(test[0]))
-        self.assertIsNone(train[1])
-        self.assertIsNone(test[2])
+        sampler = Sampler(XYWeight(TEST_DF, None, TEST_DF.tail()), splitter=lambda i, *args: (i[:3], i[3:]), epochs=2, after_fold=check_test)
+        batches = list(sampler.sample_for_training())
+
+        self.assertEqual(2, len(batches))
+        self.assertEqual(3, len(batches[0].weight))
+        self.assertIsNone(batches[0].y)
+
+    def test_simple_batches(self):
+        sampler = Sampler(
+            XYWeight(TEST_DF, None, TEST_DF.tail()),
+            splitter=lambda i: (i[:3], i[3:]),
+            batch_size=2
+        )
+
+        batches = list(sampler.sample_for_training())
+
+        self.assertEqual(2, len(batches))
+
+        self.assertEqual(2, len(batches[0].x))
+        self.assertEqual(2, len(batches[1].x))  # in case of one single instance add the 2nd last as well
+
+    def test_multiple_test_data(self):
+        def check_test(test_data):
+            self.assertEqual(3, len(test_data))
+            self.assertEqual('19930203', test_data[0].x.index[0].strftime("%Y%m%d"))
+            self.assertEqual('19930202', test_data[0].x.index[1].strftime("%Y%m%d"))
+            self.assertEqual('19930201', test_data[-1].x.index[0].strftime("%Y%m%d"))
+            self.assertEqual('19930129', test_data[-1].x.index[1].strftime("%Y%m%d"))
+
+        sampler = Sampler(
+            XYWeight(TEST_DF),
+            splitter=lambda i, *args: (i[:4], i[-3:]),
+            cross_validation=lambda i: [([0, 1, 2], np.array([[3, 2, 1], [2, 1, 0]]))],
+            after_fold=check_test
+        )
+
+        batches = list(sampler.sample_for_training())
+        self.assertEqual(1, len(batches))
+        self.assertEqual(3, len(batches[0].x))
 
     def test_multiframe_decorator(self):
         sampler = Sampler(
-            MultiFrameDecorator((TEST_DF.tail(), TEST_DF)),
-            TEST_DF.tail(10),
-            splitter=lambda x, *args: (x[:3], x[3:]),
+            XYWeight(MultiFrameDecorator((TEST_DF.tail(), TEST_DF)), TEST_DF.tail(10)),
+            splitter=lambda i, *args: (i[:3], i[3:]),
             epochs=2
         )
-        samples = list(sampler.sample_cross_validation())
 
-        self.assertEqual(2, len(samples))
-        self.assertEqual(2, len(samples[0][3][0]))
+        batches = list(sampler.sample_for_training())
+
+        self.assertEqual(2, len(batches))
+        self.assertEqual(3, len(batches[0].x))
+        self.assertEqual(3, len(batches[1].y))
 
     def test_filter(self):
-        sampler = Sampler(TEST_DF,
-                          splitter=lambda x, *args: (x[:-3], x[-3:]),
-                          training_samples_filter=(0, lambda r: r["Close"] > 300))
-        samples = list(sampler.sample_cross_validation())
+        sampler = Sampler(XYWeight(TEST_DF, TEST_DF),
+                          splitter=lambda i, *args: (i[:-3], i[-3:]),
+                          filter=lambda idx, y: y["Close"] > 300)
+        batches = list(sampler.sample_for_training())
 
-        self.assertEqual(101, len(samples[0][2][0]))
+        self.assertEqual(1, len(batches))
+        self.assertEqual(101, len(batches[0].x))
+        self.assertEqual(101, len(batches[0].y))
 
     def test_cross_validation(self):
-        sampler = Sampler(TEST_DF, TEST_DF, None, TEST_DF.tail(30),
-                          splitter=lambda x, *args: (x[:-3], x[-3:]),
-                          cross_validation=(3, KFold(3).split),
-                          epochs=2)
+        def check_test(test_data):
+            self.assertEqual(1, len(test_data))
+            self.assertEqual(3, len(test_data[0]))
 
-        samples = list(sampler.sample_cross_validation())
+        sampler = Sampler(XYWeight(TEST_DF, TEST_DF, TEST_DF.tail(30)),
+                          splitter=lambda i, *args: (i[:-3], i[-3:]),
+                          cross_validation=KFold(3).split,
+                          after_fold=check_test,
+                          epochs=1)
 
-        self.assertListEqual([0, 1, 2, -1, 0, 1, 2, -1], [s[1] for s in samples])
-        self.assertEqual(3, len(samples[3][3][0]))
-        pd.testing.assert_frame_equal(samples[0][2][0], samples[4][2][0])
-        pd.testing.assert_frame_equal(samples[1][2][0], samples[5][2][0])
-        pd.testing.assert_frame_equal(samples[3][2][0], samples[7][2][0])
+        batches = list(sampler.sample_for_training())
+        self.assertEqual(3, len(batches))
+        batch1, batch2, batch3 = batches
+
+        self.assertEqual(18, len(batch1.x))
+        self.assertEqual(18, len(batch2.y))
+        self.assertEqual(18, len(batch3.weight))
 
     def test_infinite_generator(self):
-        sampler = Sampler(TEST_DF, None, None, TEST_DF.tail(), splitter=None, epochs=None)
+        sampler = Sampler(XYWeight(TEST_DF, None, TEST_DF.tail()), splitter=None, epochs=None)
 
-        for i, s in enumerate(sampler.sample_cross_validation()):
+        for i, s in enumerate(sampler.sample_for_training()):
             if i > 100:
                 break
 
         self.assertGreater(i, 100)
 
-    def test_infinite_generator_fail_cv(self):
-        self.assertRaises(
-            ValueError,
-            lambda: Sampler(TEST_DF, None, None, TEST_DF.tail(30),
-                            splitter=lambda x: (x[:3], x[3:]),
-                            cross_validation=(3, KFold(3).split),
-                            epochs=None)
-      )
-
     def test_simple_sample_split_multiindex_row(self):
-        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, None, splitter=lambda x, *args: (x[:3], x[3:]), epochs=2)
-        samples = list(sampler.sample_cross_validation())
-        row1 = samples[0]
-        epoch, fold, train, test = row1
+        def check_test(test_data):
+            self.assertIn("A", test_data[0].x.index)
+            self.assertIn("B", test_data[0].x.index)
 
-        self.assertEqual(4, len(samples))
-        self.assertEqual(4, len(row1))
-        self.assertEqual(-1, fold)
-        self.assertEqual(2, len(train))
-        self.assertEqual(2, len(test))
-        self.assertEqual(3, len(train[0]))
-        self.assertEqual(2, len(test[0]))
-        self.assertIsNone(train[1])
+        sampler = Sampler(
+            XYWeight(TEST_MUTLI_INDEX_ROW_DF),
+            splitter=naive_splitter(0.5, partition_row_multi_index=True),
+            after_fold=check_test,
+            epochs=1
+        )
 
-        # epochs are the most oter dimension, assert that we have all frames per epoch
-        # and that the frames are equal in each epoch
-        pd.testing.assert_frame_equal(samples[0][2][0], samples[2][2][0])
-        pd.testing.assert_frame_equal(samples[1][2][0], samples[3][2][0])
-
-        with np.testing.assert_raises(AssertionError):
-            np.testing.assert_array_equal(samples[0][2][0].values, samples[1][2][0].values)
+        samples = list(sampler.sample_for_training())
+        self.assertEqual(1, len(samples))
+        self.assertEqual(4, len(samples[0].x))
+        self.assertIn("A", samples[0].x.index)
+        self.assertIn("B", samples[0].x.index)
 
     def test_cross_validation_multiindex_row(self):
-        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, TEST_MUTLI_INDEX_ROW_DF,
-                          splitter=lambda x, *args: (x[:-3], x[-3:]),
-                          cross_validation=KFold(2),
-                          epochs=2)
+        sampler = Sampler(
+            XYWeight(TEST_MUTLI_INDEX_ROW_DF, TEST_MUTLI_INDEX_ROW_DF),
+            splitter=None,
+            cross_validation=PartitionedOnRowMultiIndexCV(KFold(2)),
+            epochs=1
+        )
 
-        samples = list(sampler.sample_cross_validation())
+        batches = list(sampler.sample_for_training())
+        self.assertEqual(4, len(batches))
 
-        self.assertListEqual([0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1], [s[1] for s in samples])
-        pd.testing.assert_frame_equal(samples[0][2][0], samples[6][2][0])
-        pd.testing.assert_frame_equal(samples[3][2][0], samples[9][2][0])
+    def test_callback_early_stop(self):
+        class Stopper(object):
 
-        for i in range(1, 6):
-            with np.testing.assert_raises(AssertionError):
-                np.testing.assert_array_equal(samples[0][2][0].values, samples[i][2][0].values)
+            def __init__(self):
+                self.i = 0
 
-    def test_full_epoch(self):
-        sampler = Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2)
-        samples = list(sampler.sample_full_epochs())
+            def callback(self, epoch):
+                self.i += 1
+                if self.i > 2:
+                    raise StopIteration
 
-        self.assertEqual(2, len(samples))
-        pd.testing.assert_frame_equal(samples[0][1][0], pd.concat([TEST_MUTLI_INDEX_ROW_DF.loc[["A"]][:-3], TEST_MUTLI_INDEX_ROW_DF.loc[["B"]][:-3]], axis=0))
-        pd.testing.assert_frame_equal(samples[0][1][0], samples[1][1][0])
-        pd.testing.assert_frame_equal(samples[0][2][0], samples[1][2][0])
+        sampler = Sampler(
+            XYWeight(TEST_MUTLI_INDEX_ROW_DF, TEST_MUTLI_INDEX_ROW_DF),
+            splitter=None,
+            fold_epochs=100,
+            after_fold_epoch=Stopper().callback
+        )
 
-    def test_numpy_simple(self):
-        sampler = NumpySampler(Sampler(TEST_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2))
-        samples = list(sampler.sample_full_epochs())
-
-        self.assertEqual(2, len(samples))
-        self.assertIsInstance(samples[0], tuple)
-        self.assertIsInstance(samples[0][2][0], np.ndarray)
-        self.assertEqual((3, 6), samples[0][2][0].shape)
-
-    def test_numpy(self):
-        sampler = NumpySampler(Sampler(TEST_MUTLI_INDEX_ROW_DF, splitter=lambda x, *args: (x[:-3], x[-3:]), epochs=2))
-        samples = list(sampler.sample_full_epochs())
-
-        self.assertEqual(2, len(samples))
-        self.assertIsInstance(samples[0], tuple)
-        self.assertIsInstance(samples[0][2][0], np.ndarray)
-        self.assertEqual((6, 6), samples[0][2][0].shape)
+        self.assertEqual(3, len(list(sampler.sample_for_training())))

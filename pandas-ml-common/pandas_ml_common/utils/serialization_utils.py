@@ -54,11 +54,12 @@ def plot_to_html_img(plotter, **kwargs):
         try:
             fig.savefig(f, format="png", bbox_inches='tight')
             image = base64.encodebytes(f.getvalue()).decode("utf-8")
-            plt.close(fig)
 
             return f'data:image/png;base64, {image}'
         except TypeError:
             return traceback.print_exc()
+        finally:
+            plt.close(fig)
 
 
 def dict_to_str(d):

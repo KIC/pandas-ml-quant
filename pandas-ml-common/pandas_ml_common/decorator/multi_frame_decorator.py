@@ -1,7 +1,9 @@
 from typing import Tuple
 
-from pandas_ml_common.utils import intersection_of_index, call_callable_dynamic_args
+import numpy as np
+
 from pandas_ml_common import Typing
+from pandas_ml_common.utils import intersection_of_index, call_callable_dynamic_args
 
 
 class MultiFrameLocDecorator(object):
@@ -11,6 +13,15 @@ class MultiFrameLocDecorator(object):
 
     def __getitem__(self, item):
         return MultiFrameDecorator([f.loc[item] for f in self.frames])
+
+
+class MultiFrameILocDecorator(object):
+
+    def __init__(self, frames: Tuple[Typing.PatchedDataFrame]):
+        self.frames = frames
+
+    def __getitem__(self, item):
+        return MultiFrameDecorator([f.iloc[item] for f in self.frames])
 
 
 class MultiFrameExtDecorator(object):
@@ -42,8 +53,17 @@ class MultiFrameDecorator(object):
             return tuple([f.loc[self._index] for f in self._frames])
 
     @property
+    def columns(self):
+        tple = np.array([f.columns.to_list() for f in self._frames], dtype=object)
+        return tple
+
+    @property
     def index(self):
         return self._index
+
+    @property
+    def iloc(self):
+        return MultiFrameILocDecorator(self._frames)
 
     @property
     def loc(self):
