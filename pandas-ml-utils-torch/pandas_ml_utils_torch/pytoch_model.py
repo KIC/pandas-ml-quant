@@ -32,7 +32,7 @@ class _PytorchModeBase(Model):
                  optimizer_provider: Type[t.optim.Optimizer],
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  restore_best_weights: bool = False,
-                 use_same_model_for_cv: bool = True,
+                 merge_cross_folds: Callable[[Dict[int, FittingContext.FoldContext]], Dict] = None,
                  callbacks: Dict[str, List[Callable]] = {},
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
@@ -40,11 +40,10 @@ class _PytorchModeBase(Model):
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
         self.restore_best_weights = restore_best_weights
-        self.use_same_model_for_cv = use_same_model_for_cv
+        self.merge_cross_folds = merge_cross_folds
         self.callbacks = callbacks
         self.module: PytorchNN = None
         self.log_once = LogOnce().log
-        self._override_cv_model = True  # behave the old way and just keep fitting the same model for each fold
         self._cuda = False
         self._fitting_context: FittingContext = None
 
@@ -57,10 +56,10 @@ class _PytorchModeBase(Model):
         return self
 
     def init_fit(self, **kwargs):
-        self._fitting_context = FittingContext(self._override_cv_model)
+        self._fitting_context = FittingContext(self.merge_cross_folds)
 
     def init_fold(self, epoch: int, fold: int):
-        module = self.module_provider if self.module is None else deepcopy(self.module)
+        module = self.module_provider() if self.module is None else deepcopy(self.module)
         self._fitting_context.init_if_not_exists(fold, lambda: FittingContext.FoldContext(
             module,
             self.criterion_provider,
@@ -120,9 +119,7 @@ class _PytorchModeBase(Model):
         if self.restore_best_weights:
             self._fitting_context.restore_best_weights()
 
-        # TODO implement cross folding, like: "take the best", "average them all", "average all weighted", ... what so ever ...
-        self.module = self._fitting_context.get_module(0)[0]
-        self._fitting_context = FittingContext(self._override_cv_model)
+        self.module = self._fitting_context.merge_folds(self.module_provider, self._cuda)
 
     def _predict(self, features: pd.DataFrame, col_names, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         cuda = kwargs.get("cuda", False)
@@ -173,10 +170,11 @@ class PytorchModel(_PytorchModeBase):
     def __init__(self, features_and_labels: FeaturesAndLabels, module_provider: Type[PytorchNN],
                  criterion_provider: Type[nn.modules.loss._Loss], optimizer_provider: Type[t.optim.Optimizer],
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 restore_best_weights: bool = False, use_same_model_for_cv: bool = True,
+                 restore_best_weights: bool = False,
+                 merge_cross_folds: Callable[[Dict[int, FittingContext.FoldContext]], Dict] = None,
                  callbacks: Dict[str, List[Callable]] = {}, **kwargs):
         super().__init__(features_and_labels, module_provider, criterion_provider, optimizer_provider, summary_provider,
-                         restore_best_weights, use_same_model_for_cv, callbacks, **kwargs)
+                         restore_best_weights, merge_cross_folds, callbacks, **kwargs)
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         self.module = self.module.eval()
@@ -188,10 +186,11 @@ class PytorchAutoEncoderModel(_PytorchModeBase, AutoEncoderModel):
     def __init__(self, features_and_labels: FeaturesAndLabels, module_provider: Type[PytorchNN],
                  criterion_provider: Type[nn.modules.loss._Loss], optimizer_provider: Type[t.optim.Optimizer],
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 restore_best_weights: bool = False, use_same_model_for_cv: bool = True,
+                 restore_best_weights: bool = False,
+                 merge_cross_folds: Callable[[Dict[int, FittingContext.FoldContext]], Dict] = None,
                  callbacks: Dict[str, List[Callable]] = {}, **kwargs):
         super().__init__(features_and_labels, module_provider, criterion_provider, optimizer_provider, summary_provider,
-                         restore_best_weights, use_same_model_for_cv, callbacks, **kwargs)
+                         restore_best_weights, merge_cross_folds, callbacks, **kwargs)
 
     def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         self.module = self.module.eval()

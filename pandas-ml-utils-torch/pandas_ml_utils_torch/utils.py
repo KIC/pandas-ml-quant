@@ -45,6 +45,7 @@ class FittingContext(object):
             self.optimizer = optimizer(self.module.parameters())
             self.best_weights = None
             self.best_loss = sys.float_info.max
+            self.last_loss = sys.float_info.max
             self.l1_penalty_tensors = None
             self.l2_penalty_tensors = None
             self.cuda = cuda
@@ -62,6 +63,7 @@ class FittingContext(object):
                      if glob.globmatch(param, path, flags=glob.GLOBSTAR)}
 
         def update_best_loss(self, loss):
+            self.last_loss = loss
             if loss < self.best_loss:
                 self.best_loss = loss
                 self.update_best_weights()
@@ -71,6 +73,7 @@ class FittingContext(object):
 
         def restore_best_weights(self):
             self.module.load_state_dict(self.best_weights)
+            self.last_loss = self.best_loss
 
         def get_l1_term(self):
             if self.l1_penalty_tensors is None:
@@ -88,8 +91,8 @@ class FittingContext(object):
         def criterion_l1_l2(self):
             return FittingContext.FoldContext.Criterion(self.criterion, self.get_l1_term(), self.get_l2_term())
 
-    def __init__(self, override_cv_model: bool):
-        self.override_cv_model = override_cv_model
+    def __init__(self, merge_cross_folds: Callable[[Dict[int, FoldContext]], Dict] = None,):
+        self.merge_cross_folds = merge_cross_folds
         self.fold_modules: Dict[int, FittingContext.FoldContext] = {}
 
     def init_if_not_exists(self, fold: int, provider: Callable[[], FoldContext]):
@@ -109,5 +112,20 @@ class FittingContext(object):
         fc = self.fold_modules[fold]
         return fc.module, fc.criterion_l1_l2, fc.optimizer
 
+    def merge_folds(self, module_provider, cuda):
+        merged_model = None
+        if self.merge_cross_folds is None:
+            for ctx in self.fold_modules.values():
+                merged_model = ctx.module
+                break
+        else:
+            module = module_provider()
+            module = module.cuda() if cuda else module.cpu()
+            module.load_state_dict(self.merge_cross_folds(self.fold_modules))
+            merged_model = module
+
+        self.fold_modules.clear()
+        return merged_model
+
     def _translate_fold(self, fold):
-        return 0 if self.override_cv_model else fold
+        return 0 if self.merge_cross_folds is None else fold
