@@ -74,18 +74,9 @@ class Model(object):
 
     def fit(self, sampler: Sampler, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         self.init_fit(**kwargs)
-        stopped_folds = set()
-
-        sampler = sampler.with_callbacks(
-            on_start=self._record_meta,
-            on_fold=self.init_fold,
-            after_fold_epoch=partial(self._record_loss, callbacks=callbacks, verbose=verbose),
-            after_epoch=self.merge_folds,
-            after_end=self.finish_learning
-        )
+        sampler = self._sampler_with_callbacks(sampler, verbose, callbacks)
 
         for batch in sampler.sample_for_training():
-            if batch.fold in stopped_folds or -1 in stopped_folds: continue
             self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
 
         training_data = sampler.get_in_sample_features()
@@ -95,6 +86,15 @@ class Model(object):
         df_test_prediction = self.predict(test_data) if len(test_data) > 0 else pd.DataFrame({})
 
         return df_training_prediction, df_test_prediction
+
+    def _sampler_with_callbacks(self, sampler: Sampler, verbose: int = 0, callbacks=None) -> Sampler:
+        return sampler.with_callbacks(
+            on_start=self._record_meta,
+            on_fold=self.init_fold,
+            after_fold_epoch=partial(self._record_loss, callbacks=callbacks, verbose=verbose),
+            after_epoch=self.merge_folds,
+            after_end=self.finish_learning
+        )
 
     def _record_meta(self, epochs, batch_size, fold_epochs, cross_validation, features, labels: List[str]):
         self._labels_columns = labels

@@ -68,6 +68,7 @@ class _AbstractSkModel(Model):
     def merge_folds(self, epoch: int):
         self.log_once("merge_folds", _log.warning, "merging of cross folded models is not supported, we just keep training the same model")
         self.sk_model = self._sk_fold_models[-1]
+        self._sk_fold_models = []
 
     def finish_learning(self):
         # clear oll intermediate fold models, otherwise they get serialized to disk
@@ -91,7 +92,7 @@ class SkModel(_AbstractSkModel):
         super().__init__(skit_model, features_and_labels, summary_provider, **kwargs)
 
     def calculate_loss(self, fold, x, y_true, weight):
-        skm = self.sk_model if fold is None else self._sk_fold_models[0 if not self.overwrite_folds else fold]
+        skm = self.sk_model if fold is None else self._sk_fold_models[0 if self.overwrite_folds else fold]
         y_pred = self._predict(skm, x, fold=fold)
         y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
         w = weight.values.reshape(-1, ) if weight is not None else None

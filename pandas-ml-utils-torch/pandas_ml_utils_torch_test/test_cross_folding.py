@@ -1,7 +1,5 @@
 from unittest import TestCase
 
-import pandas as pd
-import numpy as np
 from sklearn.model_selection import KFold
 from torch import nn
 from torch.optim import SGD
