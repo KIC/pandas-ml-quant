@@ -1,7 +1,7 @@
 import os
 from abc import abstractmethod
 from copy import deepcopy
-from functools import partial
+from functools import partial, wraps
 from typing import Callable, Tuple, Iterable, Generator, Union, List, NamedTuple
 from collections import defaultdict
 
@@ -80,7 +80,7 @@ class Model(object):
             self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
 
         training_data = sampler.get_in_sample_features()
-        df_training_prediction = self.predict(training_data, **kwargs)
+        df_training_prediction = self.train_predict(training_data, **kwargs)
 
         test_data = sampler.get_out_of_sample_features()
         df_test_prediction = self.predict(test_data) if len(test_data) > 0 else pd.DataFrame({})
@@ -119,9 +119,8 @@ class Model(object):
     def init_fit(self, **kwargs):
         pass
 
-    @abstractmethod
     def init_fold(self, epoch: int, fold: int):
-        raise NotImplemented
+        pass
 
     @abstractmethod
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
@@ -134,17 +133,18 @@ class Model(object):
     def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
         raise NotImplemented
 
-    @abstractmethod
     def merge_folds(self, epoch: int):
-        raise NotImplemented
+        pass
+
+    def train_predict(self, *args, **kwargs) -> Typing.PatchedDataFrame:
+        return self.predict(*args, **kwargs)
 
     @abstractmethod
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples = 1, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
-    @abstractmethod
     def finish_learning(self):
-        raise NotImplemented
+        pass
 
     def save(self, filename: str):
         """

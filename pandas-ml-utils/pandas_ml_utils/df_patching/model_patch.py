@@ -15,7 +15,7 @@ from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting import Fit, FitException
 from pandas_ml_utils.ml.model import Model as MlModel, SkModel
 from pandas_ml_utils.ml.summary import Summary
-from .model_context import ModelContext
+
 from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels, extract, FeaturesWithTargets, \
     extract_features, extract_feature_labels_weights
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
@@ -188,4 +188,5 @@ class DfModelPatch(object):
         return assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
 
     def __call__(self, file_name=None):
+        from .model_context import ModelContext
         return ModelContext(self.df, file_name=file_name)

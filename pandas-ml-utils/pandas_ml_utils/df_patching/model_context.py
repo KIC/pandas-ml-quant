@@ -5,10 +5,11 @@ from typing import Union
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils.time_utils import seconds_since_midnight
+from pandas_ml_utils.df_patching.model_patch import DfModelPatch
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils.ml.fitting import Fit
-from pandas_ml_utils.ml.model.base_model import Model
+from pandas_ml_utils.ml.model import Model
 
 
 class ModelContext(object):
@@ -19,7 +20,7 @@ class ModelContext(object):
             "V": f'{datetime.now().strftime("%Y%m-%d")}-{seconds_since_midnight()}'
         }) if file_name is not None else None
 
-    @wraps(Model.fit)
+    @wraps(DfModelPatch.fit)
     def fit(self, *args, **kwargs) -> Fit:
         fit = self.df.model.fit(*args, **kwargs)
 
