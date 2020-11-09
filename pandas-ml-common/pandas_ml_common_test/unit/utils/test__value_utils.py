@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_common.utils import to_pandas, unpack_nested_arrays
+from pandas_ml_common.utils import to_pandas, unpack_nested_arrays, wrap_row_level_as_nested_array
 import pandas as pd
 import numpy as np
 
@@ -177,3 +177,14 @@ class TestValueUtils(TestCase):
         self.assertEqual(2, len(values))
         self.assertEqual((7, 3), values[0].shape)
         self.assertEqual((3, 3), values[1].shape)
+
+    def test_nesting_arrays(self):
+        df = pd.DataFrame(
+            np.random.random((10, 2)),
+            columns=["a", "b"],
+            index=pd.MultiIndex.from_product([["A", "B"], range(5)])
+        )
+
+        wrapped = wrap_row_level_as_nested_array(df, -1)
+        self.assertEqual((2, 1), wrapped.shape)
+        self.assertNotIsInstance(wrapped, pd.MultiIndex)

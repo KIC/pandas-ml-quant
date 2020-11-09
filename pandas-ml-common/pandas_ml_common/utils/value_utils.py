@@ -15,7 +15,7 @@ def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_m
         return None
     elif isinstance(df, PandasObject):
         # in case of multiple assets stacked on top of each other
-        if split_multi_index_rows and isinstance(df.index, pd.MultiIndex):
+        if split_multi_index_rows and isinstance(df.index, pd.MultiIndex) and df.index.nlevels > 1:
             return [unpack_nested_arrays(df.loc[group], split_multi_index_rows, dtype) for group in unique_level_rows(df)]
         else:
             values = df.values
@@ -41,6 +41,22 @@ def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_m
         res = res[:, 0, :]
     if res.ndim == 3 and res.shape[-1] == 1:
         res = res[:, :, 0]
+
+    return res
+
+
+def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=None):
+    assert isinstance(df.index, pd.MultiIndex), "expected row MultiIndex"
+    queries = {i[:row_level] + (i[row_level + 1:] if len(i[row_level:]) > 1 else ()) for i in df.index}
+    column_name = ", ".join([str(c) for c in df.columns]) if column_name is None else column_name
+    column = np.empty(len(queries), dtype=object)
+
+    for i, query in enumerate(queries):
+        column[i] = df.loc[query].values.tolist()
+
+    res = pd.DataFrame({column_name: column}, index=queries)
+    if res.index.nlevels == 1:
+        res.index = [i[0] for i in res.index]
 
     return res
 

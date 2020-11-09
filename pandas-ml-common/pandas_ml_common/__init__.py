@@ -51,6 +51,7 @@ setattr(pd.DataFrame, "add_multi_index", lambda self, *args, **kwargs: add_multi
 
 setattr(pd.MultiIndex, "unique_level", lambda self, *args: unique_level(self, *args))
 
+
 class Typing(object):
     PatchedDataFrame = pd.DataFrame
     PatchedSeries = pd.Series
