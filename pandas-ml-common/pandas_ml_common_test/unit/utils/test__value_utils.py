@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_common.utils import to_pandas, unpack_nested_arrays, wrap_row_level_as_nested_array
+from pandas_ml_common.utils import to_pandas, unpack_nested_arrays, wrap_row_level_as_nested_array, hexplode
 import pandas as pd
 import numpy as np
 
@@ -188,3 +188,11 @@ class TestValueUtils(TestCase):
         wrapped = wrap_row_level_as_nested_array(df, -1)
         self.assertEqual((2, 1), wrapped.shape)
         self.assertNotIsInstance(wrapped, pd.MultiIndex)
+
+    def test_hexplode(self):
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df["b"] = [[1, 1], [2, 2], [3, 3]]
+
+        res = hexplode(df, "b", ["b1", "b2"])
+        self.assertEqual((3, 3), res.shape)
+        self.assertEqual(9, res.iloc[-1].sum().item())

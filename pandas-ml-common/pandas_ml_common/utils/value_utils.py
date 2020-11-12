@@ -45,8 +45,10 @@ def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_m
     return res
 
 
-def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=None):
+def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=None, dropna=True):
     assert isinstance(df.index, pd.MultiIndex), "expected row MultiIndex"
+    if dropna: df = df.dropna()
+
     queries = {i[:row_level] + (i[row_level + 1:] if len(i[row_level:]) > 1 else ()) for i in df.index}
     column_name = ", ".join([str(c) for c in df.columns]) if column_name is None else column_name
     column = np.empty(len(queries), dtype=object)
@@ -59,6 +61,11 @@ def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=N
         res.index = [i[0] for i in res.index]
 
     return res
+
+
+def hexplode(df: pd.DataFrame, col_name: str, new_columns) -> pd.DataFrame:
+    t = pd.DataFrame(df[col_name].tolist(), columns=new_columns, index=df.index)
+    return pd.concat([df.drop(col_name, axis=1), t], axis=1)
 
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:
