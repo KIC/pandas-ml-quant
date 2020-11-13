@@ -158,3 +158,18 @@ def get_correlation_pairs(df: pd.DataFrame):
     sorted_corr = corr.unstack().drop(labels=redundant).sort_values()
     return corr, sorted_corr
 
+
+def cumcount(s: pd.Series):
+    last_value = None
+    count = 1
+    res = {}
+
+    for i, v in s.iteritems():
+        if last_value == v:
+            count += 1
+        else:
+            res[i] = count
+            last_value = v
+            count = 1
+
+    return pd.Series(res, name=f'cumcount({s.name})')
