@@ -1,6 +1,7 @@
 from unittest import TestCase
+
 from pandas_ml_quant import np
-from pandas_ml_quant.analysis.encoders import ta_gaf, ta_rnn, ta_inverse_gasf, np_inverse_gaf
+from pandas_ml_quant.technichal_analysis.encoders import ta_gaf, ta_rnn, ta_inverse_gasf, np_inverse_gaf
 from pandas_ml_quant_test.config import DF_TEST, DF_INVERSE_GAF
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 

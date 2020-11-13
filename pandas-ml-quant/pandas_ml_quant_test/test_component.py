@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 import pandas_ml_quant
-from pandas_ml_quant_test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
 

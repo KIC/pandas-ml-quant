@@ -1,8 +1,9 @@
 from unittest import TestCase
 
-from pandas_ml_quant_test.config import DF_TEST, DF_TEST_MULTI
-import pandas_ml_quant
 import numpy as np
+
+import pandas_ml_quant
+from pandas_ml_quant_test.config import DF_TEST, DF_TEST_MULTI
 
 print(pandas_ml_quant.__version__)
 
@@ -31,6 +32,7 @@ class TestBackTest(TestCase):
         porfolios = signal.ta.backtest(df, lambda sig: (sig, 10 * sig))
         print(porfolios)
 
+    # TODO obsolete -> should be rolling model
     def test_markowitz(self):
         df = DF_TEST_MULTI._["Close"].copy()
         weights = df.ta.markowitz(return_period=20)

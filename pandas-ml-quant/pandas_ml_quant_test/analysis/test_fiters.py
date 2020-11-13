@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_quant.analysis import ta_multi_ma
+from pandas_ml_quant.technichal_analysis import ta_multi_ma
 from pandas_ml_quant_test.config import DF_TEST
 
 

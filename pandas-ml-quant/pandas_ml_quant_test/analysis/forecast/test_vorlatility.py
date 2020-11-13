@@ -1,8 +1,9 @@
 from unittest import TestCase
 
-from pandas_ml_quant.analysis import ta_garch11
-from pandas_ml_quant_test.config import DF_TEST
 import numpy as np
+
+from pandas_ml_quant.technichal_analysis import ta_garch11
+from pandas_ml_quant_test.config import DF_TEST
 
 
 class TestVolatilityForecast(TestCase):

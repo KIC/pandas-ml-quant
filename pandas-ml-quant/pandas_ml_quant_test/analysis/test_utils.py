@@ -1,10 +1,11 @@
 from unittest import TestCase
-import pandas as pd
-import numpy as np
 
-from pandas_ml_quant.analysis import ta_cci, ta_adx
-from pandas_ml_quant.analysis._utils import conditional_func
-from pandas_ml_quant.analysis._decorators import for_each_top_level_column
+import numpy as np
+import pandas as pd
+
+from pandas_ml_quant.technichal_analysis import ta_cci, ta_adx
+from pandas_ml_quant.technichal_analysis._decorators import for_each_top_level_column
+from pandas_ml_quant.technichal_analysis._utils import conditional_func
 from pandas_ml_quant_test.config import DF_TEST_MULTI
 
 

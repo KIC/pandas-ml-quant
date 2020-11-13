@@ -1,10 +1,10 @@
 import logging
 from unittest import TestCase
 
-from pandas_ml_quant.analysis.indicators import ta_zscore
+from pandas_ml_common import np, inner_join
+from pandas_ml_quant.technichal_analysis.indicators import ta_zscore
 from pandas_ml_quant.trading.strategy.optimized import ta_markowitz
 from pandas_ml_quant_test.config import DF_TEST_MULTI
-from pandas_ml_common import pd, np, inner_join
 
 logging.basicConfig(level=logging.DEBUG)
 

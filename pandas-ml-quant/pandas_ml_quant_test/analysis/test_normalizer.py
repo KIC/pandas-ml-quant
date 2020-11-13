@@ -1,9 +1,9 @@
 from unittest import TestCase
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from pandas_ml_quant.analysis import ta_ma_ratio, ta_normalize_row, ta_delta_hedged_price
+from pandas_ml_quant.technichal_analysis import ta_ma_ratio, ta_normalize_row, ta_delta_hedged_price
 from pandas_ml_quant_test.config import DF_TEST, DF_TEST2
 
 

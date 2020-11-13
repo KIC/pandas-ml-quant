@@ -1,11 +1,10 @@
 from unittest import TestCase
 
-import numpy as np
 import talib
 
-from pandas_ml_quant.analysis import *
-from pandas_ml_quant_test.config import DF_TEST
 from pandas_ml_common import Constant
+from pandas_ml_quant.technichal_analysis import *
+from pandas_ml_quant_test.config import DF_TEST
 
 
 class TestIndicator(TestCase):

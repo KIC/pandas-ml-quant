@@ -1,6 +1,6 @@
 from unittest import TestCase
-from pandas_ml_quant import pd
 
+from pandas_ml_quant import pd
 from pandas_ml_quant_test.config import DF_TEST
 
 
