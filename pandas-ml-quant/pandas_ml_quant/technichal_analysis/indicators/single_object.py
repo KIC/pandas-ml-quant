@@ -7,6 +7,7 @@ from scipy.stats import zscore
 
 import pandas_ml_quant.technichal_analysis.bands as _bands
 from pandas_ml_common import Typing
+from pandas_ml_common.utils import cumcount
 from pandas_ml_quant.technichal_analysis._decorators import *
 from pandas_ml_quant.technichal_analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
 from pandas_ml_quant.utils import with_column_suffix as _wcs
@@ -141,30 +142,42 @@ def ta_sortino_ratio(df: _PANDAS, period=60, ddof=1, risk_free=0, is_returns=Fal
 
 @for_each_top_level_row
 @for_each_column
-def ta_draw_down(df: _PANDAS, return_dates=False, return_duration=False):
-    ds = df
-    pmin_pmax = (ds.diff(-1) > 0).astype(int).diff()  # <- -1 indicates pmin, +1 indicates pmax
-    pmax = pmin_pmax[pmin_pmax == 1]
-    pmin = pmin_pmax[pmin_pmax == -1]
+def ta_draw_down(s: _PANDAS, return_dates=False, return_duration=False):
+    df = s.copy() if s.ndim > 1 else s.to_frame()
 
-    if pmin.index[0] < pmax.index[0]:
-        pmin = pmin.drop(pmin.index[0])
+    max_peaks_idx = s.expanding(min_periods=1).apply(lambda x: x.argmax()).fillna(0).astype(int).rename("iloc")
+    duration_per_peak_iloc = cumcount(max_peaks_idx.to_frame().reset_index()["iloc"]).rename("duration").to_frame()
+    duration_per_peak_iloc["iloc_start"] = duration_per_peak_iloc.index.to_series().shift(1).fillna(0).astype(int)
+    duration_per_peak_iloc = duration_per_peak_iloc[duration_per_peak_iloc["duration"] > 1]
+    df['max_peaks_idx'] = max_peaks_idx
 
-    if pmin.index[-1] < pmax.index[-1]:
-        pmax = pmax.drop(pmax.index[-1])
+    nw_peaks = pd.Series(s.iloc[max_peaks_idx.values].values, index=s.index)
 
-    dd = (_np.array(ds[pmin.index]) - _np.array(ds[pmax.index])) / _np.array(ds[pmax.index])
-    d = {'drawdown': dd}
+    df['dd'] = ((s - nw_peaks) / nw_peaks)
+    df['mdd'] = df.groupby('max_peaks_idx').dd.apply(lambda x: x.expanding(min_periods=1).apply(lambda y: y.min())).fillna(0)
+    df = df.drop('max_peaks_idx', axis=1)
 
     if return_dates:
-        d['d_start'] = pmax.index
-        d['d_end'] = pmin.index
+        df = df.join(
+            pd.DataFrame(
+                {
+                    "dd_start" : s.index[duration_per_peak_iloc["iloc_start"]],
+                    "dd_end" : s.index[duration_per_peak_iloc.index],
+                },
+                index=s.index[duration_per_peak_iloc.index]
+            )
+        )
 
     if return_duration:
-        dur = [_np.busday_count(p1.date(), p2.date()) for p1, p2 in zip(pmax.index, pmin.index)]
-        d['duration'] = dur
+        df = df.join(
+            pd.Series(
+                duration_per_peak_iloc["duration"].values,
+                index=s.index[duration_per_peak_iloc.index],
+                name="duration"
+            )
+        )
 
-    return _pd.DataFrame({}, index=df.index).join(_pd.DataFrame(d, index=pmax.index)).fillna(0)
+    return df
 
 
 @for_each_top_level_row

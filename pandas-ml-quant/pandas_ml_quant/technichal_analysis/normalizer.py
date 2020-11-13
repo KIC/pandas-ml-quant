@@ -11,10 +11,9 @@ from pandas_ml_quant.utils import with_column_suffix as _wcs
 from pandas_ml_quant.technichal_analysis._decorators import *
 
 
-@for_each_top_level_row
-def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
+def _rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
     if axis is not None:
-        return df.apply(lambda x: ta_rescale(x, range), raw=False, axis=axis, result_type='broadcast')
+        return df.apply(lambda x: _rescale(x, range), raw=False, axis=axis, result_type='broadcast')
     else:
         rescaler = ReScaler((df.values.min(), df.values.max()), range)
         rescaled = rescaler(df.values)
@@ -26,6 +25,11 @@ def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
             return pd.DataFrame(rescaled, columns=df.columns, index=df.index)
         else:
             return pd.Series(rescaled, name=df.name, index=df.index)
+
+
+@for_each_top_level_row
+def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
+    return _rescale(df, range, digits, axis)
 
 
 @for_each_top_level_row

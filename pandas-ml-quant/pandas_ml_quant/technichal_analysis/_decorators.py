@@ -37,7 +37,7 @@ def for_each_top_level_column(func):
 def for_each_top_level_row(func):
     @wraps(func)
     def exec_on_each_tl_row(df: pd.DataFrame, *args, **kwargs):
-        if isinstance(df.index, pd.MultiIndex) and df.ndim > 1:
+        if isinstance(df.index, pd.MultiIndex):
             top_level = unique_level_rows(df, 0)
             if len(top_level) > 1:
                 return pd.concat(
