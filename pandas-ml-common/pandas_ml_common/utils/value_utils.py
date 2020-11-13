@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union
+from typing import List, Union, Any
 
 import numpy as np
 import pandas as pd
@@ -63,7 +63,7 @@ def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=N
     return res
 
 
-def hexplode(df: pd.DataFrame, col_name: str, new_columns) -> pd.DataFrame:
+def hexplode(df: pd.DataFrame, col_name: Any, new_columns) -> pd.DataFrame:
     t = pd.DataFrame(df[col_name].tolist(), columns=new_columns, index=df.index)
     return pd.concat([df.drop(col_name, axis=1), t], axis=1)
 

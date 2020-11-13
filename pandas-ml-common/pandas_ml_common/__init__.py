@@ -48,6 +48,7 @@ setattr(pd.DataFrame, "flatten_columns", flatten_multi_column_index)
 setattr(pd.DataFrame, "unique_level_columns", unique_level_columns)
 setattr(pd.DataFrame, "has_indexed_columns", lambda self: has_indexed_columns(self))
 setattr(pd.DataFrame, "add_multi_index", lambda self, *args, **kwargs: add_multi_index(self, *args, **kwargs))
+setattr(pd.Series, "add_multi_index", lambda self, *args, **kwargs: add_multi_index(self, *args, **kwargs))
 
 setattr(pd.MultiIndex, "unique_level", lambda self, *args: unique_level(self, *args))
 

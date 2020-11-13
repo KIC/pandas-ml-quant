@@ -42,7 +42,10 @@ def add_multi_index(df, head, inplace=False, axis=1):
     if axis == 0:
         df.index = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.index.tolist()])
     elif axis == 1:
-        df.columns = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.columns.tolist()])
+        if df.ndim > 1:
+            df.columns = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.columns.tolist()])
+        else:
+            df.name = (head, df.name)
     else:
         raise ValueError("illegal axis, expected 0|1")
 
