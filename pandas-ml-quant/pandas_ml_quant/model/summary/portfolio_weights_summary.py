@@ -30,7 +30,7 @@ class PortfolioWeightsSummary(Summary):
                  **kwargs
                  ):
         super().__init__(
-            df,
+            df.sort_index(),
             model,
             self._plot_portfolio_and_weights,
             self._show_risk_metrics,
@@ -101,7 +101,7 @@ class PortfolioWeightsSummary(Summary):
     def _plot_portfolio_and_weights(self, *args, figsize=(20, 20), **kwargs):
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(4, 1, gridspec_kw={"height_ratios": [3, 1, 3, 1]}, sharex=True, figsize=figsize)
-        p = self.portfolio
+        p = self.portfolio[1:]
 
         # plot performance graphs
         p["agg", "balance"].plot(ax=ax[0], label="Portfolio")
@@ -114,14 +114,15 @@ class PortfolioWeightsSummary(Summary):
 
         # plot weight distribution
         p["weights"].plot.area(ax=ax[2])
-        ax[3].bar(x=p.index, height=p["agg", "weights_distance"].values)
+        ax[2].legend(loc="upper left")
+        ax[3].bar(x=p.index[1:], height=p["agg", "weights_distance"].values[1:])
 
         return fig
 
     def _show_risk_metrics(self, *args, **kwargs):
         # VaR, sharp ratio, sortino ratio, ...
-        p = self.portfolio["agg", "balance"]
-        b = self.portfolio["benchmark", "1/N"]
+        p = self.portfolio["agg", "balance"][2:]
+        b = self.portfolio["benchmark", "1/N"][2:]
 
         def cvar(s, confidence=0.95):
             return s.pct_change().sort_values()[:int((1 - confidence) * len(s))].values.mean() * 100
