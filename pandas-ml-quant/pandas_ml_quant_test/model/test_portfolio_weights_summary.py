@@ -129,3 +129,29 @@ class TestSummary(TestCase):
                 [-0.01018388, 0.00228764, 0.00478135, 0.00025658, 0.0050183, -0.0008482, 0.00426613, 0.00117961]),
             7
         )
+
+    def test_cash_fallback(self):
+        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
+        df[PREDICTION_COLUMN_NAME, "spy"] = 0.5
+        df[PREDICTION_COLUMN_NAME, "gld"] = 0.0
+
+        summary = PortfolioWeightsSummary(df, None)
+        portfolio = summary.construct_portfolio()
+        # print(portfolio)
+
+        np.testing.assert_equal(np.repeat([0.0], 9), portfolio["weights", "gld"][1:])
+        np.testing.assert_equal(np.repeat([0.5], 9), portfolio["weights", "spy"][1:])
+        np.testing.assert_equal(np.repeat([0.5], 9), portfolio["weights", "$"][1:])
+
+    def test_rebalance_draw_down(self):
+        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
+        df[PREDICTION_COLUMN_NAME, "spy"] = 1
+        df[PREDICTION_COLUMN_NAME, "gld"] = 0
+
+        portfolio = PortfolioWeightsSummary(df, None, rebalance_after_distance=100, rebalance_after_draw_down=0.005).construct_portfolio()
+        print(portfolio)
+
+        self.assertTrue(portfolio.loc["2020-02-07"]["agg", "rebalance"].item())
+        self.assertEqual(1, portfolio["agg", "rebalance"][2:].values.sum())

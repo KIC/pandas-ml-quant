@@ -25,6 +25,7 @@ class PortfolioWeightsSummary(Summary):
                  model: Model,
                  rebalancing_lag: int = 1,
                  rebalance_after_distance: float = 0,
+                 rebalance_after_draw_down: float = None,
                  rebalance_fee: Callable[[float], float] = lambda _: 0,
                  price_column: Any = 'Close',
                  **kwargs
@@ -40,6 +41,7 @@ class PortfolioWeightsSummary(Summary):
         assert TARGET_COLUMN_NAME in df, "Target Prices need to be provided via FeaturesAndLabels.target"
         self.rebalancing_lag = rebalancing_lag
         self.rebalance_after_distance = rebalance_after_distance
+        self.rebalance_after_draw_down = rebalance_after_draw_down
         self.rebalance_fee = rebalance_fee
         self.price_column = price_column
         self.portfolio = self.construct_portfolio()
@@ -78,6 +80,7 @@ class PortfolioWeightsSummary(Summary):
         current_weights = np.zeros(weights.shape[1])
         trades = np.zeros(weights.shape[1])
         lots = np.zeros(weights.shape[1])
+        max_balance = 1
         positions = []
         balance = 1
 
@@ -90,14 +93,22 @@ class PortfolioWeightsSummary(Summary):
             if lots.sum() != 0: balance = lots @ trade_prices
             weights_distance = np.linalg.norm(current_weights - target_weights)
 
-            # re-balancing
-            if i > 0 and (self.rebalance_after_distance <= 0 or weights_distance > self.rebalance_after_distance):
+            # check re-balancing trigger
+            trigger_rebalance = self.rebalance_after_distance <= 0 or weights_distance > self.rebalance_after_distance
+            if self.rebalance_after_draw_down is not None and not trigger_rebalance:
+                trigger_rebalance = (balance / max_balance) < (1 - self.rebalance_after_draw_down)
+                if trigger_rebalance:
+                    max_balance = balance
+
+            # re-balance portfolio
+            if (i > 1 and trigger_rebalance) or i == 1:
                 new_lots = (balance * target_weights) / trade_prices * (1 - self.rebalance_fee(balance))
                 trades = np.round(new_lots, 10) - np.round(lots, 10)
                 lots = new_lots
                 rebalanced = True
 
             # then add the current balance to a list such that we can calculate the performance over time
+            max_balance = max(max_balance, balance)
             current_weights = (lots * trade_prices) / balance
             positions.append(_Portfolio(balance, rebalanced, weights_distance, current_weights, trades, lots))
 
