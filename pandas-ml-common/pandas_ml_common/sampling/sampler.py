@@ -55,7 +55,7 @@ class Sampler(object):
             after_end: Callable = None,
             **kwargs
     ):
-        self.common_index = intersection_of_index(*frames)
+        self.common_index = intersection_of_index(*frames).sort_values()
         self.frames = XYWeight(*[loc_if_not_none(f, self.common_index) for f in frames])
         self.epochs = epochs
         self.batch_size = batch_size
