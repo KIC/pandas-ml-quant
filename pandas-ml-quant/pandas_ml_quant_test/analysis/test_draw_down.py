@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 import pandas as pd
-import numpy as np
 
 from pandas_ml_quant.technichal_analysis import ta_draw_down
 from pandas_ml_quant_test.config import DF_TEST
