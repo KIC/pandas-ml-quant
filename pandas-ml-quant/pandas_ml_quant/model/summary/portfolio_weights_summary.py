@@ -108,8 +108,8 @@ class PortfolioWeightsSummary(Summary):
         p["agg", "balance"].ta.draw_down()["dd"].plot(ax=ax[1], label="Portfolio")
 
         # plot draw down
-        p["benchmark", "1/N"].plot(ax=ax[0], label="1/N")
-        p["benchmark", "1/N"].ta.draw_down()["dd"].plot(ax=ax[1], label="1/N")
+        p["benchmark", "1/N"].plot(ax=ax[0], label="1/N", color="silver")
+        p["benchmark", "1/N"].ta.draw_down()["dd"].plot(ax=ax[1], label="1/N", color="silver")
         ax[0].legend(loc="upper left")
 
         # plot weight distribution
@@ -120,9 +120,11 @@ class PortfolioWeightsSummary(Summary):
         return fig
 
     def _show_risk_metrics(self, *args, **kwargs):
-        # VaR, sharp ratio, sortino ratio, ...
         p = self.portfolio["agg", "balance"][2:]
         b = self.portfolio["benchmark", "1/N"][2:]
+
+        def performance(s):
+            return (s[-1] / s[0] - 1) * 100
 
         def cvar(s, confidence=0.95):
             return s.pct_change().sort_values()[:int((1 - confidence) * len(s))].values.mean() * 100
@@ -131,7 +133,7 @@ class PortfolioWeightsSummary(Summary):
             return (s.pct_change().mean() - rf) / s.std()
 
         return pd.DataFrame(
-            [{"CVaR95": cvar(p), "Sharpe": sharpe_ratio(p)},
-             {"CVaR95": cvar((b)), "Sharpe": sharpe_ratio(b)}],
+            [{"Performance": performance(p), "CVaR95": cvar(p), "Sharpe": sharpe_ratio(p)},
+             {"Performance": performance(b), "CVaR95": cvar((b)), "Sharpe": sharpe_ratio(b)}],
             index=["Portfolio", "1/N"]
-        ).T
+        ).T.style.set_precision(3)
