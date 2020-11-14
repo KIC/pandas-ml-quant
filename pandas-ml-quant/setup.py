@@ -3,6 +3,7 @@ __version__ = '0.2.0'
 
 import os
 import re
+
 from setuptools import setup, find_packages
 
 url = 'https://github.com/KIC/pandas-ml-quant/pandas-ml-quant'

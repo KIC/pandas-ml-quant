@@ -1,18 +1,19 @@
-sortedcontainers
-mplfinance
-matplotlib
-colorama>= 0.3.9
-pywavelets
-cachetools
-ipywidgets
-qpsolvers
-moviepy
-mlxtend
-seaborn
-minisom
-cvxopt
-pandas
-numpy
-numba
-pyts
 arch
+cachetools
+colorama>= 0.3.9
+cvxopt
+cvxpy
+ipywidgets
+matplotlib
+minisom
+mlxtend
+moviepy
+mplfinance
+numba
+numpy
+pandas
+pyts
+pywavelets
+qpsolvers
+seaborn
+sortedcontainers
