@@ -49,27 +49,37 @@ class PortfolioWeightsSummary(Summary):
         )
 
     def construct_portfolio(self):
-        portfolio = self._construct_portfolio(self.df[PREDICTION_COLUMN_NAME])
-        shape, columns = portfolio["weights"].shape, portfolio["weights"].columns
-        bench_weights = pd.DataFrame(np.ones(shape) / shape[1], index=self.df.index, columns=columns)
-        portfolio["benchmark", "1/N"] = self._construct_portfolio(bench_weights)["agg", "balance"]
-        return portfolio
-
-    def _construct_portfolio(self, weights):
         df = self.df
-        current_weights = np.zeros(weights.shape[1])
-        trades = np.zeros(weights.shape[1])
-        lots = np.zeros(weights.shape[1])
-        trade_prices = df[TARGET_COLUMN_NAME]
-        positions = []
-        balance = 1
 
         def is_column(col, requested):
             # target looks like 'target', ('Open', 'spy'), ('Close', 'spy'),.. or 'target', 'Close'
             return col == requested or (isinstance(col, tuple) and requested in col)
 
-        price_columns = [col for col in trade_prices.columns if is_column(col, self.price_column)]
-        prices = trade_prices[price_columns]
+        # prices
+        trade_prices = df[TARGET_COLUMN_NAME]
+        trade_prices = trade_prices[[col for col in trade_prices.columns if is_column(col, self.price_column)]].copy()
+        trade_prices["$"] = 1
+
+        # portfolio
+        portfolio_weights = df[PREDICTION_COLUMN_NAME].copy()
+        portfolio_weights["$"] = (1 - portfolio_weights.sum(axis=1)).clip(lower=+0.0)
+        portfolio = self._construct_portfolio(portfolio_weights, trade_prices)
+
+        # benchmark
+        columns = portfolio["weights"].columns[:-1]
+        bench_weights = pd.DataFrame(np.ones((len(df), len(columns))) / len(columns), index=df.index, columns=columns)
+        benchmark = self._construct_portfolio(bench_weights, trade_prices.drop("$", axis=1))
+
+        # return portfolio with benchmark
+        portfolio["benchmark", "1/N"] = benchmark["agg", "balance"]
+        return portfolio
+
+    def _construct_portfolio(self, weights, prices):
+        current_weights = np.zeros(weights.shape[1])
+        trades = np.zeros(weights.shape[1])
+        lots = np.zeros(weights.shape[1])
+        positions = []
+        balance = 1
 
         for i, (idx, target_weights) in enumerate(weights.shift(self.rebalancing_lag).iterrows()):
             target_weights = target_weights.values

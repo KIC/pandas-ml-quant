@@ -64,7 +64,7 @@ class TestSummary(TestCase):
         self.assertLess(portfolio["weights"][1:].values.min(), 0.493)
         self.assertGreater(portfolio["weights"][1:].values.max(), 0.505)
         np.testing.assert_equal(
-            portfolio[portfolio["agg", "rebalance"] == True]["weights"].values,
+            portfolio[portfolio["agg", "rebalance"] == True]["weights"].values[:, :-1],
             np.ones((4, 2)) / 2,
             8
         )
