@@ -1,10 +1,10 @@
+cachetools
+fredapi
+investpy
+numpy
+pandas
+pangres
 simple-plugin-loader
 sortedcontainers
 sqlalchemy
-cachetools
-investpy
 yfinance
-pangres
-fredapi
-pandas
-numpy

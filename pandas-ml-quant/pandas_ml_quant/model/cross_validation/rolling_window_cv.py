@@ -1,27 +1,39 @@
-from typing import Generator, Tuple, List
+from typing import Generator, Tuple
 
-import pandas as pd
+import numpy as np
 
 
 class RollingWindowCV(object):
-    # act like a scikit base cross validator:
-    #  hasattr(cross_validation, 'get_n_splits') and hasattr(cross_validation, 'split'):
 
-    def __init__(self, window: int = 200, forecast: int = 7):
+    def __init__(self, window: int = 200, retrain_after: int = 7):
         super().__init__()
-        assert forecast > 0, "forecast need to be > 0"
+        assert retrain_after >= 0, "forecast need to be > 0"
         self.window = window
-        self.forecast = forecast
+        self.retrain_after = retrain_after
 
-    def get_n_splits(self, idx=None, y=None, groups=None):
-        nr_windows = (len(idx) - self.forecast) - self.window + 1
-        return nr_windows
+    def _split(self, idx, y=None, groups=None) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+        full_window_len = self.window + self.retrain_after
+        step_size = max(self.retrain_after, 1)
 
-    def split(self, idx, y=None, groups=None) -> Generator[Tuple[List[int], List[int]], None, None]:
-        for i in range(self.window - 1, len(idx) - self.forecast):
-            start, stop = i - (self.window - 1), i + 1
-            train_idx = range(start, stop)
-            test_idx = range(start + self.forecast, stop + self.forecast)
-            yield list(train_idx), list(test_idx)
+        if len(idx) < full_window_len:
+            raise ValueError(f"Not enough Data: {len(idx)} samples < window + forecast: {full_window_len}")
+
+        # FIXME the last training loop needs to be without any test data -> test data empty list
+        for i in range(full_window_len, len(idx), step_size):
+            train_start, train_stop = i - full_window_len, i - self.retrain_after
+            test_start, test_stop = i - step_size, i
+            yield np.arange(train_start, train_stop, dtype='int'), np.arange(test_start, test_stop, dtype='int')
+
+    def split(self, idx, y=None, groups=None) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+        if len(idx) < self.window:
+            raise ValueError(f"Not enough Data: {len(idx)} samples < window: {self.window}")
+
+        window = self.window
+        step_size = max(self.retrain_after, 1)
+
+        for i in range(window, len(idx) + max(1, step_size - 1), step_size):
+            train_start, train_stop = i - window, i
+            test_start, test_stop = i, min(i + step_size, len(idx))
+            yield np.arange(train_start, train_stop, dtype='int'), np.arange(test_start, test_stop, dtype='int')
 
 

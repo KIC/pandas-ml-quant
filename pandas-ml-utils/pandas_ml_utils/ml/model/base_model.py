@@ -75,9 +75,14 @@ class Model(object):
     def fit(self, sampler: Sampler, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         self.init_fit(**kwargs)
         sampler = self._sampler_with_callbacks(sampler, verbose, callbacks)
+        processed_batches = 0
 
         for batch in sampler.sample_for_training():
             self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
+            processed_batches += 1
+
+        if processed_batches <= 0:
+            raise ValueError(f"Not enough data {[len(f) for f in sampler.frames[0]]}")
 
         training_data = sampler.get_in_sample_features()
         df_training_prediction = self.train_predict(training_data, **kwargs)
@@ -104,11 +109,11 @@ class Model(object):
             cross_validation, any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
         )
 
-    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks):
+    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks, loss_history_key=None):
         train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
         test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data]).mean()
-        self._history["train", fold][(epoch, fold_epoch)] = train_loss
-        self._history["test", fold][(epoch, fold_epoch)] = test_loss
+        self._history["train", loss_history_key or fold][(epoch, fold_epoch)] = train_loss
+        self._history["test", loss_history_key or fold][(epoch, fold_epoch)] = test_loss
 
         self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
         if verbose > 0:

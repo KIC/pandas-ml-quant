@@ -153,8 +153,13 @@ class PortfolioWeightsSummary(Summary):
         def sharpe_ratio(s, rf=0):
             return (s.pct_change().mean() - rf) / s.std()
 
-        return pd.DataFrame(
-            [{"Performance": performance(p), "CVaR95": cvar(p), "Sharpe": sharpe_ratio(p)},
-             {"Performance": performance(b), "CVaR95": cvar((b)), "Sharpe": sharpe_ratio(b)}],
-            index=["Portfolio", "1/N"]
-        ).T.style.set_precision(3)
+        def calc_metrics(s):
+            return {
+                "Performance": performance(s),
+                "CVaR95": cvar(s),
+                "Sharpe": sharpe_ratio(s),
+                "Days": len(s),
+                "Last Day": s.index[-1]
+            }
+
+        return pd.DataFrame([calc_metrics(p), calc_metrics(b)], index=["Portfolio", "1/N"]).T.style.set_precision(3)
