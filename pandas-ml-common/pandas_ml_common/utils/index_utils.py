@@ -36,14 +36,14 @@ def flatten_multi_column_index(df: pd.DataFrame):
     return df
 
 
-def add_multi_index(df, head, inplace=False, axis=1):
+def add_multi_index(df, head, inplace=False, axis=1, level=0):
     df = df if inplace else df.copy()
 
     if axis == 0:
-        df.index = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.index.tolist()])
+        df.index = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.index.tolist()]).swaplevel(0, level)
     elif axis == 1:
         if df.ndim > 1:
-            df.columns = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.columns.tolist()])
+            df.columns = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.columns.tolist()]).swaplevel(0, level)
         else:
             df.name = (head, df.name)
     else:
