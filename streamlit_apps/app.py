@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from datetime import date, timedelta
-from pandas_ml_quant import pd, df
+from pandas_ml_quant import pd, df_patching
 from importlib import import_module
 
 import pandas_ml_quant_data_provider
