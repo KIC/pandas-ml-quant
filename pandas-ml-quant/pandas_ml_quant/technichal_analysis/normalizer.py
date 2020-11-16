@@ -89,27 +89,30 @@ def _ta_adaptive_normalisation():
 
 
 @for_each_top_level_row
-def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform"):
+def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform", level=None):
     # normalizer can be one of minmax01, minmax-11, uniform, standard or callable
-    def scaler(row):
-        values = row._.values
-        values_2d = values.reshape(-1, 1)
+    if isinstance(df.columns, pd.MultiIndex) and level is not None:
+        return for_each_top_level_column(ta_normalize_row, level=level)(df, normalizer)
+    else:
+        def scaler(row):
+            values = row._.values
+            values_2d = values.reshape(-1, 1)
 
-        if normalizer == 'minmax01':
-            return MinMaxScaler().fit(values_2d).transform(values_2d).reshape(values.shape)
-        elif normalizer == 'minmax-11':
-            return MinMaxScaler(feature_range=(-1, 1)).fit(values_2d).transform(values_2d).reshape(values.shape)
-        elif normalizer == 'standard':
-            # (value - mean) / std
-            return values - values.mean() / np.std(values)
-        elif normalizer == 'uniform':
-            return ecdf(values_2d).reshape(values.shape)
-        elif callable(normalizer):
-            return normalizer(row)
-        else:
-            raise ValueError('unknown normalizer need to one of: [minmax01, minmax-11, uniform, standard, callable(r)]')
+            if normalizer == 'minmax01':
+                return MinMaxScaler().fit(values_2d).transform(values_2d).reshape(values.shape)
+            elif normalizer == 'minmax-11':
+                return MinMaxScaler(feature_range=(-1, 1)).fit(values_2d).transform(values_2d).reshape(values.shape)
+            elif normalizer == 'standard':
+                # (value - mean) / std
+                return values - values.mean() / np.std(values)
+            elif normalizer == 'uniform':
+                return ecdf(values_2d).reshape(values.shape)
+            elif callable(normalizer):
+                return normalizer(row)
+            else:
+                raise ValueError('unknown normalizer need to one of: [minmax01, minmax-11, uniform, standard, callable(r)]')
 
-    return df.apply(scaler, axis=1, result_type='broadcast')
+        return df.apply(scaler, axis=1, result_type='broadcast')
 
 
 @for_each_top_level_row

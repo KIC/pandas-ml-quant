@@ -22,11 +22,11 @@ def for_each_column(func):
     return exec_on_each_column
 
 
-def for_each_top_level_column(func):
+def for_each_top_level_column(func, level=0):
     @wraps(func)
     def exec_on_each_tl_column(df: pd.DataFrame, *args, **kwargs):
         if df.ndim > 1 and isinstance(df.columns, pd.MultiIndex):
-            groups = [func(df[group], *args, **kwargs).to_frame().add_multi_index(group, inplace=True) for group in unique_level_columns(df, 0)]
+            groups = [func(df.xs(group, axis=1, level=level), *args, **kwargs).to_frame().add_multi_index(group, inplace=True, level=level) for group in unique_level_columns(df, level)]
             return pd.concat(groups, axis=1)
         else:
             return func(df, *args, **kwargs)
