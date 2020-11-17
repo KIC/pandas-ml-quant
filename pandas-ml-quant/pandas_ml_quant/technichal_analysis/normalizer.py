@@ -1,14 +1,13 @@
 import numpy as np
-import pandas as pd
 from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler
 
-from pandas_ml_common import Typing, has_indexed_columns
+from pandas_ml_common import Typing
 from pandas_ml_common.utils import ReScaler, get_pandas_object, intersection_of_index
 from pandas_ml_common.utils.normalization import ecdf
 from pandas_ml_quant.technichal_analysis import filters as _f
-from pandas_ml_quant.utils import with_column_suffix as _wcs
 from pandas_ml_quant.technichal_analysis._decorators import *
+from pandas_ml_quant.utils import with_column_suffix as _wcs
 
 
 def _rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):

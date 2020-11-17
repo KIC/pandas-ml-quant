@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from numba import guvectorize, float32, int32, float64, int64
 
-from pandas_ml_common.utils import has_indexed_columns
-
 
 def returns_to_log_returns(returns):
     return np.log(1 + returns)
@@ -30,7 +28,7 @@ def with_column_suffix(suffix, po, ref_po=None):
     if ref_po is None:
         ref_po = po
 
-    if has_indexed_columns(po):
+    if po.ndim > 1:
         if isinstance(po.index, pd.MultiIndex):
             po.columns = pd.MultiIndex.from_tuples([(suffix, *col) for col in ref_po.columns.to_list()])
             return po

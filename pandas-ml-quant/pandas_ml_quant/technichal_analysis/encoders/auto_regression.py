@@ -1,4 +1,4 @@
-from typing import Iterable, Dict, Callable, Tuple
+from typing import Iterable, Dict, Callable, Tuple, Union
 
 from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_quant.technichal_analysis._decorators import *

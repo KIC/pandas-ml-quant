@@ -1,9 +1,8 @@
 from functools import wraps
-from typing import Union
 
 import pandas as pd
 
-from pandas_ml_common import has_indexed_columns, unique_level_rows, unique_level_columns
+from pandas_ml_common import unique_level_rows, unique_level_columns
 
 
 def for_each_column(func):

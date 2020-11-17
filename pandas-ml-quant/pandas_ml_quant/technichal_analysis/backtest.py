@@ -8,6 +8,7 @@ from pandas_ml_quant.trading.transaction_log import StreamingTransactionLog
 
 
 # TODO shoule become part of rolling model + portfolio summary
+#   tests at pandas_ml_quant_test.trading.test_backtest.TestBackTest
 def ta_backtest(signal: Typing.PatchedDataFrame,
                 prices: Typing.PatchedPandas,
                 action: Callable[[pd.Series], Tuple[int, float]],

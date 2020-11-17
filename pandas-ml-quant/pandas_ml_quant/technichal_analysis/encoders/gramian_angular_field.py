@@ -81,16 +81,8 @@ def ta_gaf(df: Typing.PatchedPandas, columm_index_level=1, type='pyts', **kwargs
 
 
 @for_each_top_level_row
+@for_each_column
 def ta_inverse_gasf(df: Typing.PatchedPandas):
-    if has_indexed_columns(df):
-        res = _pd.DataFrame({}, index=df.index)
-        for col in df.columns:
-            sdf = ta_inverse_gasf(df[col])
-            sdf.columns = _pd.MultiIndex.from_product([[col], sdf.columns])
-            res = res.join(sdf)
-
-        return res
-
     inv = np_inverse_gaf(df._.values)
     if inv.ndim == 2:
         return _pd.DataFrame(inv, index=df.index)

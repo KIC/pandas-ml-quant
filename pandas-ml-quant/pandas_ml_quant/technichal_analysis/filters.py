@@ -5,11 +5,11 @@ import numpy as _np
 import pandas as _pd
 
 from pandas_ml_common import Typing as _t
-from pandas_ml_common.utils import has_indexed_columns, inner_join, add_multi_index
+from pandas_ml_common.utils import inner_join, add_multi_index
+from pandas_ml_quant.technichal_analysis._decorators import *
 from pandas_ml_quant.utils import wilders_smoothing as _ws, with_column_suffix as _wcs
 from pandas_ml_utils import Model
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
-from pandas_ml_quant.technichal_analysis._decorators import *
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
@@ -26,8 +26,8 @@ def ta_ema(df: _PANDAS, period=12) -> _PANDAS:
 
 @for_each_top_level_row
 def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
-    # TODO use @for_each_column
-    if has_indexed_columns(df):
+    # NOTE this does not work with @for_each_column decorator!
+    if df.ndim > 1:
         resdf = _pd.DataFrame({}, index=df.index)
         for col in df.columns:
             s = df[col].dropna()
@@ -44,7 +44,7 @@ def ta_wilders(df: _PANDAS, period=12) -> _PANDAS:
 
 @for_each_top_level_row
 def ta_multi_bbands(s: _pd.Series, period=12, stddevs=[0.5, 1.0, 1.5, 2.0], ddof=1, include_mean=True) -> _PANDAS:
-    assert not has_indexed_columns(s)
+    assert s.ndim == 1, "Expected Series not Frame"
     mean = s.rolling(period).mean().rename("mean")
     std = s.rolling(period).std(ddof=ddof)
     df = _pd.DataFrame({}, index=mean.index)
@@ -66,7 +66,7 @@ def ta_multi_ma(df: _t.PatchedDataFrame, average_function='sma', period=12, fact
     ma = {'sma': ta_sma, 'ema': ta_ema, 'wilder': ta_wilders}
     res = _pd.DataFrame({}, index=df.index)
 
-    if has_indexed_columns(df):
+    if df.ndim > 1:
         res = None
         for col in df.columns.to_list():
             _df = ta_multi_ma(df[col], average_function, period, factors)

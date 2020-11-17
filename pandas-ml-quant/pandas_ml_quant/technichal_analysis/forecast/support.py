@@ -56,7 +56,7 @@ def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
 
 @for_each_top_level_row
 def ta_edge_detect(df: Typing.PatchedSeries, period=3):
-    assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
+    assert df.ndim == 1 or len(df.columns) == 1, "Trend lines can only be calculated on a series"
     assert period > 2, "minimum period is 3"
 
     def edge(col):
@@ -79,7 +79,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
                    angles=30,
                    rho_digits=2
                    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    assert not has_indexed_columns(df) or len(df.columns) == 1, "Trend lines can only be calculated on a series"
+    assert df.ndim == 1 or len(df.columns) == 1, "Trend lines can only be calculated on a series"
 
     # edge detection
     rescaled = df.ta.rescale((0, 1), digits=rescale_digits)
@@ -162,7 +162,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
 @for_each_top_level_row
 def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=None):
     # TODO implement this paper: http://www.meacse.org/ijcar/archives/128.pdf
-    if has_indexed_columns(df):
+    if df.ndim > 1:
         c = df[close]
         h = df[high] if high is not None else None
         l = df[low] if low is not None else None
