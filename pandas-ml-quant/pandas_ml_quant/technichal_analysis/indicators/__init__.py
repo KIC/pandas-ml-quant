@@ -47,8 +47,8 @@ def ta_all(df: _pd.DataFrame,
             df_res = df_res.inner_join(_df, prefix=indicator_function[3:], force_multi_index=True)
 
     # add corner cases i.e. candle stock encodings as indicators
-    df_res = df_res.join(ta_candle_category(df, open=open, high=high, low=low, close=close))
-    df_res = df_res.join(ta_candles_as_culb(df, open=open, high=high, low=low, close=close, volume=volume).add_prefix("culb_"))
+    df_res = df_res.inner_join(ta_candle_category(df, open=open, high=high, low=low, close=close), prefix='candle_category', force_multi_index=True)
+    df_res = df_res.inner_join(ta_candles_as_culb(df, open=open, high=high, low=low, close=close, volume=volume), prefix='culb', force_multi_index=True)
 
     return df_res
 

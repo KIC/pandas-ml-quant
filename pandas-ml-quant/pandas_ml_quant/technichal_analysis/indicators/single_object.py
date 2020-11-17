@@ -177,7 +177,7 @@ def ta_draw_down(s: _PANDAS, return_dates=False, return_duration=False):
             )
         )
 
-    return df
+    return df.drop(s.columns[1] if s.ndim > 1 else s.name, axis=1)
 
 
 @for_each_top_level_row

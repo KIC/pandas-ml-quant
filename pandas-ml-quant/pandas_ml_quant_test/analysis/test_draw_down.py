@@ -16,6 +16,6 @@ class TestDrawDown(TestCase):
 
         self.assertAlmostEqual(-0.035417, dd.loc["1993-03-02"]["mdd"], 6)
         self.assertListEqual(
-            [45.125000, 0.000000, 0.000000, pd.Timestamp("1993-02-04"), pd.Timestamp("1993-03-03"), 18.0],
+            [0.000000, 0.000000, pd.Timestamp("1993-02-04"), pd.Timestamp("1993-03-03"), 18.0],
             dd.loc["1993-03-03"].to_list()
         )
