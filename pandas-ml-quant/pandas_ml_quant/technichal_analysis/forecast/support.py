@@ -128,7 +128,6 @@ def ta_trend_lines(df: Typing.PatchedSeries,
         s[rhos] = counts
         return s
 
-    # TODO this should be a first result we return
     accumulated = hough_space.apply(accumulator, axis=1)
 
     # build lookups for filtering

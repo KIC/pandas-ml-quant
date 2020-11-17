@@ -9,7 +9,7 @@ from pandas_ml_utils import Typing
 def ta_hmm(df: Typing.PatchedSeries, nr_components, means_estimator, period=250, forecast_period=1, n_iter=500):
     from hmmlearn import hmm
 
-    X = df.to_frame().pct_change(forecast_period).dropna().values  # FIXME each column or series
+    X = df.to_frame().pct_change(forecast_period).dropna().values
 
     def moving_hmm(X):
         # new model
