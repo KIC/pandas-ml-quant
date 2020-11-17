@@ -6,9 +6,10 @@ from matplotlib.figure import Figure
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
+from pandas_ml_utils import Model
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.summary import ClassificationSummary
-from pandas_ml_utils import Model
+
 _log = logging.getLogger(__name__)
 
 

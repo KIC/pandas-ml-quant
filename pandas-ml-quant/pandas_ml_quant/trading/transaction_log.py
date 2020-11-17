@@ -3,7 +3,6 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-
 PRICE = "price"
 ASSET_VALUE = "asset_value"
 POS_OPEN = "position_open"

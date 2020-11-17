@@ -1,7 +1,7 @@
+import io
 from contextlib import redirect_stdout
 from datetime import datetime
 from typing import Callable
-import io
 
 
 def plot_animation(index, make_frame: Callable[[datetime], 'Figure'], fps=2, **kwargs):

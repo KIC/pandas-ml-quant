@@ -1,7 +1,7 @@
+from pandas_ml_common import Typing
 from pandas_ml_quant.trading.transaction_log import StreamingTransactionLog
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, TARGET_COLUMN_NAME
 from pandas_ml_utils.ml.summary import Summary
-from pandas_ml_common import Typing
 
 
 class BacktestSummary(Summary):

@@ -2,12 +2,11 @@ import logging
 import traceback
 
 import numpy as np
-
-from pandas_ml_quant.analysis import ta_ewma_covariance
-from pandas_ml_common import pd, Typing
 from qpsolvers import solve_qp
 from statsmodels.stats.correlation_tools import cov_nearest
 
+from pandas_ml_common import pd, Typing
+from pandas_ml_quant.technichal_analysis import ta_ewma_covariance
 
 _log = logging.getLogger(__name__)
 

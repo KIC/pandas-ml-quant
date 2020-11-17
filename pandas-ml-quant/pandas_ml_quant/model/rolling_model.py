@@ -93,23 +93,29 @@ class RollingModel(Model):
         return pd.concat(self._past_train_predictions, axis=0)
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+        if len(self._past_predictions) <= 0:
+            raise ValueError("No validation data present, Model need to be trained first or more data is needed")
+
         past_predictions = pd.concat(self._past_predictions, axis=0)
+        last_prediction_index = past_predictions.index[-1]
         index = features.index
 
-        if False:  # len(index[index.get_loc(past_predictions.index[-1]):]) > self.cross_validation.retrain_after:
-            # (pd.Series(self._used_folds.keys()) - pd.Series(self._used_folds.keys()).shift(-1)).dt.days.min()
-            # TODO eventually we can just retrain the model automatically?
-            #  or how should we retrain without retraining the full history
-            # FIXME fails if key not in `index` at all
-            raise ValueError(f"Model need to be re-trained! {past_predictions.index[-1]}, {index[-1]}")
-        else:
-            def predictor(loc):
-                if loc in past_predictions.index:
-                    return past_predictions.loc[[loc]]
-                else:
-                    return self.delegated_model.predict(features.loc[[loc]], targets, latent, samples, **kwargs)
+        if last_prediction_index not in index:
+            raise ValueError(f"Data gapped away, passed features data need to start at {last_prediction_index}")
 
-            return pd.concat([predictor(idx) for idx in features.index if idx >= past_predictions.index[0]], axis=0)
+        unpredicted_features_index = index[index.get_loc(last_prediction_index):]
+        if len(unpredicted_features_index) > max(self.cross_validation.retrain_after, 1):
+            # TODO eventually we can just retrain the model automatically
+            #  from unpredicted_features_index[-self.cross_validation.retrain_after:] onwards
+            raise ValueError(f"Model need to be re-trained! {past_predictions.index[-1]}, {index[-1]}")
+
+        def predictor(loc):
+            if loc in past_predictions.index:
+                return past_predictions.loc[[loc]]
+            else:
+                return self.delegated_model.predict(features.loc[[loc]], targets, latent, samples, **kwargs)
+
+        return pd.concat([predictor(idx) for idx in features.index if idx >= past_predictions.index[0]], axis=0)
 
     def finish_learning(self):
         self.delegated_model.finish_learning()

@@ -1,5 +1,6 @@
-from pandas_ml_common.utils import get_pandas_object
 from pandas_ml_common.plot.utils import new_fig_ts_axis
+
+from pandas_ml_common.utils import get_pandas_object
 from pandas_ml_common.utils import has_indexed_columns
 
 

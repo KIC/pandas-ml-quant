@@ -1,0 +1,3 @@
+include *
+recursive-include pandas_ml_quant_data_provider *
+recursive-include pandas_ml_quant_data_provider_test *

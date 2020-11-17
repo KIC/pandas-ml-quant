@@ -1,9 +1,9 @@
 import matplotlib.dates as mdates
 import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
+from pandas_ml_common.plot.utils import new_fig_ts_axis
 
 from pandas_ml_common.utils import get_pandas_object
-from pandas_ml_common.plot.utils import new_fig_ts_axis
 
 
 def plot_candlestick(self, open="Open", high="High", low="Low", close="Close", ax=None, figsize=None, **kwargs):

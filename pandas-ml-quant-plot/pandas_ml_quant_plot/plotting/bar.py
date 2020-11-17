@@ -1,12 +1,12 @@
 from typing import List
 
 import matplotlib.dates as mdates
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from pandas.core.base import PandasObject
+from pandas_ml_common.plot.utils import new_fig_ts_axis
 
 from pandas_ml_common.utils import get_pandas_object, ReScaler
-from pandas_ml_common.plot.utils import new_fig_ts_axis
 from pandas_ml_common.utils import has_indexed_columns
 
 

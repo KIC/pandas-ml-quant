@@ -1,6 +1,7 @@
-from pandas_ml_common.utils import get_pandas_object
-from pandas_ml_common.plot.utils import new_fig_ts_axis
 import numpy as np
+from pandas_ml_common.plot.utils import new_fig_ts_axis
+
+from pandas_ml_common.utils import get_pandas_object
 
 
 def plot_matrix(df, fields, figsize=None, ax=None, **kwargs):

@@ -1,10 +1,9 @@
 import pandas as pd
-
+import logging
 import pandas_ml_quant.technichal_analysis as technichal_analysis
 import pandas_ml_quant.trading.strategy.optimized as optimized_strategies
 
-
-# FIXME bring back plotting: from pandas_ml_quant.df_patching.plot import TaPlot
+_log = logging.getLogger(__name__)
 
 
 class TechnicalAnalysis(object):
@@ -16,25 +15,6 @@ class TechnicalAnalysis(object):
     @property
     def help(self):
         return pd.DataFrame(TechnicalAnalysis._ta_indicator_info).T.rename(columns={0: 'module', 1: "doc"})
-
-    # bring back plotting:
-    # def subplots(self, rows=2, figsize=(25, 10)):
-    #     import matplotlib.pyplot as plt
-    #     import matplotlib.dates as mdates
-    #
-    #     _, axes = plt.subplots(rows, 1,
-    #                         sharex=True,
-    #                         gridspec_kw={"height_ratios": [3, *([1] * (rows - 1))]},
-    #                         figsize=figsize)
-    #
-    #     for ax in axes if isinstance(axes, Iterable) else [axes]:
-    #         ax.xaxis_date()
-    #         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
-    #
-    #     return axes
-    #
-    # def plot(self, rows=2, cols=1, figsize=(18, 10), main_height_ratio=4):
-    #     pass # return TaPlot(self.df, figsize, rows, cols, main_height_ratio)
 
 
 # add wrapper to call all indicators on data frames
@@ -52,3 +32,11 @@ for indicator_functions in [technichal_analysis, optimized_strategies]:
             func = getattr(indicator_functions, indicator_function)
             setattr(TechnicalAnalysis, indicator_function[3:], wrapper(func))
             TechnicalAnalysis._ta_indicator_info[indicator_function] = [func.__module__, func.__doc__]
+
+
+# add plotting
+try:
+    from pandas_ml_quant_plot import PlotContext
+    setattr(TechnicalAnalysis, "plot", wrapper(PlotContext))
+except Exception as e:
+    _log.warning(f"pandas_ml_quant_plot not found: {e}")
