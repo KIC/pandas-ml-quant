@@ -2,6 +2,7 @@ from pandas_ml_common import pd as _pd, suitable_kwargs as _select_kwargs
 from .multi_object import *
 from .single_object import *
 from .time import *
+from ..encoders.candles import ta_candle_category, ta_candles_as_culb
 from .._decorators import *
 
 
@@ -44,6 +45,10 @@ def ta_all(df: _pd.DataFrame,
             _df = func(df, **_select_kwargs(func, open=open, high=high, low=low, close=close, volume=volume,
                                             open_interest=open_interest))
             df_res = df_res.inner_join(_df, prefix=indicator_function[3:], force_multi_index=True)
+
+    # add corner cases i.e. candle stock encodings as indicators
+    df_res = df_res.join(ta_candle_category(df, open=open, high=high, low=low, close=close))
+    df_res = df_res.join(ta_candles_as_culb(df, open=open, high=high, low=low, close=close, volume=volume).add_prefix("culb_"))
 
     return df_res
 
