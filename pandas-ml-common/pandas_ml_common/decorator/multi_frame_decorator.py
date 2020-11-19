@@ -3,7 +3,8 @@ from typing import Tuple
 import numpy as np
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import intersection_of_index, call_callable_dynamic_args
+from pandas_ml_common.utils import intersection_of_index, call_callable_dynamic_args, add_multi_index
+import pandas as pd
 
 
 class MultiFrameLocDecorator(object):
@@ -52,6 +53,14 @@ class MultiFrameDecorator(object):
         else:
             return tuple([f.loc[self._index] for f in self._frames])
 
+    def as_joined_frame(self):
+        frame = pd.concat([add_multi_index(f, i) for i, f in enumerate(self._frames)], axis=1, join='outer')
+        frame.columns = frame.columns.to_list()
+        return frame
+
+    def copy(self):
+        return MultiFrameDecorator([f.copy() for f in self._frames])
+
     @property
     def columns(self):
         tple = np.array([f.columns.to_list() for f in self._frames], dtype=object)
@@ -74,6 +83,6 @@ class MultiFrameDecorator(object):
         return MultiFrameExtDecorator(self._frames)
 
     def __len__(self):
-        return len(self.index)
+        return max([len(f) for f in self._frames])
 
 

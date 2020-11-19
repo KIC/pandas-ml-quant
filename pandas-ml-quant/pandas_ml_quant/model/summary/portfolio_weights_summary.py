@@ -65,18 +65,18 @@ class PortfolioWeightsSummary(Summary):
         # portfolio
         portfolio_weights = df[PREDICTION_COLUMN_NAME].copy()
         portfolio_weights["$"] = (1 - portfolio_weights.sum(axis=1)).clip(lower=+0.0)
-        portfolio = self._construct_portfolio(portfolio_weights, trade_prices)
+        portfolio = self._construct_portfolio(portfolio_weights, trade_prices, self.rebalance_after_distance is None)
 
         # benchmark
         columns = portfolio["weights"].columns[:-1]
         bench_weights = pd.DataFrame(np.ones((len(df), len(columns))) / len(columns), index=df.index, columns=columns)
-        benchmark = self._construct_portfolio(bench_weights, trade_prices.drop("$", axis=1))
+        benchmark = self._construct_portfolio(bench_weights, trade_prices.drop("$", axis=1), True)
 
         # return portfolio with benchmark
         portfolio["benchmark", "1/N"] = benchmark["agg", "balance"]
         return portfolio
 
-    def _construct_portfolio(self, weights, prices):
+    def _construct_portfolio(self, weights, prices, force_rebalance):
         current_weights = np.zeros(weights.shape[1])
         trades = np.zeros(weights.shape[1])
         lots = np.zeros(weights.shape[1])
@@ -94,7 +94,7 @@ class PortfolioWeightsSummary(Summary):
             weights_distance = np.linalg.norm(current_weights - target_weights)
 
             # check re-balancing trigger
-            trigger_rebalance = self.rebalance_after_distance <= 0 or weights_distance > self.rebalance_after_distance
+            trigger_rebalance = force_rebalance or weights_distance > self.rebalance_after_distance
             if self.rebalance_after_draw_down is not None and not trigger_rebalance:
                 trigger_rebalance = (balance / max_balance) < (1 - self.rebalance_after_draw_down)
                 if trigger_rebalance:
@@ -141,6 +141,7 @@ class PortfolioWeightsSummary(Summary):
         return fig
 
     def _show_risk_metrics(self, *args, **kwargs):
+        trades = self.portfolio["agg", "rebalance"][2:].sum()
         p = self.portfolio["agg", "balance"][2:]
         b = self.portfolio["benchmark", "1/N"][2:]
 
@@ -153,13 +154,18 @@ class PortfolioWeightsSummary(Summary):
         def sharpe_ratio(s, rf=0):
             return (s.pct_change().mean() - rf) / s.std()
 
-        def calc_metrics(s):
+        def calc_metrics(s, with_trades):
             return {
                 "Performance": performance(s),
                 "CVaR95": cvar(s),
                 "Sharpe": sharpe_ratio(s),
                 "Days": len(s),
-                "Last Day": s.index[-1]
+                "Last Day": s.index[-1],
+                "# trades": int(trades if with_trades else len(s)),
+                "trade_ratio": len(s) / trades if with_trades else 1.0
             }
 
-        return pd.DataFrame([calc_metrics(p), calc_metrics(b)], index=["Portfolio", "1/N"]).T.style.set_precision(3)
+        return pd.DataFrame(
+            [calc_metrics(p, True), calc_metrics(b, False)],
+            index=["Portfolio", "1/N"]
+        ).T.style.set_precision(3)

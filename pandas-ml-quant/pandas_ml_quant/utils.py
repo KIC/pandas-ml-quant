@@ -3,6 +3,7 @@ import pandas as pd
 from numba import guvectorize, float32, int32, float64, int64
 
 
+# TODO eventually turn this into decorators ???
 def returns_to_log_returns(returns):
     return np.log(1 + returns)
 

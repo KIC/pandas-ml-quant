@@ -161,6 +161,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
 @for_each_top_level_row
 def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=None):
     # TODO implement this paper: http://www.meacse.org/ijcar/archives/128.pdf
+    #   analog ta_trend_lines
     if df.ndim > 1:
         c = df[close]
         h = df[high] if high is not None else None
@@ -168,4 +169,3 @@ def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=N
     else:
         c, h, l = df, None, None
 
-    # TODO analog ta_trend_lines

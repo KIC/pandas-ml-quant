@@ -36,10 +36,16 @@ class MinVarianceBaseModel(Model):
 
     def fit_batch(self, X: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
         n = y.shape[1]
+
+        sigma = X._.values.squeeze()
+        r = np.ones(n)
         w = cp.Variable(n)
         A = np.ones(n)
+
+        cost = cp.quad_form(w, sigma) - w.T @ r
         constraints = [np.eye(n) @ w >= 0, A.T @ w == 1] if self.long_only else [A.T @ w == 1]
-        prob = cp.Problem(cp.Minimize((1 / 2) * cp.quad_form(w, X._.values.squeeze())), constraints)
+
+        prob = cp.Problem(cp.Minimize(0.5 * cost) , constraints)
         prob.solve()
 
         self._last_loss = prob.value

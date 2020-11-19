@@ -1,7 +1,6 @@
 import pandas as pd
 import logging
 import pandas_ml_quant.technichal_analysis as technichal_analysis
-import pandas_ml_quant.trading.strategy.optimized as optimized_strategies
 
 _log = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ def wrapper(func):
 
 
 # add indicators
-for indicator_functions in [technichal_analysis, optimized_strategies]:
+for indicator_functions in [technichal_analysis]:
     for indicator_function in dir(indicator_functions):
         if indicator_function.startswith("ta_"):
             func = getattr(indicator_functions, indicator_function)

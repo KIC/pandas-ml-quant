@@ -129,7 +129,7 @@ def intersection_of_index(*dfs: pd.DataFrame):
         if dfs[i] is not None:
             intersect_index = intersect_index.intersection(dfs[i].index)
 
-    return intersect_index
+    return intersect_index.sort_values()
 
 
 def loc_if_not_none(df, value):

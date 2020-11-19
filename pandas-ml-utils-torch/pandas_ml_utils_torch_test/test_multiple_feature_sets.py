@@ -9,6 +9,7 @@ from pandas_ml_utils import pd
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils_torch import PytorchModel, PytorchNN
 from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils.constants import FEATURE_COLUMN_NAME
 import torch as t
 import numpy as np
 
@@ -62,4 +63,6 @@ class TestMultiFeatureSet(TestCase):
 
         fit = df.model.fit(model, fold_epochs=10)
         print(fit.test_summary.df)
+
+        self.assertIn(FEATURE_COLUMN_NAME, fit.test_summary.df)
         np.testing.assert_almost_equal(np.array([0, 0, 1]), fit.test_summary.df["label"].values.squeeze())

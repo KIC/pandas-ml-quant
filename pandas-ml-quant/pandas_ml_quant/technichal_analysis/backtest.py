@@ -4,7 +4,7 @@ import pandas as pd
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import has_indexed_columns
-from pandas_ml_quant.trading.transaction_log import StreamingTransactionLog
+
 
 
 # TODO shoule become part of rolling model + portfolio summary
@@ -27,7 +27,7 @@ def ta_backtest(signal: Typing.PatchedDataFrame,
         return res
 
     assert isinstance(prices, pd.Series), "prices need to be a series!"
-    trades = StreamingTransactionLog()
+    trades = None # FIXME StreamingTransactionLog()
 
     def trade_log_action(row):
         direction_amount = action(row)
