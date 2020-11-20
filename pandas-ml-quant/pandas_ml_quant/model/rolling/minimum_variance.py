@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from functools import wraps
 from typing import Callable
 
@@ -7,12 +8,50 @@ import pandas as pd
 
 from pandas_ml_common import Typing
 from pandas_ml_common.utils import wrap_row_level_as_nested_array
-from pandas_ml_utils import Model, Summary, PostProcessedFeaturesAndLabels
+from pandas_ml_utils import Model, Summary, PostProcessedFeaturesAndLabels, FeaturesAndLabels
 from ..rolling_model import RollingModel
 from ...technichal_analysis import ta_ewma_covariance
 
 
-class MinVarianceBaseModel(Model):
+class MarkowitzBaseModel(Model):
+
+    def __init__(self, features_and_labels: FeaturesAndLabels, summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary, **kwargs):
+        super().__init__(features_and_labels, summary_provider, **kwargs)
+        self._last_loss = 0
+        self._last_solution = 0
+
+    @abstractmethod
+    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
+        raise NotImplemented
+
+    def solve_quadratic_program(self, covariances: pd.DataFrame, expected_returns: pd.DataFrame = None, risk_aversion: float = 0.5, long_only: bool = True):
+        sigma = covariances._.values.squeeze()
+        n = sigma.shape[1]
+        r = np.ones(n) if expected_returns is None else expected_returns.values.squeeze()
+        w = cp.Variable(n)
+        A = np.ones(n)
+
+        # weighing factors for very cautious to fully risk averse
+        l1 = np.sqrt(1 - risk_aversion)
+        l2 = risk_aversion
+
+        cost = cp.quad_form(w, l1 * sigma) - l2 * w.T @ r
+        constraints = [np.eye(n) @ w >= 0, A.T @ w == 1] if long_only else [A.T @ w == 1]
+
+        prob = cp.Problem(cp.Minimize(0.5 * cost) , constraints)
+        prob.solve()
+
+        self._last_loss = prob.value
+        self._last_solution = w.value
+
+    def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
+        return self._last_loss
+
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+        return pd.DataFrame([self._last_solution], index=features.index, columns=self._labels_columns)
+
+
+class MinVarianceBaseModel(MarkowitzBaseModel):
 
     def __init__(self,
                  price_column: str = 'Close',
@@ -35,27 +74,7 @@ class MinVarianceBaseModel(Model):
         self._last_solution = np.nan
 
     def fit_batch(self, X: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
-        n = y.shape[1]
-
-        sigma = X._.values.squeeze()
-        r = np.ones(n)
-        w = cp.Variable(n)
-        A = np.ones(n)
-
-        cost = cp.quad_form(w, sigma) - w.T @ r
-        constraints = [np.eye(n) @ w >= 0, A.T @ w == 1] if self.long_only else [A.T @ w == 1]
-
-        prob = cp.Problem(cp.Minimize(0.5 * cost) , constraints)
-        prob.solve()
-
-        self._last_loss = prob.value
-        self._last_solution = w.value
-
-    def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
-        return self._last_loss
-
-    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
-        return pd.DataFrame([self._last_solution], index=features.index, columns=self._labels_columns)
+        self.solve_quadratic_program(X, None, 0.0, self.long_only)
 
 
 @wraps(MinVarianceBaseModel.__init__)
