@@ -67,12 +67,12 @@ def call_if_not_none(obj, method, *args, **kwargs):
         return attr(*args, ** kwargs) if callable(attr) else attr
 
 
-def merge_kwargs(*kwargs: Dict) -> Dict:
+def merge_kwargs(*args_kwargs: Dict, **kwargs) -> Dict:
     dict = {}
-    for d in kwargs:
+    for d in args_kwargs:
         dict = {**dict, **d}
 
-    return dict
+    return {**dict, **kwargs}
 
 
 def flatten_nested_list(l: Union[List, Tuple], func: callable) -> List:

@@ -46,7 +46,9 @@ def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_m
 
 
 def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=None, dropna=True):
-    assert isinstance(df.index, pd.MultiIndex), "expected row MultiIndex"
+    if not isinstance(df.index, pd.MultiIndex):
+        return df
+
     if dropna: df = df.dropna()
 
     queries = {i[:row_level] + (i[row_level + 1:] if len(i[row_level:]) > 1 else ()) for i in df.index}

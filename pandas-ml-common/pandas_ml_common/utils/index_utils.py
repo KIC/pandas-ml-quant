@@ -29,9 +29,10 @@ def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
 
 
-def flatten_multi_column_index(df: pd.DataFrame):
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.tolist()
+def flatten_multi_column_index(df: pd.DataFrame, as_string=False):
+    if df.ndim > 1:
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [", ".join(col) for col in df.columns.tolist()] if as_string else df.columns.tolist()
 
     return df
 
