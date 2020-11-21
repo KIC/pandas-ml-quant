@@ -9,6 +9,10 @@ from pandas_ml_quant_test.config import DF_TEST
 
 class TestIndicator(TestCase):
 
+    def test__mean_returns(self):
+        me = ta_mean_returns(DF_TEST[["Close", "Volume"]], 20)[-100:]
+        np.testing.assert_array_almost_equal(me.iloc[-1].values, np.array([0.000810, 0.033791]), 5)
+
     def test__ema(self):
         me = ta_ema(DF_TEST["Close"], 20)[-100:]
         ta = talib.EMA(DF_TEST["Close"], 20)[-100:]

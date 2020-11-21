@@ -26,6 +26,18 @@ class TestCrossValidation(TestCase):
         self.assertListEqual([5, 7, 9], [s[1][0] for s in splits])
         self.assertListEqual([6, 8, 9], [s[1][-1] for s in splits])
 
+    def test_rolling5_cv(self):
+        df = pd.DataFrame({"feature": np.arange(49), "label": np.arange(49)})
+        cv = RollingWindowCV(30, 5)
+
+        splits = list(cv.split(df.index))
+        last_train_set = df.index[splits[-1][0]]
+        last_test_set = df.index[splits[-1][1]]
+
+        self.assertEqual(30, len(df.index[last_train_set]))
+        self.assertLessEqual(len(last_test_set), 4)
+        print(last_test_set)
+
     def test_rolling_cv_empty_last_window(self):
         df = pd.DataFrame({"feature": np.arange(9), "label": np.arange(9)})
         cv = RollingWindowCV(5, 2)
@@ -41,8 +53,7 @@ class TestCrossValidation(TestCase):
         self.assertListEqual([4, 6, 8], [s[0][-1] for s in splits])
 
         # test
-        self.assertListEqual([5, 7], [s[1][0] for s in splits if len(s[1]) > 0])
-        self.assertListEqual([6, 8], [s[1][-1] for s in splits if len(s[1]) > 0])
+        self.assertEqual(0, len(splits[-1][1]))
 
     def test_rooling_cv_forecast_0(self):
         df = pd.DataFrame({"feature": np.arange(4), "label": np.arange(4)})
@@ -56,6 +67,8 @@ class TestCrossValidation(TestCase):
 
         # train
         self.assertListEqual([0, 1, 2, 3], [s[0][0] for s in splits])
+        self.assertEqual(df.index[-1], df.index[splits[-1][0][-1]])
 
         # test
         self.assertListEqual([1, 2, 3], [s[1][-1] for s in splits if len(s[1]) > 0])
+        self.assertEqual(0, len(splits[-1][1]))

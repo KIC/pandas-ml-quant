@@ -58,13 +58,12 @@ class PortfolioWeightsSummary(Summary):
             return col == requested or (isinstance(col, tuple) and requested in col)
 
         # prices
-        trade_prices = df[TARGET_COLUMN_NAME]
-        trade_prices = trade_prices[[col for col in trade_prices.columns if is_column(col, self.price_column)]].copy()
+        trade_prices = df[TARGET_COLUMN_NAME].copy()
         trade_prices["$"] = 1
 
         # portfolio
         portfolio_weights = df[PREDICTION_COLUMN_NAME].copy()
-        portfolio_weights["$"] = (1 - portfolio_weights.sum(axis=1)).clip(lower=+0.0)
+        portfolio_weights["$"] = 1 - portfolio_weights.sum(axis=1)
         portfolio = self._construct_portfolio(portfolio_weights, trade_prices, self.rebalance_after_distance is None)
 
         # benchmark
@@ -126,17 +125,23 @@ class PortfolioWeightsSummary(Summary):
 
         # plot performance graphs
         p["agg", "balance"].plot(ax=ax[0], label="Portfolio")
-        p["agg", "balance"].ta.draw_down()["dd"].plot(ax=ax[1], label="Portfolio")
+        p["agg", "balance"].ta.draw_down()["dd"].plot(ax=ax[1], label="MDD: Portfolio")
 
         # plot draw down
         p["benchmark", "1/N"].plot(ax=ax[0], label="1/N", color="silver")
-        p["benchmark", "1/N"].ta.draw_down()["dd"].plot(ax=ax[1], label="1/N", color="silver")
+        p["benchmark", "1/N"].ta.draw_down()["dd"].plot(ax=ax[1], label="MDD: 1/N", color="silver")
         ax[0].legend(loc="upper left")
+        ax[1].legend(loc="lower left")
 
         # plot weight distribution
-        p["weights"].plot.area(ax=ax[2])
+        w = p["weights"]
+        for i, col in enumerate(w.columns):
+            ax[2].bar(w.index, w[col], bottom=w[w.columns[i - 1]] if i > 0 else 0, align='edge', width=1.0, label=col)
         ax[2].legend(loc="upper left")
-        ax[3].bar(x=p.index[1:], height=p["agg", "weights_distance"].values[1:])
+
+        # plot weights distance to target weights before rebalancing
+        ax[3].bar(x=p.index[1:], height=p["agg", "weights_distance"].values[1:], label="dist")
+        ax[3].legend(loc="upper left")
 
         return fig
 

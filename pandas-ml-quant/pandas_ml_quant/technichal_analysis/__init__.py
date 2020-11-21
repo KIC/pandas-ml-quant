@@ -1,5 +1,4 @@
 from .alias import *
-from .backtest import *
 from .bands import *
 from .covariances import *
 from .encoders import *

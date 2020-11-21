@@ -15,6 +15,10 @@ from pandas_ml_quant.utils import with_column_suffix as _wcs
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
+@for_each_top_level_row
+def ta_mean_returns(df: Typing.PatchedPandas, period=20) -> _PANDAS:
+    return _wcs(f"mean_return_{period}", df.pct_change().rolling(period).mean())
+
 
 @for_each_column
 @for_each_top_level_row

@@ -7,10 +7,12 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import wrap_row_level_as_nested_array
+from pandas_ml_common.decorator import MultiFrameDecorator
+from pandas_ml_common.utils import wrap_row_level_as_nested_array, merge_kwargs
 from pandas_ml_utils import Model, Summary, PostProcessedFeaturesAndLabels, FeaturesAndLabels
 from ..rolling_model import RollingModel
-from ...technichal_analysis import ta_ewma_covariance
+from ..summary.portfolio_weights_summary import PortfolioWeightsSummary
+from ...technichal_analysis import ta_ewma_covariance, ta_mean_returns
 
 
 class MarkowitzBaseModel(Model):
@@ -38,7 +40,7 @@ class MarkowitzBaseModel(Model):
         cost = cp.quad_form(w, l1 * sigma) - l2 * w.T @ r
         constraints = [np.eye(n) @ w >= 0, A.T @ w == 1] if long_only else [A.T @ w == 1]
 
-        prob = cp.Problem(cp.Minimize(0.5 * cost) , constraints)
+        prob = cp.Problem(cp.Minimize(0.5 * cost), constraints)
         prob.solve()
 
         self._last_loss = prob.value
@@ -77,6 +79,58 @@ class MinVarianceBaseModel(MarkowitzBaseModel):
         self.solve_quadratic_program(X, None, 0.0, self.long_only)
 
 
+class MarkowitzBaseModel(MarkowitzBaseModel):
+
+    def __init__(self,
+                 price_column: str = 'Close',
+                 risk_aversion: float = 0.5,
+                 covariance_estimator: Callable = ta_ewma_covariance,
+                 returns_estimator: Callable = ta_mean_returns,
+                 long_only: bool = True,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(
+            FeaturesAndLabels(
+                features=(
+                    [lambda df: wrap_row_level_as_nested_array(covariance_estimator(df[price_column]))],
+                    returns_estimator
+                ),
+                targets=[price_column],
+                labels=[price_column],
+            ),
+            summary_provider,
+            **kwargs
+        )
+        self.risk_aversion = risk_aversion
+        self.long_only = long_only
+        self._last_loss = np.nan
+        self._last_solution = np.nan
+
+    def fit_batch(self, X: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
+        if isinstance(X, MultiFrameDecorator):
+            sigma, mu = X.frames(False)
+            self.solve_quadratic_program(sigma, mu, self.risk_aversion, self.long_only)
+        else:
+            self.solve_quadratic_program(X, None, 0.0, self.long_only)
+
+
 @wraps(MinVarianceBaseModel.__init__)
 def MinVarianceModel(*args, **kwargs):
+    kwargs = merge_kwargs(kwargs, summary_provider=PortfolioWeightsSummary)
     return RollingModel(MinVarianceBaseModel(*args, **kwargs), window=1, retrain_after=0)
+
+
+@wraps(MarkowitzBaseModel.__init__)
+def MarkowitzModel(*args, **kwargs):
+    kwargs = merge_kwargs(kwargs, summary_provider=PortfolioWeightsSummary)
+    return RollingModel(MarkowitzBaseModel(*args, **kwargs), window=1, retrain_after=0)
+
+# TODO implement
+#  * markowitz maodel
+#  * add a test to the rolling model
+#  * fix test_crossing_pairs_strategy
+#  * solve retrain problem
+#  * fix classification summaries
+#  * fix utils columns suffix as decorator
+#  now all todos left are new features -> not part of 0.2.0
+

@@ -134,3 +134,16 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         self.assertEqual((18, 1), fl.labels.shape)
         self.assertEqual(19.501, fl.labels.iloc[-1, -1])
+
+    def test_post_processor_with_multi_frame_decorator(self):
+        df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20), "c": np.arange(20)})
+        # FIXME this need to be implemented
+        fl: FeaturesWithLabels = df._.extract(
+            PostProcessedFeaturesAndLabels(
+                features=(["a"], ["b"]),
+                feature_post_processor=([lambda df: df - 1], [lambda df: df + 2]),
+                labels=["c"]
+            )
+        )
+
+        print(fl.features_with_required_samples.features)
