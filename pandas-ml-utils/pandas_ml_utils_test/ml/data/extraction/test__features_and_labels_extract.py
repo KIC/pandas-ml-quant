@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common import Constant
+from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
@@ -137,7 +138,6 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
     def test_post_processor_with_multi_frame_decorator(self):
         df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20), "c": np.arange(20)})
-        # FIXME this need to be implemented
         fl: FeaturesWithLabels = df._.extract(
             PostProcessedFeaturesAndLabels(
                 features=(["a"], ["b"]),
@@ -146,4 +146,5 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             )
         )
 
-        print(fl.features_with_required_samples.features)
+        self.assertIsInstance(fl.features_with_required_samples.features, MultiFrameDecorator)
+        self.assertListEqual([18, 21], fl.features_with_required_samples.features.as_joined_frame().iloc[-1].to_list())

@@ -276,10 +276,13 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
         if post_processors is None:
             return selectors
 
-        def extract_with_post_processor(list, postprocessor: Callable):
+        # if we define multiple feature frames we need to post process every single one of them
+        if isinstance(selectors, tuple) and len(selectors) > 1 and isinstance(selectors[0], (tuple, list)):
+            return tuple([PostProcessedFeaturesAndLabels.post_process(selectors[i], post_processors[i]) for i in range(len(selectors))])
+
+        def extract_with_post_processor(selectors, postprocessor: Callable):
             def extractor(df, **kwargs):
-                extraction = get_pandas_object(df, list, **kwargs)
-                return get_pandas_object(extraction, postprocessor, **kwargs)
+                return get_pandas_object(get_pandas_object(df, selectors, **kwargs), postprocessor, **kwargs)
 
             return extractor
 
