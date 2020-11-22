@@ -70,7 +70,6 @@ class RollingModel(Model):
         self.delegated_model.merge_folds(epoch)
 
         # remember test predictions
-        # FIXME features can be mutiframe decorator
         self._past_train_predictions.append(self.delegated_model.predict(train_data.x[-self.cross_validation.retrain_after:]))
 
         # remember past predictions as kind of cache, otherwise we would need to keep thousands of models in memory

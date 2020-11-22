@@ -125,12 +125,3 @@ def MarkowitzModel(*args, **kwargs):
     kwargs = merge_kwargs(kwargs, summary_provider=PortfolioWeightsSummary)
     return RollingModel(MarkowitzBaseModel(*args, **kwargs), window=1, retrain_after=0)
 
-# TODO implement
-#  * markowitz maodel
-#  * add a test to the rolling model
-#  * fix test_crossing_pairs_strategy
-#  * solve retrain problem
-#  * fix classification summaries
-#  * fix utils columns suffix as decorator
-#  now all todos left are new features -> not part of 0.2.0
-

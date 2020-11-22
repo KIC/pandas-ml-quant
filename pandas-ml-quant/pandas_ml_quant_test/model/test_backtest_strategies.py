@@ -50,17 +50,3 @@ class TestBackTest(TestCase):
         self.assertAlmostEqual(1.11254, bt.portfolio["agg", "balance"].iloc[-1], 4)
 
         print(bt._repr_html_())
-
-    # TODO provide abstract model where we can provide buy/sell siglals or something
-    def test_crossing_pairs_strategy(self):
-        df = DF_TEST_MULTI._["Close"].copy()
-        correlation = df["Close", "spy"].rolling(60).corr(df["Close", "gld"])
-        signal = correlation\
-            .to_frame()\
-            .apply(lambda v: [-1, 1] if v[0] < -0.70 else ([1, -1] if v[0] > 0.70 else [0, 0]),
-                   result_type='expand',
-                   axis=1)
-
-        porfolios = signal.ta.backtest(df, lambda sig: (sig, 10 * sig))
-        print(porfolios)
-
