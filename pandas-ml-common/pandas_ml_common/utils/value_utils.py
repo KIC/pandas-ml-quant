@@ -145,7 +145,7 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
 
 
 def as_list(value):
-    return value if value is None or isinstance(value, List) else [value]
+    return value if value is None or isinstance(value, (tuple, list)) else [value]
 
 
 def get_correlation_pairs(df: pd.DataFrame):
