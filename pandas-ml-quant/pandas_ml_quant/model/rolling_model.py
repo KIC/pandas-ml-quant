@@ -5,6 +5,7 @@ import pandas as pd
 from sortedcontainers import SortedDict
 
 from pandas_ml_common import Typing, Sampler, XYWeight
+from pandas_ml_common.sampling.cross_validation import PartitionedOnRowMultiIndexCV
 from pandas_ml_common.sampling.splitter import duplicate_data
 from pandas_ml_utils import Model
 from .cross_validation.rolling_window_cv import RollingWindowCV
@@ -29,11 +30,11 @@ class RollingModel(Model):
             after_end=self.finish_learning
         )
 
-    def to_fitter_kwargs(self, **kwargs):
+    def to_fitter_kwargs(self, partition_row_multi_index=False, **kwargs):
         return {
             "model_provider": self,
             "splitter": duplicate_data(),
-            "cross_validation": self.cross_validation,
+            "cross_validation": PartitionedOnRowMultiIndexCV(self.cross_validation) if partition_row_multi_index else self.cross_validation,
             **kwargs
         }
 

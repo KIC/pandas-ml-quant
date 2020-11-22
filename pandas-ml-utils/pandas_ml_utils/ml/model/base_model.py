@@ -111,8 +111,9 @@ class Model(object):
 
     def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks, loss_history_key=None):
         train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
-        test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data]).mean()
         self._history["train", loss_history_key or fold][(epoch, fold_epoch)] = train_loss
+
+        test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data if len(x) > 0]).mean()
         self._history["test", loss_history_key or fold][(epoch, fold_epoch)] = test_loss
 
         self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)

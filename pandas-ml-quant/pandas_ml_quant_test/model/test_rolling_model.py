@@ -1,11 +1,10 @@
 from unittest import TestCase
 
-from pandas_ml_common.sampling.splitter import duplicate_data
-from pandas_ml_common.utils import wrap_row_level_as_nested_array
+import pandas as pd
+
 from pandas_ml_quant.model.rolling import MinVarianceModel
-from pandas_ml_quant.model.summary.portfolio_weights_summary import PortfolioWeightsSummary
-from pandas_ml_quant_test.config import DF_TEST, DF_TEST_MULTI_ROW, DF_TEST_MULTI
-from pandas_ml_utils import RegressionSummary, PostProcessedFeaturesAndLabels
+from pandas_ml_quant_test.config import DF_TEST, DF_TEST_MULTI
+from pandas_ml_utils import RegressionSummary
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 
 
@@ -31,6 +30,7 @@ class TestRollingModel(TestCase):
             rm = RollingModel(skmodel, 30, 5)
             fit = m.fit(**rm.to_fitter_kwargs())
 
+        self.assertEqual(4, rm.cross_validation._nr_of_splits)
         self.assertEqual(20 - 1, len(fit.test_summary.df))  # minus one for the forecast!
         self.assertFalse(fit.test_summary.df[PREDICTION_COLUMN_NAME].isnull().values.any())
 
@@ -49,11 +49,28 @@ class TestRollingModel(TestCase):
         print()
 
     def test_rolling_model_multi_index_row(self):
-        df = DF_TEST_MULTI_ROW
+        df = pd.concat([DF_TEST[-50-30-1:-1].add_multi_index("SPY", axis=0), DF_TEST[-52-30-1:-1].add_multi_index("GLD", axis=0)], axis=0)
 
         with df.model() as m:
-            # FIXME implement this test
-            pass
+            from pandas_ml_quant import FeaturesAndLabels, SkModel
+            from pandas_ml_quant.model import RollingModel
+            from sklearn.neural_network import MLPRegressor
+
+            skmodel = SkModel(
+                MLPRegressor((25, 10), max_iter=500, shuffle=False),
+                FeaturesAndLabels(
+                    features=[lambda df: df["Close"].pct_change().ta.rnn(30)],
+                    labels=[lambda df: df["Close"].pct_change().shift(-1)],
+                ),
+                summary_provider=RegressionSummary
+            )
+
+            rm = RollingModel(skmodel, 30, 5)
+            fit = m.fit(**rm.to_fitter_kwargs(partition_row_multi_index=True))
+
+        self.assertEqual(rm.cross_validation._nr_of_splits, 10)
+        self.assertIsInstance(fit.test_summary.df.index, pd.MultiIndex)
+        self.assertIsInstance(fit.training_summary.df.index, pd.MultiIndex)
 
     def test_rollig_model_retraining(self):
         #  TODO solve retrain problem
