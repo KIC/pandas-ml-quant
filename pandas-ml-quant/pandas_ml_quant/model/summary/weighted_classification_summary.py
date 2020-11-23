@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from pandas_ml_common import Typing, pd
-from pandas_ml_common.utils.numpy_utils import empty_lists, get_buckets
+from pandas_ml_common.utils.numpy_utils import empty_lists, get_buckets, clean_one_hot_classification
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import Model
 from pandas_ml_utils.constants import *
@@ -21,11 +21,15 @@ class WeightedClassificationSummary(ClassificationSummary):
         self.targets = df[TARGET_COLUMN_NAME]
 
         # calculate confusion indices
-        truth, prediction = self._fix_label_prediction_representation()
-        distinct_values = len({*truth.reshape((-1,))}) if classes is None else classes
+        tv, pv = clean_one_hot_classification(self.df[LABEL_COLUMN_NAME]._.values, self.df[PREDICTION_COLUMN_NAME]._.values)
+
+        # confusion matrix needs integer encoding
+        tv = np.apply_along_axis(np.argmax, 1, tv)
+        pv = np.apply_along_axis(np.argmax, 1, pv)
+        distinct_values = len({*tv.flatten()}) if classes is None else classes
         cm = empty_lists((distinct_values, distinct_values))
 
-        for i, (t, p) in enumerate(zip(truth, prediction)):
+        for i, (t, p) in enumerate(zip(tv, pv)):
             cm[int(t), int(p)].append(self.df.index[i])
 
         self.confusion_indices = cm
@@ -46,6 +50,7 @@ class WeightedClassificationSummary(ClassificationSummary):
             axis=1,
             raw=False
         ).fillna(0)
+
 
     def plot_gross_confusion(self, figsize=(9, 8)):
         import matplotlib.pyplot as plt

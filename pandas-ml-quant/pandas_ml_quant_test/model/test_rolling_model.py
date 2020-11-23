@@ -72,13 +72,11 @@ class TestRollingModel(TestCase):
         self.assertIsInstance(fit.test_summary.df.index, pd.MultiIndex)
         self.assertIsInstance(fit.training_summary.df.index, pd.MultiIndex)
 
-    def test_rollig_model_retraining(self):
+    def test_rolling_model_retraining(self):
         #  TODO solve retrain problem
         pass
 
 # TODO implement
 #  * fix and finalize this test
-#  * solve retrain problem
-#  * fix classification summaries
 #  now all todos left are new features -> not part of 0.2.0
 

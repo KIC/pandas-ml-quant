@@ -16,7 +16,7 @@ class TestSummary(TestCase):
         # df = DF_TEST_MULTI_CASS
         target = np.arange(1, 4)
         price = np.arange(0, 4) + 0.5
-        labels = [one_hot(np.arange(0, 4), len(target) + 1).tolist() for _ in range(len(price))]
+        labels = [one_hot(np.random.randint(0, len(target)), len(target) + 1).tolist() for _ in range(len(price))]
 
         predictions = range(len(price))
         expected_losses = [0.0, -0.5, -0.5, 0]
@@ -35,7 +35,7 @@ class TestSummary(TestCase):
         # df = DF_TEST_MULTI_CASS
         target = np.arange(1, 5)
         price = np.arange(0, 5) + 0.5
-        labels = [one_hot(np.arange(0, 4), len(target) + 1).tolist() for _ in range(len(price))]
+        labels = [one_hot(np.random.randint(0, len(target)), len(target) + 1).tolist() for _ in range(len(price))]
 
         predictions = range(len(price))
         expected_losses = [0.0, -0.5, -0.5, 0]

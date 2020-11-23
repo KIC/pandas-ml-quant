@@ -25,4 +25,4 @@ class OneOverNModel(Model):
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
         # return weights = 1 / n
-        return features.apply(lambda row: np.repead(1 / len(row), len(row)), axis=1)
+        return features.apply(lambda row: np.repeat(1 / len(row), len(row)), result_type='broadcast', axis=1)

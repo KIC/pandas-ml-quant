@@ -18,7 +18,7 @@ class TestSummary(TestCase):
         df[PREDICTION_COLUMN_NAME, "spy"] = 1
         df[PREDICTION_COLUMN_NAME, "gld"] = 0
 
-        portfolio = PortfolioWeightsSummary(df, None).construct_portfolio()
+        portfolio = PortfolioWeightsSummary(df, None, rebalance_after_distance=None).construct_portfolio()
         #print(portfolio)
 
         self.assertAlmostEqual(0.0030852771, portfolio["trades"].values.sum().item())
@@ -136,7 +136,7 @@ class TestSummary(TestCase):
         df[PREDICTION_COLUMN_NAME, "spy"] = 0.5
         df[PREDICTION_COLUMN_NAME, "gld"] = 0.0
 
-        summary = PortfolioWeightsSummary(df, None)
+        summary = PortfolioWeightsSummary(df, None, rebalance_after_distance=None)
         portfolio = summary.construct_portfolio()
         # print(portfolio)
 
