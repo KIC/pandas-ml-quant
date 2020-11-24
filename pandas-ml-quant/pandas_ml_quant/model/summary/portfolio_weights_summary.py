@@ -97,7 +97,7 @@ class PortfolioWeightsSummary(Summary):
 
             # re-balance portfolio
             if (i > 1 and trigger_rebalance) or i == 1:
-                new_lots = (balance * target_weights) / (trade_prices * (1 - self.rebalance_fee(balance)))
+                new_lots = ((balance * target_weights) / trade_prices) * (1 - self.rebalance_fee(balance))
                 trades = np.round(new_lots, 10) - np.round(lots, 10)
                 lots = new_lots
                 rebalanced = True

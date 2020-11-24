@@ -48,9 +48,9 @@ class TestBackTest(TestCase):
             fit = m.fit(**MarkowitzModel(long_only=True).to_fitter_kwargs())
 
         bt = df.model.backtest(fit.model)
-        self.assertAlmostEqual(1.11254, bt.portfolio["agg", "balance"].iloc[-1], 4)
+        self.assertAlmostEqual(1.03070, bt.portfolio["agg", "balance"].iloc[-1], 4)
 
-        print(bt._repr_html_())
+        # print(bt._repr_html_())
 
     def test_markowitz_strategy_with_shorting(self):
         df = DF_TEST_MULTI._["Close"][-100:]

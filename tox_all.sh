@@ -14,9 +14,8 @@ cd "$ABSOLUTE_PATH/pandas-ml-utils" && tox && echo "done $(pwd)" && cd - || exit
 cd "$ABSOLUTE_PATH/pandas-ml-utils-torch" && tox && echo "done $(pwd)" && cd - || exit
 # cd "$ABSOLUTE_PATH/pandas-ml-utils-keras" && tox && echo "done $(pwd)" && cd - || exit      # temporarily deprecate keras
 cd "$ABSOLUTE_PATH/pandas-ml-quant" && tox && echo "done $(pwd)" && cd - || exit
-# TODO finalize remaining tox tests: pandas-ml-quant-data-provider, pandas-ml-1ntegration-test
+# TODO finalize remaining tox tests: pandas-ml-quant-data-provider, pandas-ml-1ntegration-test, quant plot
 #   cd "$ABSOLUTE_PATH/pandas-ml-quant-data-provider" && tox && echo "done $(pwd)" && cd - || exit
-# TODO finalize remaining tox tests: pandas-ml-quant-data-provider, pandas-ml-1ntegration-test
 #   cd "$ABSOLUTE_PATH/pandas-ml-quant-plot" && tox && echo "done $(pwd)" && cd - || exit
 # NOTE
 # pandas-ml-airflow is in development
