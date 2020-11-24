@@ -155,3 +155,39 @@ class TestSummary(TestCase):
 
         self.assertTrue(portfolio.loc["2020-02-07"]["agg", "rebalance"].item())
         self.assertEqual(1, portfolio["agg", "rebalance"][2:].values.sum())
+
+    def test_short(self):
+        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
+        df[PREDICTION_COLUMN_NAME, "spy"] = -1
+        df[PREDICTION_COLUMN_NAME, "gld"] = 0
+
+        portfolio = PortfolioWeightsSummary(df, None, rebalance_after_distance=None).construct_portfolio()
+
+        self.assertAlmostEqual(0, portfolio["trades", "gld"].values.sum().item())
+        self.assertAlmostEqual(0, portfolio["positions", "gld"].values.sum().item())
+        self.assertAlmostEqual(0, portfolio["weights", "gld"].values.sum().item())
+
+        np.testing.assert_array_almost_equal(
+            portfolio[1:]["agg", "balance"].pct_change().values,
+            df[TARGET_COLUMN_NAME, ("Close", "spy")][1:].pct_change().values * -1,
+            6
+        )
+
+    def test_portfolio_weights_summary_equal_weights_short(self):
+        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
+        df[PREDICTION_COLUMN_NAME, "spy"] = -0.5
+        df[PREDICTION_COLUMN_NAME, "gld"] = -0.5
+
+        portfolio = PortfolioWeightsSummary(df, None).construct_portfolio()
+        # print(portfolio)
+
+        np.testing.assert_array_almost_equal(
+            portfolio[1:]["agg", "balance"].pct_change().values,
+            np.array(
+                [np.nan, 0.001116185694516, 0.006388651124503, 0.004376611760257, -0.001341899428812,
+                 0.005018299107146, -0.000854496810412, 0.002815041534534, 0.002476227461891]
+            ) * -1,
+            4
+        )

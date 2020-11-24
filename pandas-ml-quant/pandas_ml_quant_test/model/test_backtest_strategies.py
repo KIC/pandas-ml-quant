@@ -7,6 +7,7 @@ import pandas_ml_quant
 from pandas_ml_common.sampling.splitter import duplicate_data
 from pandas_ml_quant.model.rolling.minimum_variance import MarkowitzModel
 from pandas_ml_quant.model.summary.portfolio_weights_summary import PortfolioWeightsSummary
+from pandas_ml_quant.technichal_analysis import ta_mean_returns
 from pandas_ml_quant_test.config import DF_TEST, DF_TEST_MULTI
 from pandas_ml_utils import LambdaModel, FeaturesAndLabels
 
@@ -41,12 +42,24 @@ class TestBackTest(TestCase):
         self.assertEqual(fit.training_summary.portfolio["agg", "rebalance"].sum(), bt.portfolio["agg", "rebalance"].sum())
 
     def test_markowitz_strategy(self):
-        df = DF_TEST_MULTI._["Close"][-100:]
+        df = DF_TEST_MULTI._["Close"]['2019-08-01':'2019-12-31']
 
         with df.model() as m:
-            fit = m.fit(**MarkowitzModel().to_fitter_kwargs())
+            fit = m.fit(**MarkowitzModel(long_only=True).to_fitter_kwargs())
 
         bt = df.model.backtest(fit.model)
         self.assertAlmostEqual(1.11254, bt.portfolio["agg", "balance"].iloc[-1], 4)
 
         print(bt._repr_html_())
+
+    def test_markowitz_strategy_with_shorting(self):
+        df = DF_TEST_MULTI._["Close"][-100:]
+
+        with df.model() as m:
+            fit = m.fit(**MarkowitzModel(
+                returns_estimator=partial(ta_mean_returns, period=2),
+                risk_aversion=0.99,
+                long_only=False).to_fitter_kwargs())
+
+        bt = df.model.backtest(fit.model)
+        self.assertAlmostEqual(1.07992, bt.portfolio["agg", "balance"].iloc[-1], 4)

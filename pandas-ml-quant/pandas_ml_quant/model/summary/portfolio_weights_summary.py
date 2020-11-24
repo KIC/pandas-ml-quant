@@ -53,10 +53,6 @@ class PortfolioWeightsSummary(Summary):
     def construct_portfolio(self):
         df = self.df
 
-        def is_column(col, requested):
-            # target looks like 'target', ('Open', 'spy'), ('Close', 'spy'),.. or 'target', 'Close'
-            return col == requested or (isinstance(col, tuple) and requested in col)
-
         # prices
         trade_prices = df[TARGET_COLUMN_NAME].copy()
         trade_prices["$"] = 1
@@ -101,12 +97,12 @@ class PortfolioWeightsSummary(Summary):
 
             # re-balance portfolio
             if (i > 1 and trigger_rebalance) or i == 1:
-                new_lots = (balance * target_weights) / trade_prices * (1 - self.rebalance_fee(balance))
+                new_lots = (balance * target_weights) / (trade_prices * (1 - self.rebalance_fee(balance)))
                 trades = np.round(new_lots, 10) - np.round(lots, 10)
                 lots = new_lots
                 rebalanced = True
 
-            # then add the current balance to a list such that we can calculate the performance over time
+            # then add the current balance to a list such that we can calculate the draw down and performance over time
             max_balance = max(max_balance, balance)
             current_weights = (lots * trade_prices) / balance
             positions.append(_Portfolio(balance, rebalanced, weights_distance, current_weights, trades, lots))
@@ -134,7 +130,8 @@ class PortfolioWeightsSummary(Summary):
         ax[1].legend(loc="lower left")
 
         # plot weight distribution
-        w = p["weights"]
+        w = p["weights"].drop("$", axis=1)
+
         for i, col in enumerate(w.columns):
             ax[2].bar(w.index, w[col], bottom=w[w.columns[i - 1]] if i > 0 else 0, align='edge', width=1.0, label=col)
         ax[2].legend(loc="upper left")

@@ -26,25 +26,42 @@ class MarkowitzBaseModel(Model):
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
         raise NotImplemented
 
-    def solve_quadratic_program(self, covariances: pd.DataFrame, expected_returns: pd.DataFrame = None, risk_aversion: float = 0.5, long_only: bool = True):
+    def solve_quadratic_program(self, covariances: pd.DataFrame, expected_returns: pd.DataFrame = None, risk_aversion: float = 0.5, long_only: bool = None):
         sigma = covariances._.values.squeeze()
         n = sigma.shape[1]
         r = np.ones(n) if expected_returns is None else expected_returns.values.squeeze()
         w = cp.Variable(n)
         A = np.ones(n)
 
+        # by default we allow shorting only if no positive expected returns are available
+        if long_only is None:
+            long_only = r.max() > 0
+
         # weighing factors for very cautious to fully risk averse
         l1 = np.sqrt(1 - risk_aversion)
         l2 = risk_aversion
 
         cost = cp.quad_form(w, l1 * sigma) - l2 * w.T @ r
-        constraints = [np.eye(n) @ w >= 0, A.T @ w == 1] if long_only else [A.T @ w == 1]
 
-        prob = cp.Problem(cp.Minimize(0.5 * cost), constraints)
-        prob.solve()
+        if long_only:
+            prob = cp.Problem(cp.Minimize(0.5 * cost), [np.eye(n) @ w >= 0, A.T @ w == 1])
+            prob.solve()
 
-        self._last_loss = prob.value
-        self._last_solution = w.value
+            self._last_loss = prob.value
+            self._last_solution = w.value
+        else:
+            # I count not get the norm constraint working like cp.norm(A.T @ w) == 1 wo I made this naive workaround
+            prob1 = cp.Problem(cp.Minimize(0.5 * cost), [np.eye(n) @ w >= -1, np.eye(n) @ w <= 1, A.T @ w == -1])
+            prob1.solve()
+            self._last_solution = w.value
+            self._last_loss = prob1.value
+
+            prob2 = cp.Problem(cp.Minimize(0.5 * cost), [np.eye(n) @ w >= -1, np.eye(n) @ w <= 1, A.T @ w == 1])
+            prob2.solve()
+
+            if prob2.value < prob1.value:
+                self._last_solution = w.value
+                self._last_loss = prob2.value
 
     def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
         return self._last_loss
@@ -86,7 +103,7 @@ class MarkowitzBaseModel(MarkowitzBaseModel):
                  risk_aversion: float = 0.5,
                  covariance_estimator: Callable = ta_ewma_covariance,
                  returns_estimator: Callable = ta_mean_returns,
-                 long_only: bool = True,
+                 long_only: bool = None,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         super().__init__(
