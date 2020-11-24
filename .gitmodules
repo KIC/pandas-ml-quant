@@ -1,3 +1,6 @@
 [submodule "notebooks/models"]
 	path = notebooks/models
 	url = git@github.com:KIC/models.git
+[submodule "pandas-ml-1ntegration-test-private"]
+	path = pandas-ml-1ntegration-test-private
+	url = git@github.com:KIC/pandas-ml-1ntegration-test-private.git
