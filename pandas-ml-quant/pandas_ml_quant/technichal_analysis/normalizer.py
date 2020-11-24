@@ -3,7 +3,7 @@ from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler
 
 from pandas_ml_common import Typing
-from pandas_ml_common.utils import ReScaler, get_pandas_object, intersection_of_index
+from pandas_ml_common.utils import ReScaler, get_pandas_object, intersection_of_index, unpack_nested_arrays
 from pandas_ml_common.utils.normalization import ecdf
 from pandas_ml_quant.technichal_analysis import filters as _f
 from pandas_ml_quant.technichal_analysis._decorators import *
@@ -94,7 +94,7 @@ def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform", l
         return for_each_top_level_column(ta_normalize_row, level=level)(df, normalizer)
     else:
         def scaler(row):
-            values = row._.values
+            values = unpack_nested_arrays(row, split_multi_index_rows=False)
             values_2d = values.reshape(-1, 1)
 
             if normalizer == 'minmax01':
