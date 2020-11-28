@@ -8,3 +8,4 @@ simple-plugin-loader
 sortedcontainers
 sqlalchemy
 yfinance
+cachier

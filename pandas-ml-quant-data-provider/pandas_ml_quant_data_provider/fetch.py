@@ -1,57 +1,98 @@
-from typing import List, Callable, Dict, Any, Tuple, Set
+import logging
+from typing import List, Union, Callable, Type, Dict
 
+import numpy as np
 import pandas as pd
 
-from pandas_ml_common.utils import call_callable_dynamic_args, add_multi_index, inner_join
-from pandas_ml_quant_data_provider.provider import PROVIDER_MAP
+from pandas_ml_common.utils import call_callable_dynamic_args
+from pandas_ml_quant_data_provider.data_provider.yfinance_provider import fetch_yahoo, YahooSymbol
+from pandas_ml_quant_data_provider.symbol import Symbol
+
+_log = logging.getLogger(__name__)
 
 
-def fetch_timeseries(providers: Dict[Callable[[Any], pd.DataFrame], List[str]],
-                     start_date: str = None,
-                     force_lower_case: bool = False,
-                     multi_index: bool = None,
-                     ffill: bool = False,
-                     **kwargs):
-    symbol_type = (List, Tuple, Set)
-    expected_frames = sum(len(s) if isinstance(s, symbol_type) else 1 for s in providers.values())
-    df = None
+class QuantDataFetcher(object):
 
-    if multi_index is None and expected_frames > 1:
-        multi_index = True
+    def __init__(self, providers: Dict[Type, Callable] = {}):
+        self.provider_map = {
+            YahooSymbol: fetch_yahoo,
+            str: fetch_yahoo,
+            **providers,
+        }
+        self.provider_map[np.str_] = self.provider_map[str]
 
-    for provider, symbols in providers.items():
-        # make sure provider is an actual provider -> a callable
-        if not callable(provider):
-            provider = PROVIDER_MAP[provider]
+    def fetch(self,
+              *symbols: Union[Union[str, Symbol], List[Union[str, Symbol]]],
+              join: str = 'inner',
+              force_lowercase_header: bool = False,
+              **kwargs):
+        symbols_array = self._init_shape(*symbols)
+        frames = self._load(symbols_array, force_lowercase_header, **kwargs)
+        row_frames = [pd.concat(row, join=join, axis=1) for row in frames]
+        return row_frames[0] if len(row_frames) == 1 else pd.concat(row_frames, axis=0, join='outer')
 
-        # make sure the symbols are iterable -> wrap single symbols into a list
-        if not isinstance(symbols, symbol_type):
-            symbols = [symbols]
+    def _init_shape(self, *symbols) -> np.ndarray:
+        # fix shape
+        if len(symbols) == 1:
+            # check if load(["ABC", "DEF"]) or load([["ABC", "DEF"]])
+            if isinstance(symbols[0], List) and len(symbols[0]) > 0:
+                if isinstance(symbols[0][0], List):
+                    # load([["ABC", "DEF"]])
+                    symbols = np.array(symbols[0])
 
-        # fetch all symbols of all providers (later we could do this in parallel)
-        for symbol in symbols:
-            _df = call_callable_dynamic_args(provider, symbol, multi_index=multi_index, **kwargs)
-
-            if _df is None:
-                continue
-
-            if multi_index:
-                if not isinstance(_df.columns, pd.MultiIndex):
-                    _df = add_multi_index(_df, symbol, True)
-
-                if force_lower_case:
-                    _df.columns = pd.MultiIndex.from_tuples([(h.lower(), c.lower()) for h, c in _df.columns.to_list()])
+                    # magic
+                    if symbols.shape[0] == 1:
+                        symbols = symbols.reshape(-1, 1)
+                else:
+                    # load(["ABC", "DEF"])
+                    symbols = np.array([symbols[0]])
             else:
-                if isinstance(_df.columns, pd.MultiIndex):
-                    _df.columns = [t[-1]for t in _df.columns.to_list()]
-
-                if force_lower_case:
-                    _df.columns = [c.lower() for c in _df.columns.to_list()]
-
-            if df is None:
-                df = _df
+                # load("ABC"
+                symbols = np.array([symbols])
+        elif len(symbols) > 1:
+            # check if load("ABC", "DEF") or load(["ABC", "DEF"], ["XYZ", "123"])
+            if isinstance(symbols[0], List) and len(symbols[0]) > 0:
+                # load(["ABC", "DEF"], ["XYZ", "123"])
+                symbols = np.array(symbols)
             else:
-                df = inner_join(df, _df, force_multi_index=multi_index, ffill=ffill)
+                # load("ABC", "DEF")
+                symbols = np.array([symbols])
+        else:
+            raise ValueError("No symbols provided")
 
-    return df if start_date is None else df[start_date:]
+        return symbols
+
+    def _load(self, symbols: np.ndarray, force_lowercase: bool, **kwargs):
+        # also we want to control multi indexes i.e. we could pass [[AAPL, SPY], [ZM, QQQ]]
+        frames = np.empty(symbols.shape, dtype=object)
+
+        for i, row_symbols in enumerate(symbols):
+            for j, symbol in enumerate(row_symbols):
+                frames[i, j] = self._fetch_time_series(symbol, **kwargs)
+
+                if force_lowercase:
+                    frames[i, j].columns = [c.lower() for c in frames[i, j].columns]
+
+                # fix MultiIndex if needed
+                if frames.shape[0] > 1:
+                    # we need a multi index index
+                    if frames.shape[1] > 1:
+                        # and we need a mutlti index column
+                        frames[i, j].columns = pd.MultiIndex.from_product([[j], frames[i, j].columns])
+                        frames[i, j].index = pd.MultiIndex.from_product([["/".join(row_symbols)], frames[i, j].index])
+                    else:
+                        frames[i, j].index = pd.MultiIndex.from_product([[symbol], frames[i, j].index])
+                elif frames.shape[1] > 1:
+                    # we need a multi index column
+                    frames[i, j].columns = pd.MultiIndex.from_product([[symbol], frames[i, j].columns])
+
+        return frames
+
+    def _fetch_time_series(self, symbol, **kwargs) -> pd.DataFrame:
+        args = symbol.get_provider_args() if isinstance(symbol, Symbol) else [symbol]
+
+        if isinstance(args, (tuple, list)):
+            return call_callable_dynamic_args(self.provider_map[type(symbol)], *args, **kwargs)
+        else:
+            return call_callable_dynamic_args(self.provider_map[type(symbol)], **args, **kwargs)
 

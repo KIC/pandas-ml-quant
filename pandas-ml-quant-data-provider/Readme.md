@@ -1,6 +1,22 @@
 # Pandas ML Quant Data Provider
 
-An independent module used to fetch time series data for quant finance studies.
+An independent module used to fetch time series and other data used for quant finance studies.
+
+## Installation
+
+Data can always be fetched instant without any local data base. However if you need to screen across assets
+for matching criteria then a local database is needed. Developing models often depend on some premise. Like 
+for a crash detection model you would want to use instruments which indeed suffered a crash. Therefore some
+data is stored into a data base using dolthub. Querying this data requires you to install [dolt][dolt] by
+following their [installation instructions][dolt].  
+
+```shell script
+pip install pandas-ml-quant-data-provider
+ 
+```
+   
+
+
  
 Example:
 ```python
@@ -29,3 +45,5 @@ Follow the instructions on [https://github.com/KIC/pandas-ml-quant](https://gith
 ## Documentation
 Check out the notebooks at [https://github.com/KIC/pandas-ml-quant/blob/master/notebooks](https://github.com/KIC/pandas-ml-quant/blob/master/notebooks)
 
+
+[dolt]: https://www.dolthub.com/blog/2020-02-03-dolt-and-dolthub-getting-started/

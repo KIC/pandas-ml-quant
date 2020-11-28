@@ -1,13 +1,25 @@
 import logging
 import traceback
 
-import cachetools.func
+from cachier import cachier
+import yfinance as yf
 
 from pandas_ml_common import pd
 from pandas_ml_common.utils import merge_kwargs, inner_join
+from pandas_ml_quant_data_provider.data_provider.time_utils import time_until_end_of_day
+from pandas_ml_quant_data_provider.symbol import Symbol
 
 
-@cachetools.func.ttl_cache(maxsize=1, ttl=10 * 60)
+class YahooSymbol(Symbol):
+
+    def __init__(self, symbol: str):
+        self.symbol = symbol
+
+    def get_provider_args(self):
+        return [self.symbol]
+
+
+@cachier(stale_after=time_until_end_of_day())
 def fetch_yahoo(*args: str, period: str = 'max', multi_index: bool = False, **kwargs: str):
     df = None
 
@@ -45,7 +57,6 @@ def fetch_yahoo(*args: str, period: str = 'max', multi_index: bool = False, **kw
 
 
 def __download_yahoo_data(symbol, period):
-    import yfinance as yf
     df = None
 
     # bloody skew index does not have any data on yahoo

@@ -6,6 +6,7 @@ from pandas_ml_common import Typing
 import pandas as pd
 
 
+# TODO use cursor widget  https://www.youtube.com/watch?v=YobjoBrND4w
 class PlotContext(object):
 
     def __init__(self,
@@ -39,6 +40,7 @@ class PlotContext(object):
         )
 
         # range_fig.canvas.draw()
+        # todo span widget https://www.youtube.com/watch?v=71NXE-zxxbo&list=PL3JVwFmb_BnTPJVmuBlTSwZEp-Qdhq2TC&index=2
         plt.show()
         # bring back plotting:
         # def subplots(self, rows=2, figsize=(25, 10)):
