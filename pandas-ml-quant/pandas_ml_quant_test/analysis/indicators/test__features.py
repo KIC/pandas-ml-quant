@@ -210,5 +210,15 @@ class TestIndicator(TestCase):
             6
         )
 
+    def test_slope(self):
+        me = ta_slope(DF_TEST[["Close", "Open"]], period=20)
+        # print(me.tail())
+
+        np.testing.assert_almost_equal(
+            [0.225188, 0.267564],
+            me.iloc[-1].values,
+            6
+        )
+
 
 

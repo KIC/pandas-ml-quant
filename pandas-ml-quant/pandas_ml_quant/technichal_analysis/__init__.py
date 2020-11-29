@@ -7,3 +7,4 @@ from .forecast import *
 from .indicators import *
 from .labels import *
 from .normalizer import *
+from .math import *

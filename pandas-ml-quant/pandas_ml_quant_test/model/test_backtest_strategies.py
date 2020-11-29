@@ -1,8 +1,6 @@
 from functools import partial
 from unittest import TestCase
 
-import numpy as np
-
 import pandas_ml_quant
 from pandas_ml_common.sampling.splitter import duplicate_data
 from pandas_ml_quant.model.rolling.minimum_variance import MarkowitzModel
@@ -63,3 +61,15 @@ class TestBackTest(TestCase):
 
         bt = df.model.backtest(fit.model)
         self.assertAlmostEqual(1.07992, bt.portfolio["agg", "balance"].iloc[-1], 4)
+
+    def test_markowitz_strategy_full_frame(self):
+        df = DF_TEST_MULTI['2019-08-01':'2019-12-31']
+
+        with df.model() as m:
+            fit = m.fit(**MarkowitzModel(long_only=True).to_fitter_kwargs())
+
+        bt = df.model.backtest(fit.model)
+        self.assertAlmostEqual(1.03070, bt.portfolio["agg", "balance"].iloc[-1], 2)
+
+        bt2 = df.model.backtest(fit.model, lambda df, m: PortfolioWeightsSummary(df, m, rebalance_after_distance=0.1))
+        self.assertAlmostEqual(1.03070, bt2.portfolio["agg", "balance"].iloc[-1], 2)

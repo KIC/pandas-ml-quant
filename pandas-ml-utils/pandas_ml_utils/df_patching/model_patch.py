@@ -8,7 +8,8 @@ from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
 
 from pandas_ml_common import Typing, naive_splitter, Sampler, XYWeight
-from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs, merge_kwargs, call_silent
+from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs, merge_kwargs, call_silent, \
+    call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
@@ -163,7 +164,7 @@ class DfModelPatch(object):
         df_backtest = assemble_result_frame(predictions, frames.targets, frames.labels, frames.gross_loss,
                                             frames.sample_weights, frames.features_with_required_samples.features)
 
-        return (summary_provider or model.summary_provider)(df_backtest, model, **kwargs)
+        return call_callable_dynamic_args(summary_provider or model.summary_provider, df_backtest, model, **kwargs)
 
     def predict(self,
                 model: MlModel,

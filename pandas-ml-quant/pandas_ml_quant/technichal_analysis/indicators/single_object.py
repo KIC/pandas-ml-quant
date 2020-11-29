@@ -11,6 +11,7 @@ from pandas_ml_common.utils import cumcount
 from pandas_ml_quant.technichal_analysis._decorators import *
 from pandas_ml_quant.technichal_analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
 from pandas_ml_quant.utils import with_column_suffix as _wcs
+from scipy.stats import linregress
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
@@ -226,3 +227,10 @@ def ta_bbands_indicator(df: _PANDAS, period=12, stddev=2.0, ddof=1) -> _PANDAS:
         columns = [c for c in res.columns.to_list() if c[-1] in columns]
 
     return res[columns]
+
+
+@for_each_top_level_row
+@for_each_column
+def ta_slope(df: _PANDAS, period=12):
+    x = _np.arange(period)
+    return _wcs(f"slope_{period}", df.rolling(period).apply(lambda y: linregress(x, y).slope))

@@ -101,21 +101,22 @@ class MarkowitzBaseModel(MarkowitzBaseModel):
     def __init__(self,
                  price_column: str = 'Close',
                  risk_aversion: float = 0.5,
-                 covariance_estimator: Callable = ta_ewma_covariance,
-                 returns_estimator: Callable = ta_mean_returns,
+                 covariance_estimator: Callable = lambda df, price_column: ta_ewma_covariance(df._[price_column]),
+                 returns_estimator: Callable = lambda df, price_column: ta_mean_returns(df._[price_column]),
                  long_only: bool = None,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  **kwargs):
         super().__init__(
             FeaturesAndLabels(
                 features=(
-                    [lambda df: wrap_row_level_as_nested_array(covariance_estimator(df[price_column]))],
-                    returns_estimator
+                    [lambda df, price_column: wrap_row_level_as_nested_array(covariance_estimator(df, price_column))],
+                    [returns_estimator]
                 ),
                 targets=[price_column],
                 labels=[price_column],
             ),
             summary_provider,
+            price_column=price_column,
             **kwargs
         )
         self.risk_aversion = risk_aversion
