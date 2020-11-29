@@ -1,11 +1,10 @@
 import logging
 import traceback
 
-from cachier import cachier
 import yfinance as yf
+from cachier import cachier
 
 from pandas_ml_common import pd
-from pandas_ml_common.utils import merge_kwargs, inner_join
 from pandas_ml_quant_data_provider.data_provider.time_utils import time_until_end_of_day
 from pandas_ml_quant_data_provider.symbol import Symbol
 
@@ -19,44 +18,11 @@ class YahooSymbol(Symbol):
         return [self.symbol]
 
 
-@cachier(stale_after=time_until_end_of_day())
-def fetch_yahoo(*args: str, period: str = 'max', multi_index: bool = False, **kwargs: str):
-    df = None
-
-    if len(args) == 1:
-        df = __download_yahoo_data(args[0], period)
-    else:
-        # convert args to kwargs
-        if len(args) > 0:
-            kwargs = merge_kwargs({arg: arg for arg in args}, kwargs)
-
-        for k, v in kwargs.items():
-            px = f'{k}_'
-            df_ = __download_yahoo_data(v, period)
-
-            if multi_index:
-                df_.columns = pd.MultiIndex.from_product([[k], df_.columns])
-
-                if df is None:
-                    df = df_
-                else:
-                    df = inner_join(df, df_)
-            else:
-                if df is None:
-                    df = df_.add_prefix(px)
-                else:
-                    df = inner_join(df, df_, prefix=px)
-
-    # print some statistics
-    if df is None:
-        logging.warning("nothing downloaded")
-    else:
-        logging.info(f'number of rows for joined dataframe = {len(df)}, from {df.index[0]} to {df.index[-1]}')
-
-    return df
+def fetch_yahoo(symbol: str, period: str = 'max', **kwargs):
+    return _download_yahoo_data(symbol, period, **kwargs)
 
 
-def __download_yahoo_data(symbol, period):
+def _download_yahoo_data(symbol, period, **kwargs):
     df = None
 
     # bloody skew index does not have any data on yahoo
@@ -66,18 +32,21 @@ def __download_yahoo_data(symbol, period):
                           parse_dates=True,
                           index_col='Date') \
             .drop(['Unnamed: 2', 'Unnamed: 3'], axis=1)
+        return df
     else:
-        ticker = yf.Ticker(symbol)
+        df = _fetch_hist(symbol, period, **kwargs)
+        logging.info(f'number of rows for {symbol} = {len(df)}, from {df.index[0]} to {df.index[-1]} period={period}')
+
         try:
             # first try to append the most recent data
-            df = ticker.history(period="1d", interval='1d')[-1:].combine_first(ticker.history(period=period))
+            return yf.Ticker(symbol).history(period="1d", interval='1d')[-1:].combine_first(df)
         except IOError:
             traceback.print_exc()
             logging.warning(
                 'failed to add yf.Ticker({v}).history(period="1d", interval="1d")[-1:] fallback to hist only!')
-            df = ticker.history(period=period)
+            return df
 
-    # print some statistics
-    logging.info(f'number of rows for {symbol} = {len(df)}, from {df.index[0]} to {df.index[-1]} period={period}')
 
-    return df
+@cachier(stale_after=time_until_end_of_day())
+def _fetch_hist(symbol, period, **kwargs):
+    return yf.Ticker(symbol).history(period=period, **kwargs)

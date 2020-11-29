@@ -6,28 +6,37 @@ import requests
 from bs4 import BeautifulSoup
 from cachier import cachier
 
+from pandas_ml_quant_data_provider.data_provider.time_utils import time_until_end_of_day
+
 _log = logging.getLogger(__name__)
 
 
 def download_optionable_stocks_and_sectors(sanitize_columns=True):
     # fetch optionable stocks
-    pages = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z IND ETF".split(" ")
-    df = pd.concat(
-        [pd.read_html(
-            f'https://www.poweropt.com/optionable.asp?fl={page}', attrs={'id': 'example'})[0]
-         for page in pages], axis=0
-    ).reset_index()
+    @cachier(stale_after=time_until_end_of_day())
+    def fetch_optionable_symbols():
+        pages = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z IND ETF".split(" ")
+        df = pd.concat(
+            [pd.read_html(
+                f'https://www.poweropt.com/optionable.asp?fl={page}', attrs={'id': 'example'})[0]
+             for page in pages], axis=0
+        ).reset_index()
 
-    # extract symbol
-    symbol = df['Company  Name'].str.extract(r'^\(([^\(\)]+)\)').iloc[:, 0].rename("Symbol")
-    if len(symbol[symbol.isnull().values]) > 0:
-        raise ValueError(f"Could not extract Symbol:\n{df[symbol.isnull().values]}")
+        # extract symbol
+        symbol = df['Company  Name'].str.extract(r'^\(([^\(\)]+)\)').iloc[:, 0].rename("Symbol")
+        symbol = symbol.str.replace("$", "^")
 
-    # make symbol the index and add drop unnecessary data
-    df.index = symbol
-    df = df.sort_index()
-    df['Last Update'] = pd.Timestamp.now()
-    df = df.drop(["index", "Quick  Find", "Option  Chain", "Details"], axis=1)
+        if len(symbol[symbol.isnull().values]) > 0:
+            raise ValueError(f"Could not extract Symbol:\n{df[symbol.isnull().values]}")
+
+        # make symbol the index and add drop unnecessary data
+        df.index = symbol
+        df = df.sort_index()
+        df['Last Update'] = pd.Timestamp.now()
+        df = df.drop(["index", "Quick  Find", "Option  Chain", "Details"], axis=1)
+        return df
+
+    df = fetch_optionable_symbols()
     _log.info(f'fetched {len(df)} optionable symbols: {df.index.to_list()}')
 
     # add sector and industry to the data frame
@@ -39,7 +48,7 @@ def download_optionable_stocks_and_sectors(sanitize_columns=True):
             _log.info(f"fetching industry for {symbol[0]}")
 
         try:
-            resp = requests.get(f"https://finance.yahoo.com/quote/{symbol.replace('$', '^')}/profile")
+            resp = requests.get(f"https://finance.yahoo.com/quote/{symbol}/profile")
             html = BeautifulSoup(resp.text, features="lxml")
 
             try:

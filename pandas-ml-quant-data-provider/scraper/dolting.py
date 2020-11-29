@@ -3,9 +3,14 @@ import time
 import logging
 import pandas as pd
 from doltpy.core import Dolt
+from doltpy.etl import get_df_table_writer
 
 REPO_LOC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "quantdb")
 _log = logging.getLogger(__name__)
+
+
+def import_df(table, df, repo=REPO_LOC, **kwargs):
+    get_df_table_writer(table, lambda: df, **kwargs)(repo)
 
 
 def start_server_and_get_engine(repo=REPO_LOC):
@@ -14,7 +19,7 @@ def start_server_and_get_engine(repo=REPO_LOC):
     time.sleep(2)
 
     engine = repo.get_engine()
-    _log.info("\n" + pd.read_sql("show tables;", engine))
+    _log.info("\n" + str(pd.read_sql("show tables;", engine)))
     return engine
 
 
@@ -41,6 +46,7 @@ def dolt_commit(table, message, repo=REPO_LOC):
 
 if __name__ == '__main__':
     repo = Dolt(REPO_LOC)
+
     try:
         repo.sql_server()
         time.sleep(2)
