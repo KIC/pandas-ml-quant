@@ -120,6 +120,7 @@ class PortfolioWeightsSummary(Summary):
         p = self.portfolio[1:]
 
         # plot performance graphs
+        # ax[0].set_yscale('log', base=2)
         p["agg", "balance"].plot(ax=ax[0], label="Portfolio")
         p["agg", "balance"].ta.draw_down()["dd"].plot(ax=ax[1], label="MDD: Portfolio")
 
@@ -158,8 +159,8 @@ class PortfolioWeightsSummary(Summary):
 
         def calc_metrics(s, with_trades):
             return {
-                "Performance": performance(s),
-                "CVaR95": cvar(s),
+                "Performance (%)": performance(s),
+                "CVaR95 (%)": cvar(s),
                 "Sharpe": sharpe_ratio(s),
                 "Days": len(s),
                 "Last Day": s.index[-1],

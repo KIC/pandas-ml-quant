@@ -6,6 +6,7 @@ cvxpy
 ipywidgets
 matplotlib
 minisom
+mgarch
 mlxtend
 moviepy
 mplfinance

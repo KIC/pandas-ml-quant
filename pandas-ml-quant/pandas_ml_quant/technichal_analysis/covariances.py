@@ -4,6 +4,7 @@ import pandas as _pd
 
 from pandas_ml_common import Typing
 from pandas_ml_quant.technichal_analysis._decorators import for_each_top_level_row
+import mgarch
 
 
 def _normalize(df, convert_to):
@@ -47,3 +48,25 @@ def ta_sparse_covariance(df: Typing.PatchedPandas, convert_to='returns', covaria
         .groupby(level=0) \
         .apply(lambda x: x if x.isnull().values.any() else \
                          _pd.DataFrame(graphical_lasso(x.values, rho, **kwargs)[int(inverse)], index=x.index, columns=x.columns))
+
+
+@for_each_top_level_row
+def ta_mgarch_covariance(df: Typing.PatchedPandas, period=30, convert_to='returns', forecast=1, dist='t', **kwargs):
+    assert period >= df.shape[1], f"period need to be > {df.shape[1]}"
+    data = _normalize(df, convert_to)
+    data.columns = data.columns.to_list()
+
+    def mgarch_cov(window):
+        vol = mgarch.mgarch(dist)
+        vol.fit(window.values)
+        return _pd.DataFrame(
+            vol.predict(forecast)["cov"],
+            index=_pd.MultiIndex.from_product([[window.index[-1]], window.columns.to_list()]),
+            columns=window.columns.to_list()
+        )
+
+    return _pd.concat([mgarch_cov(data.iloc[i - period: i]) for i in range(period, len(data) + 1)], axis=0)
+
+
+
+
