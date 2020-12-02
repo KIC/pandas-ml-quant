@@ -80,6 +80,7 @@ def _get_sector_industry(symbol):
         industry = html.select('span[class="Fw(600)"]')[1].text
     except:
         industry = None
+
     return sector, industry
 
 
