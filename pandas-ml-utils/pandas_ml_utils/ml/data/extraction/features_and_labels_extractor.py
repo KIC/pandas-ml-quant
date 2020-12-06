@@ -32,6 +32,10 @@ class FeaturesWithLabels(NamedTuple):
     sample_weights: pd.DataFrame
     gross_loss: pd.DataFrame
 
+    @property
+    def features(self):
+        return self.features_with_required_samples.features
+
 
 def extract_feature_labels_weights(
         df: Typing.PatchedDataFrame,
@@ -94,7 +98,3 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Feature
         loc_if_not_none(targets, common_index),
         loc_if_not_none(latent, common_index)
     )
-
-
-def extract(features_and_labels, df, extractor, *args, **kwargs):
-    return features_and_labels(df, extractor, *args, **kwargs)
