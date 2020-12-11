@@ -140,12 +140,14 @@ def loc_if_not_none(df, value):
         return df.loc[value]
 
 
-def get_pandas_object(po: PandasObject, item, **kwargs):
+def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
     if item is None:
         _log.info("passed item was None")
         return None
     elif isinstance(item, Constant):
         return pd.Series(np.full(len(po), item.value), name=f"{item.value}", index=po.index)
+    elif type_map is not None and type(item) in type_map:
+        return type_map[type(item)](po, item, **kwargs)
     elif isinstance(item, PandasObject):
         return item
     else:
