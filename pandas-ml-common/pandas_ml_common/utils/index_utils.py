@@ -147,7 +147,7 @@ def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
     elif isinstance(item, Constant):
         return pd.Series(np.full(len(po), item.value), name=f"{item.value}", index=po.index)
     elif type_map is not None and type(item) in type_map:
-        return type_map[type(item)](po, item, **kwargs)
+        return call_callable_dynamic_args(type_map[type(item)], po, item, **kwargs)
     elif isinstance(item, PandasObject):
         return item
     else:
