@@ -1,11 +1,9 @@
-import logging
 import os
 from abc import abstractmethod
-from collections import defaultdict
 from copy import deepcopy
-from functools import partial
-from time import perf_counter
-from typing import Callable, Tuple, List, NamedTuple
+from functools import partial, wraps
+from typing import Callable, Tuple, Iterable, Generator, Union, List, NamedTuple
+from collections import defaultdict
 
 import dill as pickle
 import numpy as np
@@ -13,12 +11,9 @@ import pandas as pd
 
 from pandas_ml_common import Typing, Sampler
 from pandas_ml_common.sampling.sampler import XYWeight
-from pandas_ml_common.utils import merge_kwargs, call_callable_dynamic_args
-from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels, extract_feature_labels_weights
-from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
+from pandas_ml_common.utils import to_pandas, unique_level, merge_kwargs, call_callable_dynamic_args
+from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
-
-_log = logging.getLogger(__name__)
 
 
 class Model(object):
@@ -76,41 +71,6 @@ class Model(object):
     @property
     def summary_provider(self):
         return self._summary_provider
-
-    def extract_features_and_fit_labels(
-            self,
-            df: pd.DataFrame,
-            splitter,
-            filter,
-            cross_validation,
-            epochs,
-            batch_size,
-            fold_epochs,
-            verbose,
-            callbacks,
-            **kwargs) -> [FeaturesWithLabels, pd.DataFrame, pd.DataFrame]:
-        start_performance_count = perf_counter()
-        _log.info("start feature extraction pipeline")
-        frames = self.features_and_labels(df, extract_feature_labels_weights, **kwargs)
-
-        _log.info(f"start training model after feature pipeline ({perf_counter() - start_performance_count: .2f} sec)")
-        df_train_prediction, df_test_prediction = self.fit(
-            Sampler(
-                XYWeight(frames.features, frames.labels, frames.sample_weights),
-                splitter=splitter,
-                filter=filter,
-                cross_validation=cross_validation,
-                epochs=epochs,
-                fold_epochs=fold_epochs,
-                batch_size=batch_size
-            ),
-            verbose,
-            callbacks,
-            **kwargs
-        )
-
-        _log.info(f"finished feature pipeline and training after ({perf_counter() - start_performance_count: .2f} sec")
-        return frames, df_train_prediction, df_test_prediction
 
     def fit(self, sampler: Sampler, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         self.init_fit(**kwargs)
@@ -181,11 +141,6 @@ class Model(object):
 
     def merge_folds(self, epoch: int):
         pass
-
-    def extract_features_and_predict(self, df, samples, callable_extractor, **kwargs) -> [NamedTuple, pd.DataFrame]:
-        frames = self.features_and_labels(df, callable_extractor, **kwargs)
-        predictions = self.predict(frames.features, frames.targets, frames.latent, samples, **kwargs)
-        return frames, predictions
 
     def train_predict(self, *args, **kwargs) -> Typing.PatchedDataFrame:
         return self.predict(*args, **kwargs)
