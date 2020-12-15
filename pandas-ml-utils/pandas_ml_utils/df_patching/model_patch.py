@@ -14,7 +14,7 @@ from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import Fe
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting import Fit, FitException
-from pandas_ml_utils.ml.model import Model as MlModel, SkModel
+from pandas_ml_utils.ml.model import Model as MlModel, SkModel, AutoEncoderModel, SubModelFeature
 from pandas_ml_utils.ml.summary import Summary
 
 from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels, FeaturesWithTargets, \
@@ -28,6 +28,10 @@ class DfModelPatch(object):
 
     def __init__(self, df: Typing.PatchedDataFrame):
         self.df = df
+        self._type_mapping = {
+            AutoEncoderModel: lambda df, model, **kwargs: df.model.predict(model.as_encoder(), **kwargs),
+            MlModel: lambda df, model, **kwargs: df.model.predict(model, **kwargs),
+        }
 
     def feature_selection(self,
                           features_and_labels: FeaturesAndLabels,
@@ -158,7 +162,10 @@ class DfModelPatch(object):
                  **kwargs) -> Summary:
         df = self.df
         kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        frames: FeaturesWithLabels = model.features_and_labels(df, extract_feature_labels_weights, **kwargs)
+        typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs), **self._type_mapping}
+        frames: FeaturesWithLabels = model.features_and_labels(
+            df, extract_feature_labels_weights, type_map=typemap_pred, **kwargs
+        )
 
         predictions = model.predict(frames.features_with_required_samples.features, **kwargs)
         df_backtest = assemble_result_frame(predictions, frames.targets, frames.labels, frames.gross_loss,
@@ -182,7 +189,10 @@ class DfModelPatch(object):
                 _log.warning("could not determine the minimum required data from the model")
 
         kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        frames: FeaturesWithTargets = model.features_and_labels(df, extract_features, **kwargs)
+        typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs), **self._type_mapping}
+        frames: FeaturesWithTargets = model.features_and_labels(
+            df, extract_features, type_map=typemap_pred, **kwargs
+        )
 
         # features, labels, targets, weights, gross_loss, latent,
         predictions = model.predict(frames.features, frames.targets, frames.latent, samples, **kwargs)

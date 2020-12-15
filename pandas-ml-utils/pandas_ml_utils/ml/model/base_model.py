@@ -1,9 +1,10 @@
+import logging
 import os
 from abc import abstractmethod
-from copy import deepcopy
-from functools import partial, wraps
-from typing import Callable, Tuple, Iterable, Generator, Union, List, NamedTuple
 from collections import defaultdict
+from copy import deepcopy
+from functools import partial
+from typing import Callable, Tuple, List, NamedTuple
 
 import dill as pickle
 import numpy as np
@@ -11,9 +12,12 @@ import pandas as pd
 
 from pandas_ml_common import Typing, Sampler
 from pandas_ml_common.sampling.sampler import XYWeight
-from pandas_ml_common.utils import to_pandas, unique_level, merge_kwargs, call_callable_dynamic_args
+from pandas_ml_common.utils import merge_kwargs, call_callable_dynamic_args
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.summary import Summary
+
+_log = logging.getLogger(__name__)
 
 
 class Model(object):
@@ -251,4 +255,24 @@ class _MetaFit(NamedTuple):
     cross_validation: bool
     partial_fit: bool
 
+
+class SubModelFeature(object):
+
+    def __init__(self, name: str, model: Model):
+        self.name = name
+        self.model = model
+
+    def fit(self, df: Typing.PatchedDataFrame, **kwargs):
+        _log.info(f"fitting submodel: {self.name}")
+        with df.model() as m:
+            fit = m.fit(df, **kwargs)
+            self.model = fit.model
+
+        return self.predict(df, **kwargs)
+
+    def predict(self, df: Typing.PatchedDataFrame, **kwargs):
+        if isinstance(self.model, AutoEncoderModel):
+            return df.model.predict(self.model.as_encoder(), **kwargs)[PREDICTION_COLUMN_NAME]
+        else:
+            return df.model.predict(self.model, **kwargs)[PREDICTION_COLUMN_NAME]
 
