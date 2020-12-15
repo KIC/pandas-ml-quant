@@ -17,7 +17,7 @@ from pandas_ml_utils.ml.fitting import Fit, FitException
 from pandas_ml_utils.ml.model import Model as MlModel, SkModel
 from pandas_ml_utils.ml.summary import Summary
 
-from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels, extract, FeaturesWithTargets, \
+from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels, FeaturesWithTargets, \
     extract_features, extract_feature_labels_weights
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
 
@@ -158,7 +158,7 @@ class DfModelPatch(object):
                  **kwargs) -> Summary:
         df = self.df
         kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        frames: FeaturesWithLabels = extract(model.features_and_labels, df, extract_feature_labels_weights, **kwargs)
+        frames: FeaturesWithLabels = model.features_and_labels(df, extract_feature_labels_weights, **kwargs)
 
         predictions = model.predict(frames.features_with_required_samples.features, **kwargs)
         df_backtest = assemble_result_frame(predictions, frames.targets, frames.labels, frames.gross_loss,
@@ -182,7 +182,7 @@ class DfModelPatch(object):
                 _log.warning("could not determine the minimum required data from the model")
 
         kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        frames: FeaturesWithTargets = extract(model.features_and_labels, df, extract_features, **kwargs)
+        frames: FeaturesWithTargets = model.features_and_labels(df, extract_features, **kwargs)
 
         # features, labels, targets, weights, gross_loss, latent,
         predictions = model.predict(frames.features, frames.targets, frames.latent, samples, **kwargs)
