@@ -52,7 +52,7 @@ class DfModelPatch(object):
 
             # first perform a correlation analysis and remove correlating features !!!
             if correlated_features_th > 0:
-                _, pairs = get_correlation_pairs(ext.features_with_required_samples.features)
+                _, pairs = get_correlation_pairs(ext.features)
                 redundant_correlated_features = {i[0]: p for i, p in pairs.items() if p > correlated_features_th}
                 _log.warning(f"drop redundant features: {redundant_correlated_features}")
 
@@ -125,7 +125,7 @@ class DfModelPatch(object):
 
         df_train_prediction, df_test_prediction = model.fit(
             Sampler(
-                XYWeight(frames.features_with_required_samples.features, frames.labels, frames.sample_weights),
+                XYWeight(frames.features, frames.labels, frames.sample_weights),
                 splitter=splitter,
                 filter=filter,
                 cross_validation=cross_validation,
@@ -142,7 +142,7 @@ class DfModelPatch(object):
 
         # assemble result objects
         # get training and test data tuples of the provided frames
-        ext_frames = frames.targets, frames.labels, frames.gross_loss, frames.sample_weights, frames.features_with_required_samples.features
+        ext_frames = frames.targets, frames.labels, frames.gross_loss, frames.sample_weights, frames.features
         df_train = assemble_result_frame(df_train_prediction, *ext_frames)
         df_test = assemble_result_frame(df_test_prediction, *ext_frames)
 
@@ -172,9 +172,9 @@ class DfModelPatch(object):
             df, extract_feature_labels_weights, type_map=typemap_pred, **kwargs
         )
 
-        predictions = model.predict(frames.features_with_required_samples.features, **kwargs)
+        predictions = model.predict(frames.features, **kwargs)
         df_backtest = assemble_result_frame(predictions, frames.targets, frames.labels, frames.gross_loss,
-                                            frames.sample_weights, frames.features_with_required_samples.features)
+                                            frames.sample_weights, frames.features)
 
         return call_callable_dynamic_args(summary_provider or model.summary_provider, df_backtest, model, **kwargs)
 

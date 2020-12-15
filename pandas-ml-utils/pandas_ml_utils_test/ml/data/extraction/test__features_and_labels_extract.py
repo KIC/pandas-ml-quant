@@ -80,7 +80,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
             self.assertIn("features containing infinit number", cm.output[0])
 
-        self.assertEqual(len(fl.features_with_required_samples.features), 3)
+        self.assertEqual(len(fl.features), 3)
 
     def test_post_processing(self):
         df = pd.DataFrame({"a": np.arange(20), "b": np.arange(20)})
@@ -94,7 +94,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             )
         )
 
-        self.assertEqual(len(fl.features_with_required_samples.features), 10)
+        self.assertEqual(len(fl.features), 10)
         self.assertEqual(len(fl.labels), 10)
         self.assertEqual(fl.labels.values.sum().item(), 90)
 
@@ -111,7 +111,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             )
         )
 
-        self.assertIsInstance(fl.features_with_required_samples.features.index, pd.MultiIndex)
+        self.assertIsInstance(fl.features.index, pd.MultiIndex)
         self.assertIsInstance(fl.labels.index, pd.MultiIndex)
 
     def test_nested_postprocessors(self):
@@ -146,5 +146,5 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             )
         )
 
-        self.assertIsInstance(fl.features_with_required_samples.features, MultiFrameDecorator)
-        self.assertListEqual([18, 21], fl.features_with_required_samples.features.as_joined_frame().iloc[-1].to_list())
+        self.assertIsInstance(fl.features, MultiFrameDecorator)
+        self.assertListEqual([18, 21], fl.features.as_joined_frame().iloc[-1].to_list())
