@@ -46,7 +46,6 @@ class TestModel(TestCase):
         self.assertIsInstance(samples[PREDICTION_COLUMN_NAME].iloc[-1, 0], list)
         self.assertEqual(2, len(samples[PREDICTION_COLUMN_NAME].iloc[-1, 0]))
 
-    @unittest.skip("cross validation needs to be re-implemented")
     def test_simple_classification_cross_validation(self):
         df = DF_NOTES.copy()
 
@@ -60,7 +59,7 @@ class TestModel(TestCase):
                 )
             ),
             training_data_splitter=random_splitter(),
-            cross_validation=KFold(3, random_state=42)
+            cross_validation=KFold(3, random_state=42, shuffle=True)
         )
 
         print(fit)
@@ -68,7 +67,7 @@ class TestModel(TestCase):
 
         prediction = df.model.predict(fit.model)
         print(prediction)
-        self.assertGreaterEqual(prediction[PREDICTION_COLUMN_NAME].iloc[-1].values, 0.7)
+        self.assertGreaterEqual(prediction[PREDICTION_COLUMN_NAME].iloc[-1].values, 0.65)
 
     def test_simple_classification_model_with_all_options(self):
         df = DF_NOTES.copy()

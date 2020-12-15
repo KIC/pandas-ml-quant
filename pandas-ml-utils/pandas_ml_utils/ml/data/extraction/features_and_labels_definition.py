@@ -6,7 +6,6 @@ import pandas as pd
 
 from pandas_ml_common.utils import as_list
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
-from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
 from pandas_ml_common import Typing, get_pandas_object
 
 T = TypeVar('T', str, List, Callable[[Any], Union[pd.DataFrame, pd.Series]])
@@ -149,13 +148,17 @@ class FeaturesAndLabels(object):
 
     def __call__(self,
                  df: pd.DataFrame,
-                 extractor: callable = extract_feature_labels_weights,
+                 extractor: callable = None,
                  *args,
                  **kwargs) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame, pd.Series]]:
         # Basic concept:
         #  we call an extractor(df, **{**self.kwargs, **kwargs})
         #  this extractor uses 'get_pandas_object' which itself can handle lambdas with dependecies
         #  injected from available kwargs
+        if extractor is None:
+            from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
+            extractor = extract_feature_labels_weights
+
         return call_callable_dynamic_args(extractor, df, self, **{**self.kwargs, **kwargs})
 
     def __hash__(self):
