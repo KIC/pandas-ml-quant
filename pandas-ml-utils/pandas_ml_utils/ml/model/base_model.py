@@ -265,9 +265,10 @@ class SubModelFeature(object):
     def fit(self, df: Typing.PatchedDataFrame, **kwargs):
         _log.info(f"fitting submodel: {self.name}")
         with df.model() as m:
-            fit = m.fit(df, **kwargs)
+            fit = m.fit(self.model, **kwargs)
             self.model = fit.model
 
+        _log.info(f"fitted submodel: {fit}")
         return self.predict(df, **kwargs)
 
     def predict(self, df: Typing.PatchedDataFrame, **kwargs):

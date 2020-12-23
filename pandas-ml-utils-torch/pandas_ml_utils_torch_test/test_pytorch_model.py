@@ -7,7 +7,7 @@ from torch.optim import SGD, Adam
 from pandas_ml_common import naive_splitter
 from pandas_ml_utils import pd, FeaturesAndLabels
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
-from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
+from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils_torch import PytorchModel, PytorchAutoEncoderModel, PytorchNN
 
 

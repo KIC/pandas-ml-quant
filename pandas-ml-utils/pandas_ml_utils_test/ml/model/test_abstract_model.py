@@ -4,7 +4,7 @@ import uuid
 from typing import Tuple
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter
-from pandas_ml_utils import FeaturesAndLabels, Model
+from pandas_ml_utils import FeaturesAndLabels, Model, SubModelFeature
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 
 
@@ -228,6 +228,38 @@ class TestAbstractModel(object):
         """then we have an empty test data frame"""
         self.assertEqual(len(fit.training_summary.df), len(df))
         self.assertEqual(len(fit.test_summary.df), 0)
+
+    def test_stacked_models(self):
+        """given some toy classification data"""
+        df = pd.DataFrame({
+            "a": [1, 0, 1, 0, 1, 0, 1, 0, ],
+            "b": [0, 0, 1, 1, 0, 0, 1, 1, ],
+            "c": [1, 0, 0, 1, 1, 0, 0, 1, ]
+        })
+
+        """and a model"""
+        model = self.provide_classification_model(
+            FeaturesAndLabels(
+                features=[
+                    "a",
+                    SubModelFeature("b", self.provide_classification_model(
+                        FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int)
+                    ))
+                ],
+                labels=["c"],
+                label_type=int
+            )
+        )
+
+        with self.assertLogs(level='INFO') as cm:
+            with df.model() as m:
+                m.fit(model)
+
+            self.assertIn("INFO:pandas_ml_utils.ml.model.base_model:fitting submodel: b", cm.output[0])
+            self.assertIn(
+                "INFO:pandas_ml_utils.ml.model.base_model:fitted submodel",
+                [s for s in cm.output if s.startswith("INFO:pandas_ml_utils.ml.model.base_model:fitted")][0]
+            )
 
 
     # Abstract methods

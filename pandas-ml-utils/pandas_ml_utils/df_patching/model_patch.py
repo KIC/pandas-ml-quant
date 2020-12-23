@@ -113,7 +113,11 @@ class DfModelPatch(object):
         trails = None
         model = model_provider()
         kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        typemap_fitting = {SubModelFeature: lambda df, model, **kwargs: model.fit(df, **kwargs), **self._type_mapping}
+
+        def fit_submodel(df, model, **kwargs):
+            return model.fit(df, **kwargs)
+
+        typemap_fitting = {SubModelFeature: fit_submodel, **self._type_mapping}
         frames: FeaturesWithLabels = model.features_and_labels(
             df, extract_feature_labels_weights, type_map=typemap_fitting,
             splitter=splitter, filter=filter, cross_validation=cross_validation, epochs=epochs, batch_size=batch_size,

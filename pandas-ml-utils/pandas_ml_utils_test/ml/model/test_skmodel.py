@@ -5,7 +5,7 @@ from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
-from pandas_ml_utils_test.ml.data.model.test_abstract_model import TestAbstractModel
+from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, ClassificationSummary, RegressionSummary
 from pandas_ml_utils_test.config import DF_NOTES
 
