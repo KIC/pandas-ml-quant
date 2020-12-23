@@ -1,7 +1,16 @@
-import numpy as np
+import warnings
+from functools import partial
+from typing import Iterable
 
+import numpy as np
+import logging
 from pandas_ml_quant.technichal_analysis._decorators import *
 from pandas_ml_utils import Typing
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
+warnings.simplefilter('ignore', ConvergenceWarning)
+
+_log = logging.getLogger(__name__)
 
 
 @for_each_top_level_row
@@ -37,4 +46,29 @@ def ta_hmm(df: Typing.PatchedSeries, nr_components, means_estimator, period=250,
     estimates = np.array([moving_hmm(X[i - p:i]) for i in range(p, len(X))])
     print(estimates.shape)
     return pd.DataFrame(estimates, index=df.index[p+forecast_period:])
+
+
+@for_each_top_level_row
+@for_each_column
+def ta_sarimax(df: Typing.PatchedSeries, period=60, forecast=1, order=(1, 0, 1), alpha=0.5):
+    assert forecast > 0, "forecast need to be > 0"
+    forecast = forecast if isinstance(forecast, Iterable) else [forecast]
+    res = pd.DataFrame({}, index=df.index)
+    dfclean = df.dropna()
+
+    def arima(x, fc):
+        try:
+            forecasted = SARIMAX(x, order=order).fit(disp=-1).forecast(fc, alpha=alpha)
+        except Exception as e:
+            _log.warning(f"failed arma model: {e}")
+            forecasted = np.nan
+
+        return forecasted  # TODO eventually return conficence as well, conf_int[:, 0], conf_int[:, 1]
+
+    for fc in forecast:
+        res = res.join(dfclean.rolling(period).apply(partial(arima, fc=fc), raw=True).rename(f'{df.name}_sarimax_fc_{fc}'))
+
+    return res
+
+
 

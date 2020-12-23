@@ -56,7 +56,7 @@ class MarkowitzBaseModel(Model):
             self._last_solution = w.value
             self._last_loss = prob1.value
 
-            prob2 = cp.Problem(cp.Minimize(0.5 * cost), [np.eye(n) @ w >= -1, np.eye(n) @ w <= 1, A.T @ w == 1])
+            prob2 = cp.Problem(cp.Minimize(0.5 * cost), [np.eye(n) @ w >= -1, np.eye(n) @ w <= 2, A.T @ w == 1])
             prob2.solve()
 
             if prob2.value < prob1.value:

@@ -17,7 +17,7 @@ class RollingModel(Model):
         super().__init__(delegated_model.features_and_labels, delegated_model.summary_provider, **{**delegated_model.kwargs, **kwargs})
         self.delegated_model = delegated_model
         self.cross_validation = RollingWindowCV(window, retrain_after)
-        self._used_folds = SortedDict()  # using bisect_left gives us the ceiling iloc
+        self._used_folds = SortedDict()
         self._past_predictions = []
         self._past_train_predictions = []
 
@@ -98,6 +98,7 @@ class RollingModel(Model):
             raise ValueError("No validation data present, Model need to be trained first or more data is needed")
 
         past_predictions = pd.concat(self._past_predictions, axis=0)
+        first_prediction_index = past_predictions.index[0]
         last_prediction_index = past_predictions.index[-1]
         index = features.index
 
@@ -108,6 +109,7 @@ class RollingModel(Model):
         if len(unpredicted_features_index) > max(self.cross_validation.retrain_after, 1):
             # TODO eventually we can just retrain the model automatically
             #  from unpredicted_features_index[-self.cross_validation.retrain_after:] onwards
+            #    1. find the exact data we need to provider to fit the next window for prediction
             raise ValueError(f"Model need to be re-trained! {past_predictions.index[-1]}, {index[-1]}")
 
         def predictor(loc):
@@ -116,7 +118,8 @@ class RollingModel(Model):
             else:
                 return self.delegated_model.predict(features.loc[[loc]], targets, latent, samples, **kwargs)
 
-        return pd.concat([predictor(idx) for idx in features.index if idx >= past_predictions.index[0]], axis=0)
+        # return all past predictions and predict future for indices where we have a (valid) trained model
+        return pd.concat([predictor(idx) for idx in features.index if idx >= first_prediction_index], axis=0)
 
     def finish_learning(self):
         self.delegated_model.finish_learning()

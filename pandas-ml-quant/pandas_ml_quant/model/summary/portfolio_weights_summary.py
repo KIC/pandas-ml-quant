@@ -28,6 +28,7 @@ class PortfolioWeightsSummary(Summary):
                  rebalance_after_draw_down: float = None,
                  rebalance_fee: Callable[[float], float] = lambda _: 0,
                  price_column: Any = 'Close',
+                 plot_log_base=None,
                  **kwargs
                  ):
         super().__init__(
@@ -44,6 +45,7 @@ class PortfolioWeightsSummary(Summary):
         self.rebalance_after_draw_down = rebalance_after_draw_down
         self.rebalance_fee = rebalance_fee
         self.price_column = price_column
+        self.plot_log_base = plot_log_base
         self.portfolio = self.construct_portfolio()
         self.weight_distances = np.linalg.norm(
             df[PREDICTION_COLUMN_NAME].values - np.roll(df[PREDICTION_COLUMN_NAME].values, 1),
@@ -116,26 +118,28 @@ class PortfolioWeightsSummary(Summary):
 
     def _plot_portfolio_and_weights(self, *args, figsize=(20, 20), **kwargs):
         import matplotlib.pyplot as plt
+        from matplotlib.ticker import ScalarFormatter
+
         fig, ax = plt.subplots(4, 1, gridspec_kw={"height_ratios": [3, 1, 3, 1]}, sharex=True, figsize=figsize)
         p = self.portfolio[1:]
 
         # plot performance graphs
-        # ax[0].set_yscale('log', base=2)
         p["agg", "balance"].plot(ax=ax[0], label="Portfolio")
-        p["agg", "balance"].ta.draw_down()["dd"].plot(ax=ax[1], label="MDD: Portfolio")
+        p["benchmark", "1/N"].plot(ax=ax[0], label="1/N", color="silver")
+        if self.plot_log_base is not None:
+            ax[0].set_yscale('log', base=self.plot_log_base)
+            ax[0].yaxis.set_major_formatter(ScalarFormatter())
 
         # plot draw down
-        p["benchmark", "1/N"].plot(ax=ax[0], label="1/N", color="silver")
+        p["agg", "balance"].ta.draw_down()["dd"].plot(ax=ax[1], label="MDD: Portfolio")
         p["benchmark", "1/N"].ta.draw_down()["dd"].plot(ax=ax[1], label="MDD: 1/N", color="silver")
         ax[0].legend(loc="upper left")
         ax[1].legend(loc="lower left")
 
         # plot weight distribution
         w = p["weights"].drop("$", axis=1)
-
-        for i, col in enumerate(w.columns):
-            ax[2].bar(w.index, w[col], bottom=w[w.columns[i - 1]] if i > 0 else 0, align='edge', width=1.0, label=col)
-        ax[2].legend(loc="upper left")
+        ax[2].stackplot(w.index, w.values.T, baseline='zero', labels=w.columns)
+        ax[2].legend(loc='upper center', ncol=7)
 
         # plot weights distance to target weights before rebalancing
         ax[3].bar(x=p.index[1:], height=p["agg", "weights_distance"].values[1:], label="dist")

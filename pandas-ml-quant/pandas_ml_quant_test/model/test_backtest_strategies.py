@@ -60,7 +60,7 @@ class TestBackTest(TestCase):
                 long_only=False).to_fitter_kwargs())
 
         bt = df.model.backtest(fit.model)
-        self.assertAlmostEqual(1.07992, bt.portfolio["agg", "balance"].iloc[-1], 4)
+        self.assertAlmostEqual(1.10748, bt.portfolio["agg", "balance"].iloc[-1], 4)
 
     def test_markowitz_strategy_full_frame(self):
         df = DF_TEST_MULTI['2019-08-01':'2019-12-31']

@@ -11,6 +11,10 @@ pd.set_option('display.max_columns', None)
 
 
 class TestSummary(TestCase):
+    # df = DF_TEST_MULTI[-50:]._["Close"].copy()
+    # df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
+    # df[PREDICTION_COLUMN_NAME, "spy"] = np.random.random(len(df))
+    # df[PREDICTION_COLUMN_NAME, "gld"] = 1 - df[PREDICTION_COLUMN_NAME, "spy"]
 
     def test_portfolio_weights_summary_simple(self):
         df = DF_TEST_MULTI[-10:]._["Close"].copy()
