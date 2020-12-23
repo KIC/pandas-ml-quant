@@ -251,9 +251,11 @@ class TestAbstractModel(object):
             )
         )
 
+        temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+
         with self.assertLogs(level='INFO') as cm:
-            with df.model() as m:
-                m.fit(model)
+            with df.model(temp) as m:
+                fit = m.fit(model)
 
             self.assertIn("INFO:pandas_ml_utils.ml.model.base_model:fitting submodel: b", cm.output[0])
             self.assertIn(
@@ -261,6 +263,10 @@ class TestAbstractModel(object):
                 [s for s in cm.output if s.startswith("INFO:pandas_ml_utils.ml.model.base_model:fitted")][0]
             )
 
+        prediction = df.model.predict(fit.model)
+        prediction2 = df.model.predict(Model.load(temp))
+        pd.testing.assert_frame_equal(prediction, prediction2)
+        os.remove(temp)
 
     # Abstract methods
     def provide_batch_size_and_epoch(self) -> Tuple[int, int]:
