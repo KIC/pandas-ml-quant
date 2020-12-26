@@ -155,9 +155,12 @@ class FeaturesAndLabels(object):
         #  we call an extractor(df, **{**self.kwargs, **kwargs})
         #  this extractor uses 'get_pandas_object' which itself can handle lambdas with dependecies
         #  injected from available kwargs
-        if extractor is None:
+        if extractor is None or extractor in ['training', 'train']:
             from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_feature_labels_weights
             extractor = extract_feature_labels_weights
+        elif extractor in ['eval', 'evaluate', 'predict']:
+            from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import extract_features
+            extractor = extract_features
 
         return call_callable_dynamic_args(extractor, df, self, **{**self.kwargs, **kwargs})
 

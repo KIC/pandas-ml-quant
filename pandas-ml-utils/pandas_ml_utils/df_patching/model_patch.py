@@ -97,13 +97,13 @@ class DfModelPatch(object):
 
     def fit(self,
             model_provider: Callable[[], MlModel],
-            splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),
+            splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),  # TODO start of FittingParameters
             filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
             cross_validation: Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]] = None,
             epochs: int = 1,
             batch_size: int = None,
             fold_epochs: int = 1,
-            hyper_parameter_space: Dict = None,
+            hyper_parameter_space: Dict = None,                                                              # TODO end of FittingParameters
             verbose: int = 0,
             callbacks: Union[Callable, List[Callable]] = None,
             fail_silent: bool = False,
@@ -120,7 +120,7 @@ class DfModelPatch(object):
         typemap_fitting = {SubModelFeature: fit_submodel, **self._type_mapping}
         frames: FeaturesWithLabels = model.features_and_labels(
             df, extract_feature_labels_weights, type_map=typemap_fitting,
-            splitter=splitter, filter=filter, cross_validation=cross_validation, epochs=epochs, batch_size=batch_size,
+            splitter=splitter, filter=filter, cross_validation=cross_validation, epochs=epochs, batch_size=batch_size,  # TODO pass FittingParameters
             fold_epochs=fold_epochs, verbose=verbose, **kwargs
         )
 
@@ -203,8 +203,12 @@ class DfModelPatch(object):
             df, extract_features, type_map=typemap_pred, **kwargs
         )
 
-        # features, labels, targets, weights, gross_loss, latent,
-        predictions = model.predict(frames.features, frames.targets, frames.latent, samples, **kwargs)
+        predictions = call_callable_dynamic_args(
+            model.predict,
+            features=frames.features, targets=frames.targets, latent=frames.latent, samples=samples, df=df,
+            **kwargs
+        )
+
         return assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
 
     def __call__(self, file_name=None):

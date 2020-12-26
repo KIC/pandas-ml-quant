@@ -150,7 +150,7 @@ class Model(object):
         return self.predict(*args, **kwargs)
 
     @abstractmethod
-    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples = 1, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples: int = 1, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
 
     def finish_learning(self):
