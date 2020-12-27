@@ -100,3 +100,57 @@ class TestLoss(TestCase):
         print(fit.model.module.net[2].weight.norm().detach().item())
         self.assertLess(fit.model.module.net[2].weight.norm().detach().item(), 0.1)
 
+    def test_probabilistic(self):
+        def create_sine_data(n=300):
+            np.random.seed(32)
+            n = 300
+            x = np.linspace(0, 1 * 2 * np.pi, n)
+            y1 = 3 * np.sin(x)
+            y1 = np.concatenate((np.zeros(60), y1 + np.random.normal(0, 0.15 * np.abs(y1), n), np.zeros(60)))
+            x = np.concatenate((np.linspace(-3, 0, 60), np.linspace(0, 3 * 2 * np.pi, n),
+                                np.linspace(3 * 2 * np.pi, 3 * 2 * np.pi + 3, 60)))
+            y2 = 0.1 * x + 1
+            y = y1 + y2
+            return x, y
+
+        df = pd.DataFrame(np.array(create_sine_data(300)).T, columns=["x", "y"])
+        with df.model() as m:
+            from pandas_ml_utils import FeaturesAndLabels
+            from pandas_ml_utils_torch import PytorchNN, PytorchModel
+            from pandas_ml_utils_torch.loss import HeteroscedasticityLoss
+            from pandas_ml_common.sampling.splitter import duplicate_data
+            from torch.optim import Adam
+            from torch import nn
+
+            class Net(PytorchNN):
+
+                def __init__(self):
+                    super().__init__()
+                    self.l = nn.Sequential(
+                        nn.Linear(1, 20),
+                        nn.ReLU(),
+                        nn.Linear(20, 50),
+                        nn.ReLU(),
+                        nn.Linear(50, 20),
+                        nn.ReLU(),
+                        nn.Linear(20, 2),
+                    )
+
+                def forward_training(self, x):
+                    return self.l(x)
+
+            fit = m.fit(
+                PytorchModel(
+                    FeaturesAndLabels(
+                        ["x"],
+                        ["y"],
+                    ),
+                    Net,
+                    HeteroscedasticityLoss,
+                    Adam
+                ),
+                batch_size=128,
+                fold_epochs=10,
+                splitter=duplicate_data()
+            )
+

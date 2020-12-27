@@ -56,9 +56,9 @@ class MultiObjectiveLoss(nn.Module):
 
 class CrossEntropyLoss(nn.Module):
 
-    def __init__(self):
+    def __init__(self, reduction='none'):
         super().__init__()
-        self.cel = nn.CrossEntropyLoss(reduction='none')
+        self.cel = nn.CrossEntropyLoss(reduction=reduction)
 
     def forward(self, y_pred, y_true):
         y_true = y_true.view(y_pred.shape)
