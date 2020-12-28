@@ -147,10 +147,11 @@ class TestLoss(TestCase):
                     ),
                     Net,
                     HeteroscedasticityLoss,
-                    Adam
+                    Adam,
+                    restore_best_weights=True
                 ),
                 batch_size=128,
-                fold_epochs=10,
+                epochs=10,
                 splitter=duplicate_data()
             )
 

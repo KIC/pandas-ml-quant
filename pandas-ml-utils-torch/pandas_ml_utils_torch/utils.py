@@ -72,8 +72,9 @@ class FittingContext(object):
             self.best_weights = deepcopy(self.module.state_dict())
 
         def restore_best_weights(self):
-            self.module.load_state_dict(self.best_weights)
-            self.last_loss = self.best_loss
+            if self.best_weights is not None:
+                self.module.load_state_dict(self.best_weights)
+                self.last_loss = self.best_loss
 
         def get_l1_term(self):
             if self.l1_penalty_tensors is None:
@@ -95,10 +96,10 @@ class FittingContext(object):
         self.merge_cross_folds = merge_cross_folds
         self.fold_modules: Dict[int, FittingContext.FoldContext] = {}
 
-    def init_if_not_exists(self, fold: int, provider: Callable[[], FoldContext]):
+    def init_if_not_exists(self, fold: int, module):
         fold = self._translate_fold(fold)
         if fold not in self.fold_modules:
-            self.fold_modules[fold] = provider()
+            self.fold_modules[fold] = module
 
     def update_best_loss(self, fold, loss):
         fold = self._translate_fold(fold)

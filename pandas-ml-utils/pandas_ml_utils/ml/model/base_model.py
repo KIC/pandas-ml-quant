@@ -10,7 +10,7 @@ import dill as pickle
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common import Typing, Sampler
+from pandas_ml_common import Typing, Sampler, LazyInit
 from pandas_ml_common.sampling.sampler import XYWeight
 from pandas_ml_common.utils import merge_kwargs, call_callable_dynamic_args
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
@@ -65,7 +65,7 @@ class Model(object):
         self._history = defaultdict(dict)
         self._labels_columns = None
         self._feature_columns = None
-        self._fit_meta_data: Model.MetaFit = None
+        self._fit_meta_data: _MetaFit = None
         self.kwargs = kwargs
 
     @property
@@ -106,12 +106,10 @@ class Model(object):
         )
 
     def _record_meta(self, epochs, batch_size, fold_epochs, cross_validation, features, labels: List[str]):
+        partial_fit = any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
         self._labels_columns = labels
         self._feature_columns = features
-        self._fit_meta_data = _MetaFit(
-            epochs, batch_size, fold_epochs,
-            cross_validation, any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
-        )
+        self._fit_meta_data = _MetaFit(epochs, batch_size, fold_epochs, cross_validation, partial_fit)
 
     def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks, loss_history_key=None):
         train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
@@ -124,7 +122,13 @@ class Model(object):
         if verbose > 0:
             print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
 
-        call_callable_dynamic_args(callbacks, epoch=epoch, fold=fold, fold_epoch=fold_epoch, loss=train_loss, val_loss=test_loss)
+        call_callable_dynamic_args(
+            callbacks,
+            epoch=epoch, fold=fold, fold_epoch=fold_epoch, loss=train_loss, val_loss=test_loss,
+            y_train=train_data.y, y_test=[td.y for td in test_data],
+            y_hat_train=LazyInit(lambda: self.predict(train_data.x)),
+            y_hat_test=[LazyInit(lambda: self.predict(td.x)) for td in test_data]
+        )
 
     def init_fit(self, **kwargs):
         pass

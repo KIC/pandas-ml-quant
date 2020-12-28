@@ -93,13 +93,14 @@ class Sampler(object):
                              "`PartitionedOnRowMultiIndexCV`")
 
             if epochs is None or epochs > 1:
-                _log.warning("using epochs > 1 together with cross folding may lead to different folds for each epoch!")
+                _log.warning(f"using epochs > 1 together with cross folding may lead to different folds for each epoch!"
+                             f"{cross_validation}")
 
             self.nr_folds = cross_validation.get_n_splits() if hasattr(cross_validation, "get_n_splits") else -1
             self.cross_validation = cross_validation.split if hasattr(cross_validation, "split") else cross_validation
         else:
             self.nr_folds = None
-            self.cross_validation = lambda x: [(None, None)]
+            self.cross_validation = None
 
     def with_callbacks(
             self,
@@ -135,6 +136,8 @@ class Sampler(object):
         )
 
     def sample_for_training(self) -> Generator[FoldXYWeight, None, None]:
+        cross_validation = self.cross_validation if self.cross_validation is not None else lambda x: [(None, None)]
+
         # filter samples
         if self.filter is not None:
             train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(self.filter, idx, **self.frames.to_dict(idx))]
@@ -156,7 +159,7 @@ class Sampler(object):
         # generate samples
         for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
             call_callable_dynamic_args(self.on_epoch, epoch=epoch)
-            fold_iter = enumerate(call_callable_dynamic_args(self.cross_validation, train_idx, **train_frames.to_dict()))
+            fold_iter = enumerate(call_callable_dynamic_args(cross_validation, train_idx, **train_frames.to_dict()))
             for fold, (cv_train_i, cv_test_i) in fold_iter:
                 call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold)
 
