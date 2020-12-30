@@ -35,14 +35,11 @@ class _AbstractSkModel(Model):
         self.overwrite_folds = True  # maybe later we can handle the folding of models (eventually just taking the best)
         self.log_once = LogOnce().log
         self._label_shape = None
-        self._sk_fold_models = []
 
     def init_fold(self, epoch: int, fold: int):
-        i = 0 if self.overwrite_folds else fold
-        if len(self._sk_fold_models) <= i:
-            self._sk_fold_models.append(clone(self.sk_model))
-        else:
-            self._sk_fold_models[i] = clone(self.sk_model)
+        if fold > 1:
+            self.log_once("merge_folds", _log.warning,
+                          "merging of cross folded models is not supported, we just keep training the same model")
 
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, weight: pd.DataFrame, fold: int, **kwargs):
         # convert data frames to numpy arrays
@@ -54,12 +51,15 @@ class _AbstractSkModel(Model):
         _y = _y.reshape(len(_x)) if _y.ndim == 2 and _y.shape[1] == 1 else _y
         if self._label_shape is None: self._label_shape = _y.shape
 
-        # use partial fit whenever possible partial_fit
-        if self._fit_meta_data.partial_fit:
-            if hasattr(self._sk_fold_models[-1], "partial_fit"):
-                kwa = {"classes": kwargs["classes"]} if "classes" in kwargs else {}
+        par = self._fit_meta_data
+        partial_fit = any([size > 1 for size in [par.epochs, par.batch_size, par.fold_epochs] if size is not None])
+
+        if partial_fit:
+            # use partial fit whenever possible partial_fit
+            if hasattr(self.sk_model, "partial_fit"):
+                kw_classes = {"classes": kwargs["classes"]} if "classes" in kwargs else {}
                 try:
-                    self._sk_fold_models[-1] = self._sk_fold_models[-1].partial_fit(_x, _y, **kwa)
+                    self.sk_model = self.sk_model.partial_fit(_x, _y, **kw_classes)
                 except Exception as e:
                     if "classes" in kwargs:
                         raise e
@@ -69,16 +69,14 @@ class _AbstractSkModel(Model):
                 raise ValueError(f"This of model does not support `partial_fit` {type(self.sk_model)} - "
                                  f"and therefore does not support epochs or batches.")
         else:
-            self._sk_fold_models[-1] = self._sk_fold_models[-1].fit(_x, _y)
+            self.sk_model = self.sk_model.fit(_x, _y)
 
     def merge_folds(self, epoch: int):
-        self.log_once("merge_folds", _log.warning, "merging of cross folded models is not supported, we just keep training the same model")
-        self.sk_model = self._sk_fold_models[-1]
-        self._sk_fold_models = []
+        pass
 
     def finish_learning(self):
         # clear oll intermediate fold models, otherwise they get serialized to disk
-        self._sk_fold_models = []
+        pass
 
     @staticmethod
     def reshape_rnn_as_ar(arr3d):
@@ -98,7 +96,7 @@ class SkModel(_AbstractSkModel):
         super().__init__(skit_model, features_and_labels, summary_provider, **kwargs)
 
     def calculate_loss(self, fold, x, y_true, weight):
-        skm = self.sk_model if fold is None else self._sk_fold_models[0 if self.overwrite_folds else fold]
+        skm = self.sk_model
         y_pred = self._predict(skm, x, fold=fold)
         y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
         w = weight.values.reshape(-1, ) if weight is not None else None
@@ -149,7 +147,7 @@ class SkAutoEncoderModel(_AbstractSkModel, AutoEncoderModel):
         self.layers = [*encode_layers, *decode_layers]
 
     def calculate_loss(self, fold, x, y_true, weight) -> float:
-        skm = self.sk_model if fold is None else self._sk_fold_models[0 if not self.overwrite_folds else fold]
+        skm = self.sk_model
         y_pred = skm.predict(_AbstractSkModel.reshape_rnn_as_ar(unpack_nested_arrays(x)))
         y_true = unpack_nested_arrays(y_true, split_multi_index_rows=False).reshape(y_pred.shape)
         w = weight.values.reshape(-1, ) if weight is not None else None

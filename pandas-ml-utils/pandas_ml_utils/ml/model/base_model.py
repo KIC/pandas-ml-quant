@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
-from typing import Callable, Tuple, List, NamedTuple
+from typing import Callable, Tuple, List
 
 import dill as pickle
 import numpy as np
@@ -15,6 +15,7 @@ from pandas_ml_common.sampling.sampler import XYWeight
 from pandas_ml_common.utils import merge_kwargs, call_callable_dynamic_args
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
+from pandas_ml_utils.ml.fitting import FittingParameter
 from pandas_ml_utils.ml.summary import Summary
 
 _log = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ class Model(object):
         self._history = defaultdict(dict)
         self._labels_columns = None
         self._feature_columns = None
-        self._fit_meta_data: _MetaFit = None
+        self._fit_meta_data: FittingParameter = None
         self.kwargs = kwargs
 
     @property
@@ -76,10 +77,24 @@ class Model(object):
     def summary_provider(self):
         return self._summary_provider
 
-    def fit(self, sampler: Sampler, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+    def fit(self, x_y_weights: XYWeight, fitting_parameter: FittingParameter, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        self._fit_meta_data = fitting_parameter
         self.init_fit(**kwargs)
-        sampler = self._sampler_with_callbacks(sampler, verbose, callbacks)
         processed_batches = 0
+
+        sampler = self._sampler_with_callbacks(
+            Sampler(
+                x_y_weights,
+                splitter=fitting_parameter.splitter,
+                filter=fitting_parameter.filter,
+                cross_validation=fitting_parameter.cross_validation,
+                epochs=fitting_parameter.epochs,
+                fold_epochs=fitting_parameter.fold_epochs,
+                batch_size=fitting_parameter.batch_size
+            ),
+            verbose,
+            callbacks
+        )
 
         for batch in sampler.sample_for_training():
             self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
@@ -109,13 +124,15 @@ class Model(object):
         partial_fit = any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
         self._labels_columns = labels
         self._feature_columns = features
-        self._fit_meta_data = _MetaFit(epochs, batch_size, fold_epochs, cross_validation, partial_fit)
 
     def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks, loss_history_key=None):
         train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
         self._history["train", loss_history_key or fold][(epoch, fold_epoch)] = train_loss
 
-        test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data if len(x) > 0]).mean()
+        if len(test_data) > 0:
+            test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data if len(x) > 0]).mean()
+        else:
+            test_loss = np.NaN
         self._history["test", loss_history_key or fold][(epoch, fold_epoch)] = test_loss
 
         self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
@@ -250,14 +267,6 @@ class AutoEncoderModel(Model):
     @abstractmethod
     def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
         raise NotImplemented
-
-
-class _MetaFit(NamedTuple):
-    epochs: int
-    batch_size: int
-    fold_epochs: int
-    cross_validation: bool
-    partial_fit: bool
 
 
 class SubModelFeature(object):

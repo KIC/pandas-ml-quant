@@ -7,13 +7,13 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
 
-from pandas_ml_common import Typing, naive_splitter, Sampler, XYWeight
-from pandas_ml_common.utils import has_indexed_columns, get_correlation_pairs, merge_kwargs, call_silent, \
+from pandas_ml_common import Typing, naive_splitter, XYWeight
+from pandas_ml_common.utils import get_correlation_pairs, merge_kwargs, call_silent, \
     call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
-from pandas_ml_utils.ml.fitting import Fit, FitException
+from pandas_ml_utils.ml.fitting import Fit, FitException, FittingParameter
 from pandas_ml_utils.ml.model import Model as MlModel, SkModel, AutoEncoderModel, SubModelFeature
 from pandas_ml_utils.ml.summary import Summary
 
@@ -89,7 +89,7 @@ class DfModelPatch(object):
             # fit model
             fit = m.fit(
                 SkModel(skm, features_and_labels=features_and_labels, summary_provider=FeatureSelectionSummary),
-                splitter=training_data_splitter
+                FittingParameter(splitter=training_data_splitter)
             )
 
         # we hide the loss plot from this summary
@@ -97,13 +97,7 @@ class DfModelPatch(object):
 
     def fit(self,
             model_provider: Callable[[], MlModel],
-            splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter(),  # TODO start of FittingParameters
-            filter: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PatchedSeries], bool]]] = None,
-            cross_validation: Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]] = None,
-            epochs: int = 1,
-            batch_size: int = None,
-            fold_epochs: int = 1,
-            hyper_parameter_space: Dict = None,                                                              # TODO end of FittingParameters
+            fitting_parameter: FittingParameter = FittingParameter(),
             verbose: int = 0,
             callbacks: Union[Callable, List[Callable]] = None,
             fail_silent: bool = False,
@@ -119,24 +113,16 @@ class DfModelPatch(object):
 
         typemap_fitting = {SubModelFeature: fit_submodel, **self._type_mapping}
         frames: FeaturesWithLabels = model.features_and_labels(
-            df, extract_feature_labels_weights, type_map=typemap_fitting,
-            splitter=splitter, filter=filter, cross_validation=cross_validation, epochs=epochs, batch_size=batch_size,  # TODO pass FittingParameters
-            fold_epochs=fold_epochs, verbose=verbose, **kwargs
+            df, extract_feature_labels_weights, type_map=typemap_fitting, fitting_parameter=fitting_parameter,
+            verbose=verbose, **kwargs
         )
 
         start_performance_count = perf_counter()
         _log.info("create model")
 
         df_train_prediction, df_test_prediction = model.fit(
-            Sampler(
-                XYWeight(frames.features, frames.labels, frames.sample_weights),
-                splitter=splitter,
-                filter=filter,
-                cross_validation=cross_validation,
-                epochs=epochs,
-                fold_epochs=fold_epochs,
-                batch_size=batch_size
-            ),
+            XYWeight(frames.features, frames.labels, frames.sample_weights),
+            fitting_parameter,
             verbose,
             callbacks,
             **kwargs
