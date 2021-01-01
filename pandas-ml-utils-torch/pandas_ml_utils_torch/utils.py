@@ -22,6 +22,16 @@ def from_pandas(df: pd.DataFrame, cuda: bool = False, default: t.Tensor = None) 
     return val.cuda() if cuda else val.cpu()
 
 
+def to_device(var, cuda):
+    return var.cuda() if cuda else var.cpu()
+
+
+
+
+
+
+# FIXME remove stuff below ...
+
 def param_dict(module):
     return {t[0].replace('.', '/'): t[1] for t in module.named_parameters()}
 
