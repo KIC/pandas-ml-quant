@@ -72,9 +72,11 @@ class PytochBaseModel(object):
         self.optimizer = optimizer_provider(self.net.parameters())
         self.log_once = LogOnce().log
         self.best_weights = None
+        self.best_loss = float('inf')
         self.record_best_weights = record_best_weights
 
         # initialization
+        self.optimizer.zero_grad()
         if hasattr(self.net, "init_weights"):
             self.net.apply(self.net.init_weights)
 
@@ -116,15 +118,16 @@ class PytochBaseModel(object):
         loss = self._calc_weighted_loss(self.criterion, output, y, sample_weight)
 
         # ===================backward====================
-        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        self.optimizer.zero_grad()
 
         #
         loss_value = loss.cpu().item()
-        if self.record_best_weights:
-            if self.best_weights is None or self.best_weights[0] < loss_value:
-                self.best_weights = loss_value, deepcopy(self.net.state_dict())
+        if loss_value < self.best_loss:
+            self.best_loss = loss_value
+            if self.record_best_weights:
+                self.best_weights = deepcopy(self.net.state_dict())
 
         # print('lala', loss_value)
         return loss_value
@@ -161,15 +164,25 @@ class PytochBaseModel(object):
         else:
             _log.warning("No best weights found!! Keep existing weights.")
 
-    def predict(self, x: t.Tensor, samples=1, force_mode: bool = False) -> np.ndarray:
+    def predict(self, x: t.Tensor, samples=1, numpy=True, force_mode: bool = False) -> Union[np.ndarray, t.Tensor]:
         if force_mode and self.net.training:
             self.net.eval()
 
+        def predictor(x):
+            return self.net(x).cpu().numpy() if numpy else self.net(x)
+
         with t.no_grad():
-            y_hat = np.array([self.net(x) for _ in range(samples)]).swapaxes(0, 1) if samples > 1 else self.net(x)
+                y_hat = np.array([predictor(x) for _ in range(samples)]).swapaxes(0, 1) if samples > 1 else predictor(x)
 
         return y_hat
 
+    def train(self):
+        self.net.train()
+        return self
+
+    def eval(self):
+        self.net.eval()
+        return self
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.

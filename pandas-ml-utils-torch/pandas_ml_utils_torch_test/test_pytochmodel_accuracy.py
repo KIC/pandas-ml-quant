@@ -42,10 +42,12 @@ class TestPytorchModelAccuracy(TestModelAccuracy):
         from torch import nn
         import torch as t
 
+        t.manual_seed(0)
+
         class Net(PytorchNN):
 
             def __init__(self):
-                super(Net, self).__init__()
+                super().__init__()
                 self.net = nn.Sequential(
                     nn.Linear(1, 200),
                     nn.ReLU(),
@@ -60,17 +62,17 @@ class TestPytorchModelAccuracy(TestModelAccuracy):
 
         return [
             (
-                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam),
+                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam, restore_best_weights=True),
+                FittingParameter(epochs=1200, batch_size=64, context="epoch fit batched"),
+            ),
+            (
+                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam, restore_best_weights=True),
                 FittingParameter(epochs=1000, context="epoch fit"),
             ),
             (
-                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam),
-                FittingParameter(epochs=1000, batch_size=64, context="epoch fit batched"),
-            ),
-            (
-                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam),
+                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam, restore_best_weights=True),
                 FittingParameter(epochs=1, fold_epochs=1000, context="fold epoch fit"),
-            ),
+            )
         ]
 
 

@@ -8,7 +8,7 @@ from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_common import np
 from pandas_ml_common_test.config import TEST_DF
-from pandas_ml_utils import PostProcessedFeaturesAndLabels
+from pandas_ml_utils import PostProcessedFeaturesAndLabels, FittingParameter
 from pandas_ml_utils_torch import PytorchAutoEncoderModel, PytorchNN
 from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, DifferentiableArgmax
 
@@ -135,16 +135,17 @@ class TestCustomLoss(TestCase):
                     return self._decoder(x.float(), hidden)[0]
 
         model = PytorchAutoEncoderModel(
+            LstmAutoEncoder,
             PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
                                            df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
                                            ["condensed-a", "condensed-b"]),
-            LstmAutoEncoder,
             SoftDTW,
             Adam
         )
 
-        fit = df.model.fit(model, epochs=100)
-        print(fit.test_summary.df)
+        with df.model() as m:
+            fit = m.fit(model, FittingParameter(epochs=100))
+            print(fit.test_summary.df)
 
-        encoded = df.model.predict(fit.model.as_encoder())
-        print(encoded)
+            encoded = df.model.predict(fit.model.as_encoder())
+            print(encoded)

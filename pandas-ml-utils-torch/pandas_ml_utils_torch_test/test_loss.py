@@ -4,7 +4,7 @@ from unittest import TestCase
 import torch.nn as nn
 from torch.optim import Adam
 
-from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels, FittingParameter
 from pandas_ml_utils_torch import PytorchModel, PytorchNN
 from pandas_ml_utils import pd, np
 from pandas_ml_common.sampling import naive_splitter
@@ -46,14 +46,14 @@ class TestLoss(TestCase):
 
         fit = df.model.fit(
             PytorchModel(
-                FeaturesAndLabels(["f1", "f2"], ["l"]),
                 XorModule,
+                FeaturesAndLabels(["f1", "f2"], ["l"]),
                 lambda: MultiObjectiveLoss((1, nn.MSELoss(reduction='none')),
                                            (1, nn.L1Loss(reduction='none')),
                                            on_epoch=lambda criterion, epoch: criterion.update_weights((0, 1.1))),
                 Adam
             ),
-            naive_splitter(0.5)
+            FittingParameter(splitter=naive_splitter(0.5))
         )
 
         print(fit.test_summary.df)
@@ -87,18 +87,17 @@ class TestLoss(TestCase):
 
         fit = df.model.fit(
             PytorchModel(
-                FeaturesAndLabels(["f"], ["l"]),
                 TestModel,
+                FeaturesAndLabels(["f"], ["l"]),
                 nn.MSELoss,
                 Adam
             ),
-            naive_splitter(0.5),
-            fold_epochs=1000
+            FittingParameter(epochs=1000, splitter=naive_splitter(0.5))
         )
 
-        print(fit.model.module.net[2].weight.detach().numpy())
-        print(fit.model.module.net[2].weight.norm().detach().item())
-        self.assertLess(fit.model.module.net[2].weight.norm().detach().item(), 0.1)
+        print(fit.model._current_model.net.net[2].weight.detach().numpy())
+        print(fit.model._current_model.net.net[2].weight.norm().detach().item())
+        self.assertLess(fit.model._current_model.net.net[2].weight.norm().detach().item(), 0.1)
 
     def test_probabilistic(self):
         def create_sine_data(n=300):
@@ -141,17 +140,12 @@ class TestLoss(TestCase):
 
             fit = m.fit(
                 PytorchModel(
-                    FeaturesAndLabels(
-                        ["x"],
-                        ["y"],
-                    ),
                     Net,
+                    FeaturesAndLabels(["x"], ["y"]),
                     HeteroscedasticityLoss,
                     Adam,
                     restore_best_weights=True
                 ),
-                batch_size=128,
-                epochs=10,
-                splitter=duplicate_data()
+                FittingParameter(batch_size=128, epochs=10, splitter=duplicate_data())
             )
 

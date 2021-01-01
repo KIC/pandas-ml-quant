@@ -70,6 +70,14 @@ class _AbstractPytorchModel(Model):
     def finish_learning(self):
         self.models.clear()
 
+    def _predict(self, features: pd.DataFrame, col_names, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+        if cuda:
+            self._current_model = self._current_model.cuda()
+        else:
+            self._current_model = self._current_model.cpu()
+
+        return to_pandas(self._current_model.predict(from_pandas(features, cuda), samples), features.index, col_names)
+
 
 class PytorchModel(_AbstractPytorchModel):
 
@@ -78,12 +86,8 @@ class PytorchModel(_AbstractPytorchModel):
         super().__init__(*args, **kwargs)
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
-        if cuda:
-            self._current_model = self._current_model.cuda()
-        else:
-            self._current_model = self._current_model.cpu()
-
-        return to_pandas(self._current_model.predict(from_pandas(features, cuda)), features.index, self._labels_columns)
+        self._current_model.eval()
+        return self._predict(features, self._labels_columns, samples, cuda, **kwargs)
 
 
 class PytorchAutoEncoderModel(_AbstractPytorchModel, AutoEncoderModel):
@@ -92,11 +96,15 @@ class PytorchAutoEncoderModel(_AbstractPytorchModel, AutoEncoderModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
-        pass
+    def _auto_encode(self, features: pd.DataFrame, samples, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+        self._current_model.eval()
+        return self._predict(features, self._labels_columns, samples, cuda, **kwargs)
 
-    def _encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
-        pass
+    def _encode(self, features: pd.DataFrame, samples, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+        self._current_model.eval()
+        return self._predict(features, self._features_and_labels.latent_names, samples, cuda, **kwargs)
 
-    def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
-        pass
+    def _decode(self, latent_features: pd.DataFrame, samples, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+        self._current_model.eval()
+        return self._predict(latent_features,  self._labels_columns, samples, cuda, **kwargs)
+

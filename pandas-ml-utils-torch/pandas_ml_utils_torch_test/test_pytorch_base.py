@@ -38,14 +38,14 @@ class TestPytorchBaseModel(TestCase):
         err = [m.fit_epoch(x, y, None) for _ in range(3000)]
         self.assertLess(err[-1], err[0])
 
-        self.assertAlmostEqual(((m.predict(x) - y) ** 2).mean().sqrt().cpu().item(), 0.05, 1)
+        self.assertAlmostEqual(((m.predict(x, numpy=False) - y) ** 2).mean().sqrt().cpu().item(), 0.05, 1)
         # print(m.predict(x).numpy())
         # print(y.numpy())
 
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         try:
             serialize(m, temp)
-            self.assertLess(((m.predict(x) - deserialize(temp, PytochBaseModel).predict(x)) ** 2).mean().cpu().item(), 1e-5)
+            self.assertLess(((m.predict(x, numpy=False) - deserialize(temp, PytochBaseModel).predict(x, numpy=False)) ** 2).mean().cpu().item(), 1e-5)
         finally:
             os.remove(temp)
 
@@ -60,6 +60,8 @@ class TestPytorchBaseModel(TestCase):
             y2 = 0.1 * x + 1
             y = (y1 + y2) + 2
             return t.from_numpy(x).reshape(-1, 1).float(), t.from_numpy(y).reshape(-1, 1).float()
+
+        t.manual_seed(0)
 
         class Net(PytorchNN):
 
@@ -87,7 +89,7 @@ class TestPytorchBaseModel(TestCase):
         err = [m.fit_epoch(x, y, None) for _ in range(3000)]
         self.assertLess(err[-1], err[0])
 
-        dist = ((m.predict(x) - y) ** 2).mean().sqrt().cpu().item()
+        dist = ((m.predict(x, numpy=False) - y) ** 2).mean().sqrt().cpu().item()
         self.assertLess(dist, 0.5)
         # print(dist)
         # print("x = np." + repr(y.numpy()).replace(', dtype=float32', ''))
