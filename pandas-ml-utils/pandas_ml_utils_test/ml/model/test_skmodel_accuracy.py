@@ -16,17 +16,17 @@ class TestSkModelAccuracy(TestModelAccuracy):
             ),
             (
                 SkModel(
-                    MLPRegressor(10, activation='identity', learning_rate_init=0.1, max_iter=8000, validation_fraction=0),
+                    MLPRegressor(10, learning_rate_init=0.01, max_iter=9000, validation_fraction=0),
                     FeaturesAndLabels(["x"], ["y"])
                  ),
                 FittingParameter(epochs=1, fold_epochs=1, context="MLPRegressor")
             ),
             (
                 SkModel(
-                    MLPRegressor(10, activation='identity', learning_rate_init=0.1, max_iter=1, validation_fraction=0, warm_start=True),
+                    MLPRegressor(10, learning_rate_init=0.01, max_iter=1, validation_fraction=0, warm_start=True),
                     FeaturesAndLabels(["x"], ["y"])
                  ),
-                FittingParameter(epochs=8000, fold_epochs=1, context="MLPRegressor")
+                FittingParameter(epochs=9000, fold_epochs=1, context="MLPRegressor partial fit")
             )
         ]
 

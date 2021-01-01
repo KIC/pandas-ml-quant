@@ -47,7 +47,7 @@ class TestModelAccuracy(TestCase):
             print(fp.context, dist)
             losses = list(fit.model._history[("train", 0)].values())
 
-            self.assertLessEqual(dist, 0.88, fp.context)
+            self.assertLessEqual(dist, 1.1, fp.context)
             if len(losses) > 1:
                 self.assertLess(losses[-1], losses[0])
 
@@ -59,13 +59,13 @@ class TestModelAccuracy(TestCase):
         df = pd.DataFrame(np.array(create_line_data(300)).T, columns=["x", "y"])
         for model, fp in models:
             with df.model() as m:
-                fit = m.fit(model, fp.with_splitter(splitter=dummy_splitter).with_cross_validation(None))
+                fit = m.fit(model, fp.with_splitter(splitter=dummy_splitter).with_cross_validation(KFold(4)))
                 y = fit.training_summary.df[LABEL_COLUMN_NAME].values
                 y_hat = fit.training_summary.df[PREDICTION_COLUMN_NAME].values
                 dist = np.sqrt(np.sum((y - y_hat) ** 2))
 
             print(fp.context, dist)
-            self.assertLessEqual(dist, 0.88, fp.context)
+            self.assertLessEqual(dist, 1.6, fp.context)
 
     def test_non_linear_regression(self):
         models = self.provide_non_linear_regression_model()
