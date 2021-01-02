@@ -26,7 +26,7 @@ def create_sine_data(n=300):
                         np.linspace(3 * 2 * np.pi, 3 * 2 * np.pi + 3, 60)))
     y2 = 0.1 * x + 1
     y = (y1 + y2) + 2
-    return x, y
+    return x / x[-1], y
 
 
 class TestModelAccuracy(TestCase):
@@ -81,7 +81,7 @@ class TestModelAccuracy(TestCase):
                 dist = np.sqrt(np.sum((y - y_hat) ** 2))
 
             print(fp.context, dist, len(fit.model._history[("train", 0)]))
-            self.assertLessEqual(dist, 9, fp.context)
+            self.assertLessEqual(dist, 10, fp.context)
 
     def provide_linear_regression_model(self) -> List[Tuple[Model, FittingParameter]]:
         return None

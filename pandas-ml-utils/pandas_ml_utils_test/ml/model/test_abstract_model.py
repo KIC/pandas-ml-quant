@@ -110,12 +110,12 @@ class TestAbstractModel(object):
         auto_encoded_prediction = df.model.predict(fit.model)
         self.assertEqual((20, 2), auto_encoded_prediction["prediction"].shape)
 
-        """and we can encoder"""
+        """and we can encode"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
         self.assertEqual((20, 1), encoded_prediction["prediction"].shape)
 
-        """and we can decoder"""
+        """and we can decode"""
         decoded_prediction = encoded_prediction["prediction"].model.predict(fit.model.as_decoder())
         print(decoded_prediction)
         np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5, df[["a", "b"]].values)

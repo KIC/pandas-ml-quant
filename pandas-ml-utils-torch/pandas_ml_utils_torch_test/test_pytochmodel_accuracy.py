@@ -38,11 +38,11 @@ class TestPytorchModelAccuracy(TestModelAccuracy):
     def provide_non_linear_regression_model(self):
         from pandas_ml_utils_torch import PytorchModel, PytorchNN
         from pandas_ml_utils import FeaturesAndLabels
-        from torch.optim import Adam
+        from torch.optim import Adagrad
         from torch import nn
         import torch as t
 
-        t.manual_seed(0)
+        # t.manual_seed(0)
 
         class Net(PytorchNN):
 
@@ -53,6 +53,8 @@ class TestPytorchModelAccuracy(TestModelAccuracy):
                     nn.ReLU(),
                     nn.Linear(200, 200),
                     nn.ReLU(),
+                    nn.Linear(200, 200),
+                    nn.ReLU(),
                     nn.Linear(200, 1),
                     nn.ReLU()
                 )
@@ -60,18 +62,21 @@ class TestPytorchModelAccuracy(TestModelAccuracy):
             def forward_training(self, *input) -> t.Tensor:
                 return self.net(input[0])
 
+        t.manual_seed(0)
+        model = PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adagrad)
+
         return [
             (
-                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam, restore_best_weights=True),
-                FittingParameter(epochs=1200, batch_size=64, context="epoch fit batched"),
+                model,
+                FittingParameter(epochs=600, batch_size=64, context="epoch fit batched"),
             ),
             (
-                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam, restore_best_weights=True),
-                FittingParameter(epochs=1000, context="epoch fit"),
+                model,
+                FittingParameter(epochs=600, context="epoch fit"),
             ),
             (
-                PytorchModel(Net, FeaturesAndLabels(["x"], ["y"]), nn.MSELoss, Adam, restore_best_weights=True),
-                FittingParameter(epochs=1, fold_epochs=1000, context="fold epoch fit"),
+                model,
+                FittingParameter(epochs=1, fold_epochs=600, context="fold epoch fit"),
             )
         ]
 
