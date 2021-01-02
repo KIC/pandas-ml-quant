@@ -73,6 +73,7 @@ class PytochBaseModel(object):
         self.log_once = LogOnce().log
         self.best_weights = None
         self.best_loss = float('inf')
+        self.last_loss = float('inf')
         self.record_best_weights = record_best_weights
 
         # initialization
@@ -124,6 +125,7 @@ class PytochBaseModel(object):
 
         #
         loss_value = loss.cpu().item()
+        self.last_loss = loss_value
         if loss_value < self.best_loss:
             self.best_loss = loss_value
             if self.record_best_weights:
@@ -168,13 +170,10 @@ class PytochBaseModel(object):
         if force_mode and self.net.training:
             self.net.eval()
 
-        def predictor(x):
-            return self.net(x).cpu().numpy() if numpy else self.net(x)
-
         with t.no_grad():
-                y_hat = np.array([predictor(x) for _ in range(samples)]).swapaxes(0, 1) if samples > 1 else predictor(x)
+                y_hat = t.stack([self.net(x) for _ in range(samples)], dim=1) if samples > 1 else self.net(x)
 
-        return y_hat
+        return y_hat.cpu().numpy() if numpy else y_hat
 
     def train(self):
         self.net.train()

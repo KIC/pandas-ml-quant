@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from copy import deepcopy
 from functools import wraps
 from typing import List, Callable, Type, Dict
@@ -9,15 +10,14 @@ import pandas as pd
 import torch as t
 import torch.nn as nn
 
-from pandas_ml_common import Typing, call_callable_dynamic_args
+from pandas_ml_common import Typing
 from pandas_ml_common.utils import to_pandas
 from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.model.base_model import Model, AutoEncoderModel
 from pandas_ml_utils.ml.summary import Summary
 from pandas_ml_utils_torch.pytorch_base import PytorchNN, PytochBaseModel
-from pandas_ml_utils_torch.utils import FittingContext, from_pandas
-from collections import defaultdict
+from pandas_ml_utils_torch.utils import from_pandas
 
 _log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class _AbstractPytorchModel(Model):
                  optimizer_provider: Type[t.optim.Optimizer],
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
                  restore_best_weights: bool = False,
-                 merge_cross_folds: Callable[[Dict[int, FittingContext.FoldContext]], Dict] = None,
+                 merge_cross_folds: Callable[[Dict[int, PytochBaseModel]], PytochBaseModel] = None,
                  callbacks: Dict[str, List[Callable]] = {},
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
@@ -64,8 +64,13 @@ class _AbstractPytorchModel(Model):
         )
 
     def merge_folds(self, epoch: int):
-        # TODO implement this one ...
-        pass
+        if len(self.models) > 1:
+            if self.merge_cross_folds is not None:
+                self._current_model = self.merge_cross_folds(self.models)
+                self.models.clear()
+            else:
+                self.log_once("merge_folds", _log.warning,
+                              f"no merge folds function suplied, keep training {len(self.models)} independent")
 
     def finish_learning(self):
         self.models.clear()
