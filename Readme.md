@@ -14,6 +14,7 @@ The aim of this library is to conveniently operate with data frames without and 
 reproducible data pipelines. The only thing you need is the original unprocessed data frame where you started.
 
 ![Fitting Example](.readme/videos/probabilistic-model-fit.gif)
+You find this demo in the pytorch [exmaples](./pandas-ml-utils-torch/examles/)<br><br>
 
 The data pipeline becomes a part of your model and gets saved that way. Going into production is as easy as this:
 
