@@ -13,7 +13,6 @@ import numpy as np
 #  https://www.youtube.com/watch?v=71NXE-zxxbo&list=PL3JVwFmb_BnTPJVmuBlTSwZEp-Qdhq2TC&index=2
 from pandas_ml_quant_plot.plot_container import PlotContainer
 
-HAACK = None
 
 class PlotContext(object):
 
@@ -43,8 +42,6 @@ class PlotContext(object):
 
         if backend is not None:
             plt.switch_backend(backend.replace('notebook', 'nbAgg'))
-
-        HAACK = self
 
     def __enter__(self):
         # plotting using a simplistic DSL like data structure
@@ -132,24 +129,50 @@ class PlotContext(object):
         # plot range slider
         range_ax = ax[-1, 0] if ax.ndim > 1 else ax[-1]
         range_ax.plot(df.index, df[self.range_slider_price].values)
+        span_selector = SpanSelector(range_ax, onselect=self._plot_subplots, direction='horizontal',
+                                     rectprops=dict(alpha=0.5, facecolor='red'), span_stays=True)
 
-        self.widgets.append(
-            SpanSelector(
-                range_ax, onselect=self._plot_subplots, direction='horizontal', rectprops=dict(alpha=0.5, facecolor='red'), span_stays=True)
-        )
+        # span_selector._set_span_xy()
+        self.widgets.append(span_selector)
 
         self._plot_subplots()
         self.fig.show()
 
     def _plot_subplots(self, min_value=None, max_value=None):
-        if isinstance(self.df.index, pd.DatetimeIndex) and min_value is not None:
-            print(mdates.num2date(min_value), mdates.num2date(max_value))
-            ax = self.ax[0, 0] if self.ax.ndim > 1 else self.ax[0]
-            ax.plot(self.df[self.range_slider_price])
-        else:
-            print(min_value, max_value)
+        len_data = len(self.df.index) + 1
+        start_idx = None
+        stop_idx = None
 
+        if min_value is not None:
+            if max_value is not None:
+                if np.abs(min_value - max_value) <= 2:
+                    min_value = None
+                    max_value = None
+            else:
+                if isinstance(self.df.index, pd.DatetimeIndex):
+                    min_value = mdates.num2date(min_value).replace(tzinfo=None)
 
+                for i, idx in enumerate(self.df.index):
+                    if idx.replace(tzinfo=None) >= min_value:
+                        start_idx = i
+                        break
+
+        if max_value is not None:
+            if isinstance(self.df.index, pd.DatetimeIndex):
+                max_value = mdates.num2date(max_value).replace(tzinfo=None)
+
+            for i, idx in enumerate(reversed(self.df.index)):
+                if idx.replace(tzinfo=None) <= max_value:
+                    stop_idx = len_data - i
+                    break
+
+        for i in range(len(self.ax) - 1):
+            ax = self.ax[i] if self.ax.ndim > 1 else [self.ax[i]]
+            for a in ax: a.clear()
+
+        keys = list(self.plots.keys())
+        for a, p in self.plots.items():
+            p.render(self.ax[keys.index(a)], start_idx, stop_idx)
 
         return min_value, max_value
 
