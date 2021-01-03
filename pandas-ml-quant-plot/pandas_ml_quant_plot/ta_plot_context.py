@@ -144,10 +144,9 @@ class PlotContext(object):
         stop_idx = None
 
         if min_value is not None:
-            if max_value is not None:
-                if np.abs(min_value - max_value) <= 2:
-                    min_value = None
-                    max_value = None
+            if np.abs(min_value - max_value) <= 2:
+                min_value = None
+                max_value = None
             else:
                 if isinstance(self.df.index, pd.DatetimeIndex):
                     min_value = mdates.num2date(min_value).replace(tzinfo=None)
