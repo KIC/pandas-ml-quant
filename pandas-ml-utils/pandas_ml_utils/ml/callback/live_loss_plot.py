@@ -1,16 +1,24 @@
-from typing import Tuple, List
+from typing import Tuple, List, Callable
+
+import pandas as pd
 
 from pandas_ml_common import LazyInit
 
 
 class NbLiveLossPlot(object):
 
-    def __init__(self, figsize: Tuple[int] = None, frequency: int = 10, plot_reconstruction: bool = False, backend: str = 'nbAgg'):
+    def __init__(self,
+                 figsize: Tuple[int] = None,
+                 frequency: int = 10,
+                 plot_reconstruction: bool = False,
+                 reconstruction_preprocessor: Callable[[pd.DataFrame], pd.DataFrame] = None,
+                 backend: str = 'nbAgg'):
         self.frequency = frequency
         self.count = 0
         self.x = []
         self.train_loss = []
         self.val_loss = []
+        self.reconstruction_preprocessor = reconstruction_preprocessor if reconstruction_preprocessor is not None else lambda x: x
 
         # initialize a plot make sure backend is not inline but nbAgg
         import matplotlib.pyplot as plt
@@ -35,13 +43,18 @@ class NbLiveLossPlot(object):
             for x in self.ax: x.clear()
             self.ax[0].plot(self.x, self.train_loss)
             self.ax[1].plot(self.x, self.val_loss)
-            if len(self.ax) > 2:
-                self.ax[2].plot(y_train)
-                self.ax[2].plot(y_hat_train())
-                if len(y_test) > 0:
-                    self.ax[3].plot(y_test[0])
-                    self.ax[3].plot(y_hat_test[0]())
+            self.ax[0].title.set_text('Training Loss')
+            self.ax[1].title.set_text('Test Loss')
 
-                self.fig.canvas.draw()
+            if len(self.ax) > 2:
+                self.ax[2].plot(self.reconstruction_preprocessor(y_train))
+                self.ax[2].plot(self.reconstruction_preprocessor(y_hat_train()))
+                if len(y_test) > 0:
+                    self.ax[3].plot(self.reconstruction_preprocessor(y_test[0]))
+                    self.ax[3].plot(self.reconstruction_preprocessor(y_hat_test[0]()))
+
+                self.ax[2].title.set_text('Training Reconstruction')
+                self.ax[3].title.set_text('Test Reconstruction')
+
             self.fig.canvas.draw()
 
