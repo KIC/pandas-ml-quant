@@ -1,17 +1,13 @@
 from collections import defaultdict
+
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import mplcursors
-from IPython.core.display import display
-from matplotlib.widgets import RectangleSelector, SpanSelector, Cursor, MultiCursor
-import logging
-from pandas_ml_common import Typing
-import pandas as pd
 import numpy as np
+import pandas as pd
+from matplotlib.widgets import SpanSelector, MultiCursor
 
-
-# TODO use cursor widget  https://www.youtube.com/watch?v=YobjoBrND4w
-#  https://www.youtube.com/watch?v=71NXE-zxxbo&list=PL3JVwFmb_BnTPJVmuBlTSwZEp-Qdhq2TC&index=2
+from pandas_ml_common import Typing
 from pandas_ml_quant_plot.plot_container import PlotContainer
 from pandas_ml_quant_plot.plot_utils import color_positive_negative
 
@@ -25,7 +21,8 @@ class PlotContext(object):
                  main_height: int = 11,
                  tail: int = 5 * 52,
                  h_ratio=(10, 2),
-                 w_ratio = (9, 1),
+                 w_ratio=(9, 1),
+                 annotate=True,
                  backend='notebook'
                  ):
         self.df = df
@@ -35,6 +32,7 @@ class PlotContext(object):
         self.h_ratio = h_ratio
         self.w_ratio = w_ratio
         self.tail = tail
+        self.annotate = annotate
 
         self.plots = dict()
         self.plot_dist = False
@@ -188,8 +186,10 @@ class PlotContext(object):
         for a, p in self.plots.items():
             p.render(self.ax[keys.index(a)], slice(start_idx, stop_idx))
 
-        for c in self.widgets["data label"]: c.remove()
-        self.widgets["data label"] = [mplcursors.cursor(ax) for ax in self.ax[:-1].flatten()]
+        if self.annotate:
+            for c in self.widgets["data label"]: c.remove()
+            self.widgets["data label"] = [mplcursors.cursor(ax) for ax in self.ax[:-1].flatten()]
+
         return min_value, max_value
 
     def __str__(self):
