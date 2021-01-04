@@ -1,8 +1,9 @@
 from collections import defaultdict
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import mplcursors
 from IPython.core.display import display
-from matplotlib.widgets import RectangleSelector, SpanSelector
+from matplotlib.widgets import RectangleSelector, SpanSelector, Cursor, MultiCursor
 import logging
 from pandas_ml_common import Typing
 import pandas as pd
@@ -12,6 +13,7 @@ import numpy as np
 # TODO use cursor widget  https://www.youtube.com/watch?v=YobjoBrND4w
 #  https://www.youtube.com/watch?v=71NXE-zxxbo&list=PL3JVwFmb_BnTPJVmuBlTSwZEp-Qdhq2TC&index=2
 from pandas_ml_quant_plot.plot_container import PlotContainer
+from pandas_ml_quant_plot.plot_utils import color_positive_negative
 
 
 class PlotContext(object):
@@ -34,9 +36,9 @@ class PlotContext(object):
         self.w_ratio = w_ratio
         self.tail = tail
 
-        self.plots = defaultdict(lambda: PlotContainer(self.df))
+        self.plots = dict()
         self.plot_dist = False
-        self.widgets = []
+        self.widgets = defaultdict(lambda: [])
         self.fig = None
         self.ax = None
 
@@ -55,12 +57,10 @@ class PlotContext(object):
         return self
 
     def __getitem__(self, item):
-        return self.plots[item]
+        if item not in self.plots:
+            self.plots[item] = PlotContainer(self, item)
 
-    def __gt__(self, other):
-        # print(">", other)
-        self.plot_dist = True
-        return other
+        return self.plots[item]
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if exc_type:
@@ -102,6 +102,8 @@ class PlotContext(object):
 
         if len(self.plots) > 1:
             grid_spec = {'height_ratios': [hr[0]] + [hr[1] for _ in range(1, len(self.plots))] + [1]}
+        else:
+            grid_spec = {'height_ratios': [hr[0], 1]}
 
         if self.plot_dist:
             grid_spec['width_ratios'] = wr
@@ -132,10 +134,23 @@ class PlotContext(object):
         span_selector = SpanSelector(range_ax, onselect=self._plot_subplots, direction='horizontal',
                                      rectprops=dict(alpha=0.5, facecolor='red'), span_stays=True)
 
-        # span_selector._set_span_xy()
-        self.widgets.append(span_selector)
+        self.widgets["selector"].append(span_selector)
+        self.widgets["cursor"].append(MultiCursor(fig.canvas, ax, horizOn=True, useblit=True, alpha=0.2))
 
-        self._plot_subplots()
+        # initial span selection
+        if self.tail is not None:
+            xmin, xmax = df.index[-self.tail], df.index[-1]
+
+            if isinstance(df.index, pd.DatetimeIndex):
+                xmin, xmax = mdates.date2num(xmin), mdates.date2num(xmax)
+
+            span_selector.stay_rect.set_bounds(xmin, 0, xmax - xmin, 1)
+            span_selector.stay_rect.set_visible(True)
+            span_selector.onselect(xmin, xmax)
+        else:
+            self._plot_subplots()
+
+        # show figure now
         self.fig.show()
 
     def _plot_subplots(self, min_value=None, max_value=None):
@@ -171,8 +186,10 @@ class PlotContext(object):
 
         keys = list(self.plots.keys())
         for a, p in self.plots.items():
-            p.render(self.ax[keys.index(a)], start_idx, stop_idx)
+            p.render(self.ax[keys.index(a)], slice(start_idx, stop_idx))
 
+        for c in self.widgets["data label"]: c.remove()
+        self.widgets["data label"] = [mplcursors.cursor(ax) for ax in self.ax[:-1].flatten()]
         return min_value, max_value
 
     def __str__(self):
@@ -183,10 +200,12 @@ if __name__ == '__main__':
     ## df = pd.DataFrame({"a": [1, 2, 3]})
     df = pd.read_csv("../pandas_ml_quant_plot_test/.data/SPY.csv", index_col="Date", parse_dates=True)
     print(df.tail())
+    print(df.loc[['2019-11-11']][["Open", "Close"]])
+    print(color_positive_negative(df).loc[['2019-11-25']])
     with df.ta_plot(range_slider_price='Close', backend=None) as p:
         p["main"].candlestick("Open", "High", "Low", "Close")
-        #p["main"].line(p.df["a"])
-        #p["volume"].bar("a")
+        p["main"].line(p.df["Close"])
+        p["volume"].bar("Volume", colors=color_positive_negative(p.df))
         #p["macd"].plot(df["a"], "line", "line", "bar")
         #p > "dist"
     plt.show(block=True)
