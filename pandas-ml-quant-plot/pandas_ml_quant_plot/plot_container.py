@@ -34,8 +34,7 @@ class PlotContainer(object):
         def plot(df, ax, index_slice):
             f = df._[list(columns)].iloc[index_slice]
             for col in f.columns:
-                # TODO calculate line width, eventaully colors
-                ax.vlines(f.index, np.zeros(len(f)), f[col], **kwargs)
+                ax.vlines(f.index, np.zeros(len(f)), f[col], **_slice_kwargs(kwargs, index_slice))
 
         self.plots.append(plot)
 
@@ -55,3 +54,7 @@ class PlotContainer(object):
         # print(">", other)
         self.parent.plot_dist = True
         return other
+
+
+def _slice_kwargs(kwargs, index_slice):
+    return {k: v.iloc[index_slice] if isinstance(v, (pd.DataFrame, pd.Series)) else v for k, v in kwargs.items()}
