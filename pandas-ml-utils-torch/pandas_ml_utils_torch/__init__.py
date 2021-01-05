@@ -1,3 +1,4 @@
-from .pytoch_model import PytorchModel, PytorchAutoEncoderModel, PytorchNN
+from .pytorch_model import PytorchModel, PytorchAutoEncoderModel
+from .pytorch_base import PytorchNN
 from .layers import Reshape, KerasLikeLSTM, ResidualLayer
-from .loss import MultiObjectiveLoss, CrossEntropyLoss
+from .loss import MultiObjectiveLoss, CrossEntropyLoss, HeteroscedasticityLoss

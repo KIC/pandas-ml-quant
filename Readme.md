@@ -12,8 +12,11 @@ application. The untested hard coded data pipelines need be be maintained at two
 
 The aim of this library is to conveniently operate with data frames without and abstract away the ugly un-
 reproducible data pipelines. The only thing you need is the original unprocessed data frame where you started.
-The data pipeline becomes a part of your model and gets saved that way. Going into production is as easy as 
-this:
+
+![Fitting Example](.readme/videos/probabilistic-model-fit.gif)
+You find this demo in the pytorch [exmaples](./pandas-ml-utils-torch/examles/)<br><br>
+
+The data pipeline becomes a part of your model and gets saved that way. Going into production is as easy as this:
 
 ```python
 

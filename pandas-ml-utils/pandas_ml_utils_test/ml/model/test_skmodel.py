@@ -6,7 +6,7 @@ from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, ClassificationSummary, RegressionSummary
+from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, ClassificationSummary, RegressionSummary, FittingParameter
 from pandas_ml_utils_test.config import DF_NOTES
 
 
@@ -15,21 +15,22 @@ class TestSkModel(TestAbstractModel, TestCase):
     def test_linear_model(self):
         df = DF_NOTES.copy()
 
-        fit = df.model.fit(
-            SkModel(
-                Lasso(),
-                FeaturesAndLabels(
-                    features=[
-                        lambda df: df["variance"],
-                        lambda df: (df["skewness"] / df["kurtosis"]).rename("engineered")
-                    ],
-                    labels=[
-                        'authentic'
-                    ]
-                )
-            ),
-            naive_splitter()
-        )
+        with df.model() as m:
+            fit = m.fit(
+                SkModel(
+                    Lasso(),
+                    FeaturesAndLabels(
+                        features=[
+                            lambda df: df["variance"],
+                            lambda df: (df["skewness"] / df["kurtosis"]).rename("engineered")
+                        ],
+                        labels=[
+                            'authentic'
+                        ]
+                    )
+                ),
+                FittingParameter(naive_splitter())
+            )
 
         print(fit)
 
@@ -44,23 +45,27 @@ class TestSkModel(TestAbstractModel, TestCase):
         df = pd.DataFrame(data[0])
         df["label"] = data[1]
 
-        fit_partial = df.model.fit(
-            SkModel(
-                MLPRegressor(max_iter=1, random_state=42),
-                FeaturesAndLabels(features=[0, 1], labels=['label'])
-            ),
-            naive_splitter(0.3),
-            batch_size=10,
-            fold_epochs=10
-        )
+        with df.model() as m:
+            fit_partial = m.fit(
+                SkModel(
+                    MLPRegressor(max_iter=1, random_state=42),
+                    FeaturesAndLabels(features=[0, 1], labels=['label'])
+                ),
+                FittingParameter(
+                    naive_splitter(0.3),
+                    batch_size=10,
+                    fold_epochs=10
+                )
+            )
 
-        fit = df.model.fit(
-            SkModel(
-                MLPRegressor(max_iter=10, random_state=42),
-                FeaturesAndLabels(features=[0, 1], labels=['label'])
-            ),
-            naive_splitter(0.3)
-        )
+        with df.model() as m:
+            fit = m.fit(
+                SkModel(
+                    MLPRegressor(max_iter=10, random_state=42),
+                    FeaturesAndLabels(features=[0, 1], labels=['label'])
+                ),
+                FittingParameter(naive_splitter(0.3))
+            )
 
         self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 
@@ -70,24 +75,28 @@ class TestSkModel(TestAbstractModel, TestCase):
         df = pd.DataFrame(data[0])
         df["label"] = data[1]
 
-        fit_partial = df.model.fit(
-            SkModel(
-                MLPClassifier(max_iter=1, random_state=42),
-                FeaturesAndLabels(features=[0, 1], labels=['label'])
-            ),
-            stratified_random_splitter(0.3),
-            batch_size=10,
-            fold_epochs=10,
-            classes=np.unique(data[1])
-        )
+        with df.model() as m:
+            fit_partial = m.fit(
+                SkModel(
+                    MLPClassifier(max_iter=1, random_state=42),
+                    FeaturesAndLabels(features=[0, 1], labels=['label']),
+                    classes=np.unique(data[1])
+                ),
+                FittingParameter(
+                    stratified_random_splitter(0.3),
+                    batch_size=10,
+                    fold_epochs=10,
+                )
+            )
 
-        fit = df.model.fit(
-            SkModel(
-                MLPClassifier(max_iter=10, random_state=42),
-                FeaturesAndLabels(features=[0, 1], labels=['label'])
-            ),
-            stratified_random_splitter(0.3)
-        )
+        with df.model() as m:
+            fit = m.fit(
+                SkModel(
+                    MLPClassifier(max_iter=10, random_state=42),
+                    FeaturesAndLabels(features=[0, 1], labels=['label'])
+                ),
+                FittingParameter(stratified_random_splitter(0.3))
+            )
 
         self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 

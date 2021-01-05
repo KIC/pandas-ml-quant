@@ -5,7 +5,6 @@ import pandas as pd
 import pandas_ml_utils.html as html
 from pandas_ml_common import Typing
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
-from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -16,7 +15,7 @@ class Fit(object):
     """
 
     def __init__(self,
-                 model: Model,
+                 model: 'Model',
                  training_summary: Summary,
                  test_summary: Summary,
                  trails: Any = None,

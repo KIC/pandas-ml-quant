@@ -17,7 +17,7 @@ def call_silent(func, default=None, log=False, log_ctx=None):
 
 def call_callable_dynamic_args(func, *args, **kwargs):
     if isinstance(func, Iterable):
-        return [call_callable_dynamic_args(f, *args, *kwargs) for f in func]
+        return [call_callable_dynamic_args(f, *args, **kwargs) for f in func]
 
     if not callable(func):
         if func is None:

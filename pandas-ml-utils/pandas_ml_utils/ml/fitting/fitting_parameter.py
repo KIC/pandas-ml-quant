@@ -11,3 +11,10 @@ class FittingParameter(NamedTuple):
     batch_size: int = None
     fold_epochs: int = 1
     hyper_parameter_space: Dict = None
+    context: str = None
+
+    def with_splitter(self, splitter):
+        return FittingParameter(**{**self._asdict(), "splitter": splitter})
+
+    def with_cross_validation(self, cross_validation):
+        return FittingParameter(**{**self._asdict(), "cross_validation": cross_validation})

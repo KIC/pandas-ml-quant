@@ -23,6 +23,52 @@ class RegressionModule(nn.Module):
         return x
 
 
+class AutoEncoderModule(PytorchNN):
+
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(2, 2),
+            nn.Tanh(),
+            nn.Linear(2, 1),
+            nn.Tanh(),
+        )
+
+        self.decoder = nn.Sequential(
+            nn.Linear(1, 2),
+            nn.Tanh(),
+            nn.Linear(2, 2),
+            nn.Tanh(),
+        )
+
+    def forward_training(self, x, **kwargs):
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
+
+    def encode(self, x):
+        return self.encoder(x)
+
+    def decode(self, x):
+        return self.decoder(x)
+
+
+class ClassificationModule(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.classifier = nn.Sequential(
+            nn.Linear(2, 5),
+            nn.ReLU(),
+            nn.Linear(5, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x, **kwargs):
+        x = self.classifier(x)
+        return x
+
+
 class TestPytorchModel(TestAbstractModel, TestCase):
 
     def provide_batch_size_and_epoch(self):
@@ -31,27 +77,9 @@ class TestPytorchModel(TestAbstractModel, TestCase):
     def provide_classification_model(self, features_and_labels):
         t.manual_seed(42)
 
-        def module_provider():
-            class ClassificationModule(nn.Module):
-
-                def __init__(self):
-                    super().__init__()
-                    self.classifier = nn.Sequential(
-                        nn.Linear(2, 5),
-                        nn.ReLU(),
-                        nn.Linear(5, 1),
-                        nn.Sigmoid()
-                    )
-
-                def forward(self, x, **kwargs):
-                    x = self.classifier(x)
-                    return x
-
-            return ClassificationModule()
-
         model = PytorchModel(
+            ClassificationModule,
             features_and_labels,
-            module_provider,
             nn.MSELoss,
             lambda params: SGD(params, lr=0.03)
         )
@@ -62,8 +90,8 @@ class TestPytorchModel(TestAbstractModel, TestCase):
         t.manual_seed(12)
 
         model = PytorchModel(
-            features_and_labels,
             RegressionModule,
+            features_and_labels,
             nn.MSELoss,
             lambda params: SGD(params, lr=0.01, momentum=0.0)
         )
@@ -73,41 +101,9 @@ class TestPytorchModel(TestAbstractModel, TestCase):
     def provide_auto_encoder_model(self, features_and_labels):
         t.manual_seed(12)
 
-        def module_provider():
-            class AutoEncoderModule(PytorchNN):
-
-                def __init__(self):
-                    super().__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Linear(2, 2),
-                        nn.Tanh(),
-                        nn.Linear(2, 1),
-                        nn.Tanh(),
-                    )
-
-                    self.decoder = nn.Sequential(
-                        nn.Linear(1, 2),
-                        nn.Tanh(),
-                        nn.Linear(2, 2),
-                        nn.Tanh(),
-                    )
-
-                def forward_training(self, x, **kwargs):
-                    x = self.encoder(x)
-                    x = self.decoder(x)
-                    return x
-
-                def encode(self, x):
-                    return self.encoder(x)
-
-                def decode(self, x):
-                    return self.decoder(x)
-
-            return AutoEncoderModule()
-
         model = PytorchAutoEncoderModel(
+            AutoEncoderModule,
             features_and_labels,
-            module_provider,
             nn.MSELoss,
             lambda params: SGD(params, lr=0.1, momentum=0.9)
         )
@@ -134,7 +130,7 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                     return self.nn(x)
 
             fit = m.fit(
-                PytorchModel(FeaturesAndLabels(["a"], ["b"]), NN, nn.MSELoss, Adam),
+                PytorchModel(NN, FeaturesAndLabels(["a"], ["b"]), nn.MSELoss, Adam),
                 splitter=naive_splitter(0.5),
                 epochs=2,
                 fold_epochs=10,

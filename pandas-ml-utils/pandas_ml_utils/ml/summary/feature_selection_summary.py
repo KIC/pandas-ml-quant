@@ -75,12 +75,14 @@ class FeatureSelectionSummary(Summary):
         self.kpis = get_kpis(model)
 
         if is_test:
+            from pandas_ml_utils.ml.fitting import FittingParameter
+
             # if this is the summary of the test set we should re-fit the model and finally compare the feature ranks
             features, labels = df[FEATURE_COLUMN_NAME], df[LABEL_COLUMN_NAME]
             weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
 
             test_model = model()
-            test_model.fit(Sampler(XYWeight(features, labels, weights), splitter=None, epochs=1))
+            test_model.fit(XYWeight(features, labels, weights), FittingParameter(splitter=None, epochs=1))
             validation_kpis = get_kpis(test_model)
 
             self.kpis = self.kpis.join(validation_kpis, how='outer', rsuffix=" (Test)")

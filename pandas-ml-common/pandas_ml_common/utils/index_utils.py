@@ -161,7 +161,7 @@ def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
         if isinstance(item, List):
             res = None
             for sub_item in item:
-                sub_po = get_pandas_object(po, sub_item, **kwargs)
+                sub_po = get_pandas_object(po, sub_item, type_map, **kwargs)
                 if sub_po is None:
                     pass  # do nothing
                 if isinstance(sub_po, pd.Series):

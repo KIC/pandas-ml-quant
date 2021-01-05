@@ -4,7 +4,7 @@ import uuid
 from typing import Tuple
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter
-from pandas_ml_utils import FeaturesAndLabels, Model, SubModelFeature
+from pandas_ml_utils import FeaturesAndLabels, Model, SubModelFeature, FittingParameter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 
 
@@ -23,7 +23,9 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.49), batch_size=batch_size, epochs=epochs), verbose=0)
+
         print(fit.training_summary.df)
         # fit.training_summary.df.to_pickle('/tmp/classifier.df')
         # print(fit._repr_html_())
@@ -56,7 +58,10 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.3), batch_size=batch_size, epochs=epochs),
+                        verbose=0)
+
         print(fit.training_summary.df)
         self.assertEqual(4, len(fit.training_summary.df))
         self.assertEqual(2, len(fit.test_summary.df))
@@ -95,19 +100,22 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, naive_splitter(0.49), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.49), batch_size=batch_size, epochs=epochs),
+                        verbose=0)
+
         print(fit.training_summary.df)
 
         """then we can predict Autoencoded"""
         auto_encoded_prediction = df.model.predict(fit.model)
         self.assertEqual((20, 2), auto_encoded_prediction["prediction"].shape)
 
-        """and we can encoder"""
+        """and we can encode"""
         encoded_prediction = df.model.predict(fit.model.as_encoder())
         print(encoded_prediction)
         self.assertEqual((20, 1), encoded_prediction["prediction"].shape)
 
-        """and we can decoder"""
+        """and we can decode"""
         decoded_prediction = encoded_prediction["prediction"].model.predict(fit.model.as_decoder())
         print(decoded_prediction)
         np.testing.assert_array_almost_equal(decoded_prediction["prediction"].values > 0.5, df[["a", "b"]].values)
@@ -149,7 +157,10 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, random_splitter(0.3), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.3), batch_size=batch_size, epochs=epochs),
+                        verbose=0)
+
         print(fit.training_summary.df)
 
         """then we can predict"""
@@ -168,7 +179,11 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, random_splitter(0.3, partition_row_multi_index=True), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model,
+                        FittingParameter(splitter=random_splitter(0.3, partition_row_multi_index=True), batch_size=batch_size, epochs=epochs),
+                        verbose=0)
+
         prediction = df.model.predict(fit.model)
         print(fit)
         # fit.training_summary.df.to_pickle('/tmp/multi_index_row_summary.df')
@@ -199,7 +214,10 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, random_splitter(0.3, partition_row_multi_index=True), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model,
+                        FittingParameter(splitter=random_splitter(0.3, partition_row_multi_index=True), batch_size=batch_size, epochs=epochs),
+                        verbose=0)
 
         self.assertEqual(8, len(fit.training_summary.df))
         self.assertEqual(4, len(fit.test_summary.df))
@@ -221,7 +239,11 @@ class TestAbstractModel(object):
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        fit = df.model.fit(model, naive_splitter(0), verbose=0, batch_size=batch_size, epochs=epochs)
+        with df.model() as m:
+            fit = m.fit(model,
+                        FittingParameter(splitter=naive_splitter(0), batch_size=batch_size, epochs=epochs),
+                        verbose=0)
+
         # print(fit.training_summary.df)
         print(fit.test_summary.df)
 

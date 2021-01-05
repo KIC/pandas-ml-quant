@@ -48,11 +48,11 @@ class TestMultiFeatureSet(TestCase):
             return ClassificationModule()
 
         model = PytorchModel(
+            module_provider,
             FeaturesAndLabels(
                 features=(["a"], ["b"]),
                 labels=["c"]
             ),
-            module_provider,
             nn.MSELoss,
             lambda params: Adam(params, lr=0.03)
         )

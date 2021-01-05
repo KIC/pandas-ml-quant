@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import KFold
 
 from pandas_ml_common import naive_splitter
@@ -172,3 +173,9 @@ class TestSampler(TestCase):
         )
 
         self.assertEqual(3, len(list(sampler.sample_for_training())))
+
+    def test_fold_epoch_vs_epoch(self):
+        df = pd.DataFrame({"a": np.arange(10)})
+        fe = [d.x["a"].tolist() for d in Sampler(XYWeight(df[["a"]], df[["a"]]), fold_epochs=2).sample_for_training()]
+        e = [d.x["a"].tolist() for d in Sampler(XYWeight(df[["a"]], df[["a"]]), epochs=2).sample_for_training()]
+        self.assertListEqual(fe, e)
