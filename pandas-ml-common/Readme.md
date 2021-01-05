@@ -45,13 +45,14 @@ df1.add_multi_index('Z', axis=1)
 
 * data splitting, sampling and folding (aka cross validation)
 ``` python
-from pandas_ml_common import Sampler, random_splitter
+from pandas_ml_common import Sampler, XYWeight, random_splitter
 
 df2 = pd.DataFrame({"c": np.random.random(10)})
-sampler = Sampler(df1, df2, splitter=random_splitter(0.5))
+sampler = Sampler(XYWeight(df1, df2), splitter=random_splitter(0.5))
 
-for epoch, train, test in sampler.sample():
-    print(train[0].shape, train[1].shape, test[0].shape, test[1].shape)
+for batches in sampler.sample_for_training():
+    for batch in batches:
+        print(batch)
 ```
 
 
