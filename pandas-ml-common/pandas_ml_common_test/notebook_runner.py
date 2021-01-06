@@ -10,7 +10,7 @@ def run_all_notebooks(notebooks_path, working_directory=None, kernel=os.getenv("
     if working_directory is None:
         working_directory = notebooks_path
 
-    results = {nb: run_notebook(nb, working_directory, kernel) for nb in notebooks}
+    results = {nb: run_notebook(nb, working_directory, kernel) for nb in notebooks if not "scratch" in nb}
     if assert_nofail:
         for file, (nb, err) in results.items():
             assert err == [], f'{file}: {err}'
