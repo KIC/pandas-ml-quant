@@ -20,26 +20,26 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install C dependencies
-      env:
-        LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
-        TA_LIBRARY_PATH: '/tmp/lib/'
-        TA_INCLUDE_PATH: '/tmp/include/'
-      run: |
-        wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-        tar -xzf ta-lib-0.4.0-src.tar.gz
-        cd ta-lib/
-        ./configure --prefix=/tmp
-        make
-        make install
-        pip install TA-Lib
+    # - name: Install C dependencies
+    #   env:
+    #     LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
+    #     TA_LIBRARY_PATH: '/tmp/lib/'
+    #     TA_INCLUDE_PATH: '/tmp/include/'
+    #   run: |
+    #     wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+    #     tar -xzf ta-lib-0.4.0-src.tar.gz
+    #     cd ta-lib/
+    #     ./configure --prefix=/tmp
+    #     make
+    #     make install
+    #     pip install TA-Lib
     - name: Install tox
       run: pip install -U tox
     - name: execute tox tests on COMMON
       working-directory: "${GITHUB_WORKSPACE}/pandas-ml-common"
-      run: python -m tox
+      run: tox -e py
 
 
