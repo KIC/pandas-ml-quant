@@ -41,6 +41,9 @@ jobs:
     - name: execute tox tests on COMMON
       working-directory: pandas-ml-common
       run: tox -e py
+    - name: execute tox tests on ML_UTILS
+      working-directory: pandas-ml-utils
+      run: tox -e py
 
 
 
