@@ -41,7 +41,7 @@ jobs:
     - name: execute tox tests on COMMON
       working-directory: "${GITHUB_WORKSPACE}/pandas-ml-common"
       run: |
-        echo `pwd`
+        pwd
         tox -e py --version
 
 
