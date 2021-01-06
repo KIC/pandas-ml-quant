@@ -39,10 +39,8 @@ jobs:
     - name: Install tox
       run: pip install -U tox
     - name: execute tox tests on COMMON
-      working-directory: "${GITHUB_WORKSPACE}/pandas-ml-common"
-      run: |
-        pwd
-        tox -e py --version
+      working-directory: pandas-ml-common
+      run: tox -e py --version
 
 
 
