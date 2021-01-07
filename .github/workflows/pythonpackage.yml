@@ -23,7 +23,18 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    # - name: Install C dependencies
+    - name: Install nox
+      run: pip install -U nox
+    - name: execute nox tests on COMMON
+      working-directory: pandas-ml-common
+      run: nox
+    - name: execute nox tests on ML_UTILS
+      working-directory: pandas-ml-utils
+      run: nox
+    - name: execute nox tests on ML_UTILS_TORCH
+      working-directory: pandas-ml-utils-torch
+      run: nox
+    # - name: Install C dependencies for ml quant
     #   env:
     #     LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
     #     TA_LIBRARY_PATH: '/tmp/lib/'
@@ -36,15 +47,6 @@ jobs:
     #     make
     #     make install
     #     pip install TA-Lib
-    - name: Install nox
-      run: pip install -U nox
-    - name: execute nox tests on COMMON
-      working-directory: pandas-ml-common
-      run: nox
-    - name: execute nox tests on ML_UTILS
-      working-directory: pandas-ml-utils
-      run: nox
-
-
-
-
+    # - name: execute nox tests on ML_QUANT
+    #   working-directory: pandas-ml-quant
+    #   run: nox

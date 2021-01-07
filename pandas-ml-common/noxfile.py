@@ -16,9 +16,6 @@ def tests(session):
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
     session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
 
-    # install testing requirements and uprade local dependencies
-    # session.install("/home/kic/.tox/distshare/pandas-ml-common-0.2.0.zip")
-
     # create notebook kernels
     kernel = "ml_commons"
     session.run("python", "-m", "ipykernel", "install", "--user", "--name", kernel, "--display-name", f"{kernel} py38")

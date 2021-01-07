@@ -5,7 +5,7 @@ ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # make sure we start with a clean environment
 echo "clean environment"
-rm -rf "$ABSOLUTE_PATH/.nox"
+rm -rf "$ABSOLUTE_PATH/.nox/*"
 
 # run all tox tests
 echo "run nox tests"
