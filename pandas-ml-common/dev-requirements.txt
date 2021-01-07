@@ -1,6 +1,5 @@
-tox
-twine
-scikit-learn
 ipykernel
 nbconvert
 nbformat
+scikit-learn
+twine

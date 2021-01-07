@@ -1,14 +1,12 @@
-# use python 3.7.3 eventaully by using pyenv: curl https://pyenv.run | bash
+# cachetools
+# h5py
+# hyperopt # pymongo
 Mako
-cachetools
 dill
-h5py
-hyperopt
 matplotlib
 mlxtend
 numpy
 pandas
-pymongo
 scikit-learn
 sortedcontainers
 statsmodels

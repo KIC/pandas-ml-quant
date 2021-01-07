@@ -3,4 +3,3 @@ ipykernel
 jupyter_client
 matplotlib
 nbconvert
-tox

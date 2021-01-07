@@ -1,4 +1,4 @@
-sortedcontainers
-pandas
-numpy
 dill
+numpy
+pandas
+sortedcontainers
