@@ -69,7 +69,6 @@ class TestSkModel(TestAbstractModel, TestCase):
 
         self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 
-
     def test_partial_fit_classification(self):
         data = make_classification(100, 2, 1, 0, n_clusters_per_class=1)
         df = pd.DataFrame(data[0])

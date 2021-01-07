@@ -131,10 +131,11 @@ class DfModelPatch(object):
         _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
 
         # assemble result objects
-        # get training and test data tuples of the provided frames
+        # get training and test data tuples of the provided frames.
+        # NOTE due to event boosting there might be duplicate events in the test data which we need to filter away
         ext_frames = frames.targets, frames.labels, frames.gross_loss, frames.sample_weights, frames.features
         df_train = assemble_result_frame(df_train_prediction, *ext_frames)
-        df_test = assemble_result_frame(df_test_prediction, *ext_frames)
+        df_test = assemble_result_frame(df_test_prediction[~df_test_prediction.index.duplicated()], *ext_frames)
 
         # update model properties and return the fit
         model.features_and_labels.set_min_required_samples(frames.features_with_required_samples.min_required_samples)
