@@ -27,7 +27,7 @@ setup(
    description=__doc__,
    long_description='\n'.join([fix_github_links(l) for l in open('Readme.md').readlines()]),
    long_description_content_type='text/markdown',
-   install_requires=[f"pandas-ml-common>=${__version__}", *open("requirements.txt").read().splitlines()],
+   install_requires=[f"pandas-ml-common=={__version__}", *open("requirements.txt").read().splitlines()],
    extras_require={
       "dev": open("dev-requirements.txt").read().splitlines(),
    },
