@@ -3,6 +3,7 @@ __version__ = '0.2.0'
 
 import os
 import re
+
 from setuptools import setup, find_packages
 
 url = 'https://github.com/KIC/pandas-ml-quant/pandas-ml-utils'
@@ -27,7 +28,7 @@ setup(
    description=__doc__,
    long_description='\n'.join([fix_github_links(l) for l in open('Readme.md').readlines()]),
    long_description_content_type='text/markdown',
-   install_requires=[f"pandas-ml-common=={__version__}", *open("requirements.txt").read().splitlines()],
+   install_requires=open("requirements.txt").read().splitlines() + [f"pandas-ml-common=={__version__}"],
    extras_require={
       "dev": open("dev-requirements.txt").read().splitlines(),
    },
