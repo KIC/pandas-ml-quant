@@ -37,4 +37,4 @@ def tests(session):
             print(e)
 
     # clean up egg info
-    shutil.rmtree("pandas_ml_common.egg-info")
+    shutil.rmtree("pandas_ml_utils.egg-info")
