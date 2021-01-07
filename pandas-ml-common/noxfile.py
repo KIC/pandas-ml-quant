@@ -1,0 +1,40 @@
+__version__ = '0.2.0'
+
+import os
+import shutil
+from pathlib import Path
+
+import nox
+
+nox.options.envdir = '../.nox'
+
+
+@nox.session(python=["3.8"], reuse_venv=False)
+def tests(session):
+    # create distribution and install
+    session.install("-r", "dev-requirements.txt")
+    session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
+    session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
+
+    # install testing requirements and uprade local dependencies
+    # session.install("/home/kic/.tox/distshare/pandas-ml-common-0.2.0.zip")
+
+    # create notebook kernels
+    kernel = "ml_commons"
+    session.run("python", "-m", "ipykernel", "install", "--user", "--name", kernel, "--display-name", f"{kernel} py38")
+
+    # run tests
+    session.run("python", "-m", "unittest", "discover", env={"TOX_KERNEL": kernel})
+
+    # clean up kernels
+    kernels_home_dir = os.path.join(Path.home(), ".local", "share", "jupyter", "kernels", kernel)
+    if os.path.exists(kernels_home_dir):
+        print(f"clean up dir {kernels_home_dir}")
+
+        try:
+            shutil.rmtree(kernels_home_dir)
+        except Exception as e:
+            print(e)
+
+    # clean up egg info
+    shutil.rmtree("pandas_ml_common.egg-info")

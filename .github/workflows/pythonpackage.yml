@@ -36,14 +36,14 @@ jobs:
     #     make
     #     make install
     #     pip install TA-Lib
-    - name: Install tox
-      run: pip install -U tox
-    - name: execute tox tests on COMMON
+    - name: Install nox
+      run: pip install -U nox
+    - name: execute nox tests on COMMON
       working-directory: pandas-ml-common
-      run: tox -e py
-    - name: execute tox tests on ML_UTILS
+      run: nox
+    - name: execute nox tests on ML_UTILS
       working-directory: pandas-ml-utils
-      run: tox -e py
+      run: nox
 
 
 
