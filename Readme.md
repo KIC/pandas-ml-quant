@@ -2,7 +2,7 @@
 
 [![Python
 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
-![Nox](https://github.com/KIC/pandas-ml-quant/workflows/.github/workflows/pythonpackage.yml/badge.svg)
+[![NOX Tests Status](https://github.com/KIC/pandas-ml-quant/workflows/NOX-Tests/badge.svg)](https://github.com/KIC/pandas-ml-quant/actions)
 
 Whether it is some statistical analysis or machine learning, most likely it all starts with a `DataFrame`.
 But soon enough you will find yourself converting your data frames to numpy, splitting arrays, applying min
