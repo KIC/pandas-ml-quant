@@ -34,19 +34,19 @@ jobs:
     - name: execute nox tests on ML_UTILS_TORCH
       working-directory: pandas-ml-utils-torch
       run: nox
-    # - name: Install C dependencies for ml quant
-    #   env:
-    #     LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
-    #     TA_LIBRARY_PATH: '/tmp/lib/'
-    #     TA_INCLUDE_PATH: '/tmp/include/'
-    #   run: |
-    #     wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-    #     tar -xzf ta-lib-0.4.0-src.tar.gz
-    #     cd ta-lib/
-    #     ./configure --prefix=/tmp
-    #     make
-    #     make install
-    #     pip install TA-Lib
-    # - name: execute nox tests on ML_QUANT
-    #   working-directory: pandas-ml-quant
-    #   run: nox
+    - name: Install C dependencies for TA_QUANT
+      env:
+        LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
+        TA_LIBRARY_PATH: '/tmp/lib/'
+        TA_INCLUDE_PATH: '/tmp/include/'
+      run: |
+        wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+        tar -xzf ta-lib-0.4.0-src.tar.gz
+        cd ta-lib/
+        ./configure --prefix=/tmp
+        make
+        make install
+        pip install TA-Lib
+    - name: execute nox tests on TA_QUANT
+      working-directory: pandas-ta-quant
+      run: nox

@@ -1,0 +1,2 @@
+include *
+recursive-include pandas_ta_plot *

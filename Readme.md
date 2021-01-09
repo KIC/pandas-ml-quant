@@ -1,8 +1,8 @@
 # Pandas Machine Learning and Quant Finance Library Collection
 
 [![Python
-3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-360/)
-
+3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
+![Nox](https://github.com/KIC/pandas-ml-quant/workflows/.github/workflows/pythonpackage.yml/badge.svg)
 
 Whether it is some statistical analysis or machine learning, most likely it all starts with a `DataFrame`.
 But soon enough you will find yourself converting your data frames to numpy, splitting arrays, applying min
@@ -34,7 +34,21 @@ df_prediction.plot()
 ``` 
 
 ## Project Structure
-The project is divided into several sub modules where each module will have its own life-cycle.
+The project is divided into several sub modules where each module could have its own life-cycle. It is definitely an
+option to move the modules into their own repository in the future if there will be dedicated contributors.
+
+The submodules are:
+ * pandas-ml-1ntegration-test  more complex tests involving several modules and eventually external data
+ * pandas-ml-airflow  very experimental module to integrade models withing apache airflow 
+ * pandas-ml-common  functionalities around data access and preperation like train/test splitting, cross validation, ...   
+ * pandas-ml-quant  enhancing pandas-ml-utils for modeling financial timeseries
+ * pandas-ml-quant-rl  very experimental module for reinforcement learning
+ * pandas-ml-utils  core module to train models directly from a pandas data frame
+ * pandas-ml-utils-keras  deprecated module, might be revoked using tensorflow probability
+ * pandas-ml-utils-torch  pytorch module for machine learning
+ * pandas-quant-data-provider  easy wrapper around data prviders like yahoo and investpy
+ * pandas-ta-quant  technical analysis functionality like TA-Lib
+ * pandas-ta-quant-plot  plotting library to simulate state of the art financial plots (also very eraly stage) 
 
 ### [pandas-ml-common](pandas-ml-common/Readme.md)
 This module contains helpers and utilities for the most common tasks like:
@@ -104,17 +118,18 @@ Extends the pandas-ml-utils library for the use of keras tensorflow 1.x models.
 NOTE! This module is currently stalled as I mainly use pytorch at the moment.  
 
 ### [pandas-ml-quant](pandas-ml-quant/Readme.md) 
-Lifts the pandas ml utils module to target time series and quant finance models. Provides the usual technical 
-analysis indicators like TA-Lib would do but in plain python plus more custom indicators.
+...
 
-Also contains building blocks needed to implement optimized portfolios like mean variance (Markowits).
+### [pandas-ta-quant](pandas-ta-quant/Readme.md) 
+Technical analysis library
+![Ta Plot](./.readme/images/multi_index.png)
 
-And of course provides the needed tools to noramlize, discretize time series data suatable for machine learing.
-  
-Last but not least this module also contains some fancy plotting methods.
-![Ta Plot](./.readme/images/sample_plot.png)
+### [pandas-ta-quant-plot](pandas-ta-quant-plot/Readme.md) 
+Charting library
+
+![Ta Plot](./.readme/videos/ta_plot.gif)
  
-### [pandas-ml-quant-data-provider](pandas-ml-quant-data-provider/Readme.md) 
+### [pandas-ml-quant-data-provider](pandas-quant-data-provider/Readme.md) 
 This is maily a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
 or [investing](https://github.com/alvarobartt/investpy)
 
@@ -122,11 +137,11 @@ or [investing](https://github.com/alvarobartt/investpy)
 There are some more not published libraries used for testing and experiments.
   
 ## Installation
-Currently all libraries are somewhat entangled and will hike parallel the releases. This dependency will weaken up
+Currently all libraries are somewhat entangled and will hike parallel the releases cycles. This dependency will weaken up
 as we reach more stable release. 
 
 ```bash
-pip install pandas-ml-common pandas-ml-utils pandas-ml-quant \
-pandas-ml-quant-data-provider
+pip install pandas-ml-common pandas-ml-utils pandas-ta-quant pandas-ml-quant \
+pandas-quant-data-provider pandas-ta-quant-plot
 ```
 

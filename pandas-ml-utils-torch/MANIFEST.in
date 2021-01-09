@@ -1,3 +1,2 @@
 include *
 recursive-include pandas_ml_utils_torch *
-recursive-include pandas_ml_utils_torch_test *

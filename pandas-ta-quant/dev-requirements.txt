@@ -1,0 +1,5 @@
+TA-Lib
+ipykernel
+jupyter_client
+matplotlib
+nbconvert
