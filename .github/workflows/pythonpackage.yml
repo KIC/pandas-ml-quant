@@ -37,7 +37,7 @@ jobs:
         make install
         pip install TA-Lib
     - name: Install nox
-      run: pip install -U nox
+      run: pip install -U nox pytest
     - name: execute nox tests on COMMON
       working-directory: pandas-ml-common
       run: nox
