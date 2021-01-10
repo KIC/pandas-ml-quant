@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from pandas_ml_quant import pd
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ta_quant import pd
+from pandas_ta_quant_test.config import DF_TEST
 
 
 class TestMultiIndexRowDf(TestCase):
