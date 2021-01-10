@@ -17,7 +17,7 @@ def fix_github_links(line):
 
 
 setup(
-   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   name="pandas-ml-utils",
    version=__version__,
    author='KIC',
    author_email='',
