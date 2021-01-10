@@ -8,13 +8,13 @@ Whether it is some statistical analysis or machine learning, most likely it all 
 But soon enough you will find yourself converting your data frames to numpy, splitting arrays, applying min
 max scalers, lagging and concatenating columns etc. As a result your notebook looks messy and became and 
 unreadable beast. Yet the mess becomes only worse once you start to deploy your research into a productive
-application. The untested hard coded data pipelines need be be maintained at two places. 
+application. Now the untested hard coded data pipelines need to be maintained at two places. 
 
 The aim of this library is to conveniently operate with data frames without and abstract away the ugly un-
 reproducible data pipelines. The only thing you need is the original unprocessed data frame where you started.
 
 ![Fitting Example](.readme/videos/probabilistic-model-fit.gif)
-You find this demo in the pytorch [exmaples](./pandas-ml-utils-torch/examles/)<br><br>
+You find this demo in the pytorch [examples](./pandas-ml-utils-torch/examles/)<br><br>
 
 The data pipeline becomes a part of your model and gets saved that way. Going into production is as easy as this:
 
@@ -39,16 +39,16 @@ option to move the modules into their own repository in the future if there will
 
 The submodules are:
  * pandas-ml-1ntegration-test  more complex tests involving several modules and eventually external data
- * pandas-ml-airflow  very experimental module to integrade models withing apache airflow 
- * pandas-ml-common  functionalities around data access and preperation like train/test splitting, cross validation, ...   
+ * pandas-ml-airflow  very experimental module to integrate models withing apache airflow 
+ * pandas-ml-common  functionalities around data access and preparation like train/test splitting, cross validation, ...   
  * pandas-ml-quant  enhancing pandas-ml-utils for modeling financial timeseries
  * pandas-ml-quant-rl  very experimental module for reinforcement learning
  * pandas-ml-utils  core module to train models directly from a pandas data frame
  * pandas-ml-utils-keras  deprecated module, might be revoked using tensorflow probability
  * pandas-ml-utils-torch  pytorch module for machine learning
- * pandas-quant-data-provider  easy wrapper around data prviders like yahoo and investpy
+ * pandas-quant-data-provider  easy wrapper around data providers like yahoo and investpy
  * pandas-ta-quant  technical analysis functionality like TA-Lib
- * pandas-ta-quant-plot  plotting library to simulate state of the art financial plots (also very eraly stage) 
+ * pandas-ta-quant-plot  plotting library to simulate state of the art financial plots (also very early stage) 
 
 ### [pandas-ml-common](pandas-ml-common/Readme.md)
 This module contains helpers and utilities for the most common tasks like:
