@@ -1,3 +1,3 @@
-*.py linguist-vendored
-*.ipynb linguist-vendored=false
-*.sh linguist-vendored=false
+*.py linguist-language=Python
+*.ipynb linguist-language=Python
+*.sh linguist-vendored
