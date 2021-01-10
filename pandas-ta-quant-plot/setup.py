@@ -16,7 +16,7 @@ def fix_github_links(line):
 
 
 setup(
-   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   name="pandas-ta-quant-plot",
    version=__version__,
    author='KIC',
    author_email='',
@@ -27,8 +27,7 @@ setup(
    description=__doc__,
    long_description=open('Readme.md').read(),
    long_description_content_type='text/markdown',
-   #install_requires=["pandas-ml-common", *open("requirements.txt").read().splitlines()],
-   install_requires=[*open("requirements.txt").read().splitlines()],
+   install_requires=open("requirements.txt").read().splitlines() + [f"pandas-ml-common=={__version__}"],
    extras_require={
       "dev": open("dev-requirements.txt").read().splitlines(),
    },

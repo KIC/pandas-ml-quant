@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any, Union, Tuple
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -8,8 +9,8 @@ import pandas as pd
 from matplotlib.widgets import SpanSelector, MultiCursor
 
 from pandas_ml_common import Typing
-from pandas_ml_quant_plot.plot_container import PlotContainer
-from pandas_ml_quant_plot.plot_utils import color_positive_negative
+from pandas_ta_quant_plot.plot_container import PlotContainer
+from pandas_ta_quant_plot.plot_utils import color_positive_negative
 
 
 class PlotContext(object):
@@ -19,10 +20,12 @@ class PlotContext(object):
                  range_slider_price: str = "Close",
                  width: int = 20,
                  main_height: int = 11,
-                 tail: int = 5 * 52,
-                 h_ratio=(10, 2),
-                 w_ratio=(9, 1),
-                 annotate=True,
+                 start: Union[Any, int] = None,
+                 stop: Union[Any, int] = None,
+                 h_ratio: Tuple[int] = (10, 2),
+                 w_ratio: Tuple[int] = (9, 1),
+                 annotate: bool = False,
+                 cursor: bool = False,
                  backend='notebook'
                  ):
         self.df = df
@@ -31,8 +34,9 @@ class PlotContext(object):
         self.main_height = main_height
         self.h_ratio = h_ratio
         self.w_ratio = w_ratio
-        self.tail = tail
+        self.subset = None if start is None and stop is None else slice(start, stop)
         self.annotate = annotate
+        self.cursor = cursor
 
         self.plots = dict()
         self.plot_dist = False
@@ -120,7 +124,7 @@ class PlotContext(object):
 
                 sp.append(shared_ax)
             else:
-                sp.append([fig.add_subplot(gs[r, c], sharex=shared_ax[c]) for c in range(cols)])
+                sp.append([fig.add_subplot(gs[r, c], sharex=shared_ax[c]) if c == 0 else fig.add_subplot(gs[r, c]) for c in range(cols)])
 
         ax = np.array(sp).squeeze()
         self.fig = fig
@@ -133,11 +137,13 @@ class PlotContext(object):
                                      rectprops=dict(alpha=0.5, facecolor='red'), span_stays=True)
 
         self.widgets["selector"].append(span_selector)
-        self.widgets["cursor"].append(MultiCursor(fig.canvas, ax, horizOn=True, useblit=True, alpha=0.2))
+        if self.cursor:
+            self.widgets["cursor"].append(MultiCursor(fig.canvas, ax, horizOn=True, useblit=True, alpha=0.2))
 
         # initial span selection
-        if self.tail is not None:
-            xmin, xmax = df.index[-self.tail], df.index[-1]
+        if self.subset is not None:
+            sdf = df[self.subset].index
+            xmin, xmax = sdf[0], sdf[-1]
 
             if isinstance(df.index, pd.DatetimeIndex):
                 xmin, xmax = mdates.date2num(xmin), mdates.date2num(xmax)
@@ -198,7 +204,7 @@ class PlotContext(object):
 
 if __name__ == '__main__':
     ## df = pd.DataFrame({"a": [1, 2, 3]})
-    df = pd.read_csv("../pandas_ml_quant_plot_test/.data/SPY.csv", index_col="Date", parse_dates=True)
+    df = pd.read_csv("../pandas_ta_quant_plot_test/.data/SPY.csv", index_col="Date", parse_dates=True)
     print(df.tail())
     print(df.loc[['2019-11-11']][["Open", "Close"]])
     print(color_positive_negative(df).loc[['2019-11-25']])
