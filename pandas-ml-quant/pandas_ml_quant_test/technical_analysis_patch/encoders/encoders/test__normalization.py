@@ -1,9 +1,9 @@
 from unittest import TestCase
 
-from pandas_ml_quant import pd, np
-from pandas_ml_quant.technichal_analysis.encoders import ta_realative_candles
-from pandas_ml_quant.technichal_analysis.normalizer import ta_rescale
-from pandas_ml_quant_test.config import DF_TEST
+from pandas_ta_quant import pd, np
+from pandas_ta_quant.technical_analysis.encoders import ta_realative_candles
+from pandas_ta_quant.technical_analysis.normalizer import ta_rescale
+from pandas_ta_quant_test.config import DF_TEST
 
 
 class TestRescaling(TestCase):

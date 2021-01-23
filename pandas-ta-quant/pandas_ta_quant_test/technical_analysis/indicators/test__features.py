@@ -142,33 +142,6 @@ class TestIndicator(TestCase):
 
         np.testing.assert_array_almost_equal(me, ta / 100)
 
-    def test_cross_over(self):
-        me0 = ta_cross_over(DF_TEST, "Open", "Close")
-        me1 = ta_cross_over(DF_TEST[["Open", "Close"]])
-        me2 = ta_cross_over(DF_TEST, "Open", DF_TEST["Close"])
-        me3 = ta_cross_over(DF_TEST["Open"], DF_TEST["Close"])
-
-        self.assertTrue(me0.iloc[-1])
-        self.assertFalse(me0.iloc[-2])
-
-        for me in [me1, me2, me3]:
-            np.testing.assert_array_equal(me0.values, me.values)
-
-    def test_cross_under(self):
-        me = ta_cross_under(DF_TEST, "Open", "Close")
-
-        print(me)
-        self.assertTrue(me.iloc[-3])
-        self.assertFalse(me.iloc[-2])
-        self.assertFalse(me.iloc[-1])
-
-    def test_cross_constant(self):
-        o = ta_cross(DF_TEST["Close"].pct_change(), Constant(0))
-        u = ta_cross(DF_TEST["Close"].pct_change(), Constant(0))
-
-        self.assertTrue(o.iloc[-2])
-        self.assertTrue(u.iloc[-5])
-
     def test__up_down_volatility_ratio(self):
         me = ta_up_down_volatility_ratio(DF_TEST)[-1:]
 
