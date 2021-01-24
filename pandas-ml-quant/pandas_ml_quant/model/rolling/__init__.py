@@ -1,1 +1,0 @@
-from .minimum_variance import MinVarianceModel

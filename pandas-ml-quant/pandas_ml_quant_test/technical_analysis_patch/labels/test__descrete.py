@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from pandas_ta_quant import pd
-from pandas_ta_quant.technical_analysis.labels import ta_has_opening_gap, ta_future_bband_quantile, \
-    ta_future_multi_bband_quantile, \
-    ta_is_opening_gap_closed
-from pandas_ta_quant_test.config import DF_TEST
+import numpy as np
+
+from pandas_ml_common import Constant
+from pandas_ml_quant.technical_analysis_patch.labels import *
+from pandas_ml_quant_test.config import DF_TEST
 
 
 class TestDescreteLabels(TestCase):
@@ -44,7 +44,7 @@ class TestDescreteLabels(TestCase):
             [-1, -1, False, -1, -1, -1, False, False, -1, -1, False, -1, -1, True, -1, -1, False, -1, True, -1, -1, True, False, -1, False, -1, -1, -1, False, True]
         )
 
-    def test_cross_over(self):
+    def test_ta_cross_over(self):
         me0 = ta_cross_over(DF_TEST, "Open", "Close")
         me1 = ta_cross_over(DF_TEST[["Open", "Close"]])
         me2 = ta_cross_over(DF_TEST, "Open", DF_TEST["Close"])
@@ -56,7 +56,7 @@ class TestDescreteLabels(TestCase):
         for me in [me1, me2, me3]:
             np.testing.assert_array_equal(me0.values, me.values)
 
-    def test_cross_under(self):
+    def test_ta_cross_under(self):
         me = ta_cross_under(DF_TEST, "Open", "Close")
 
         print(me)
@@ -64,7 +64,7 @@ class TestDescreteLabels(TestCase):
         self.assertFalse(me.iloc[-2])
         self.assertFalse(me.iloc[-1])
 
-    def test_cross_constant(self):
+    def test_ta_cross_constant(self):
         o = ta_cross(DF_TEST["Close"].pct_change(), Constant(0))
         u = ta_cross(DF_TEST["Close"].pct_change(), Constant(0))
 
