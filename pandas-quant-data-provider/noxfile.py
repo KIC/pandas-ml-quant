@@ -12,6 +12,8 @@ nox.options.envdir = '../.nox'
 @nox.session(python=["3.8"], reuse_venv=False, venv_params=['--system-site-packages'])
 def tests(session):
     # create distribution and install
+    session.install("-r", "../pandas-ml-common/requirements.txt")
+    session.install("-r", "requirements.txt")
     session.install("-r", "dev-requirements.txt")
     session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
 

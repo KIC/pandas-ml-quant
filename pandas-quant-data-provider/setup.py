@@ -6,7 +6,7 @@ import os
 from setuptools import setup, find_packages
 
 setup(
-   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   name="pandas-quant-data-provider",
    version=__version__,
    author='KIC',
    author_email='',
