@@ -1,10 +1,10 @@
 import os
 import streamlit as st
 from datetime import date, timedelta
-from pandas_ml_quant import pd, df_patching
+from pandas_ml_quant import pd
 from importlib import import_module
 
-import pandas_ml_quant_data_provider
+import pandas_quant_data_provider
 from streamlit_apps.config import Config
 
 st.title("hello world")
