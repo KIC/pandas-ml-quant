@@ -21,3 +21,4 @@ mount.sh
 streamlit_apps/models/
 *.kic
 /pandas-ml-airflow/scratch/
+*.old

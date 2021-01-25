@@ -15,6 +15,7 @@ cd "$ABSOLUTE_PATH/pandas-ml-utils-torch" && nox && echo "done $(pwd)" && cd - |
 cd "$ABSOLUTE_PATH/pandas-ta-quant" && tox && echo "done $(pwd)" && cd - || exit
 cd "$ABSOLUTE_PATH/pandas-ta-quant-plot" && tox && echo "done $(pwd)" && cd - || exit
 cd "$ABSOLUTE_PATH/pandas-ml-quant" && tox && echo "done $(pwd)" && cd - || exit
+cd "$ABSOLUTE_PATH/pandas-quant-data-provider" && tox && echo "done $(pwd)" && cd - || exit
 # FIXME pandas-quant-data-provider
 # TODO run integration tess and private integration tests as nox tests as well
 # TODO finalize remaining tox tests: pandas-quant-data-provider, pandas-ml-1ntegration-test, quant plot
