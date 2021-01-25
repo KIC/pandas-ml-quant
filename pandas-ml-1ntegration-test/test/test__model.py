@@ -2,18 +2,13 @@ import os
 from unittest import TestCase
 
 import numpy as np
-from keras import Sequential
-from keras.layers import Dense, Reshape
-from keras.optimizers import Adam
-from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 
 import pandas_ml_quant
-from pandas_ml_common import naive_splitter, random_splitter
-from pandas_ml_common.sampling.cross_validation import KFoldBoostRareEvents, KEquallyWeightEvents
-from pandas_ml_utils import FeaturesAndLabels, SkModel, PostProcessedFeaturesAndLabels
+from pandas_ml_common import naive_splitter
+from pandas_ml_utils import FeaturesAndLabels, SkModel
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
-from pandas_ml_utils.ml.summary import ClassificationSummary, RegressionSummary
+from pandas_ml_utils import RegressionSummary, FittingParameter
 from test.config import DF_TEST
 
 print(pandas_ml_quant.__version__)
@@ -39,7 +34,7 @@ class TestModel(TestCase):
                 ),
                 summary_provider=RegressionSummary
             ),
-            naive_splitter()
+            FittingParameter()
         )
 
         print(fit)
