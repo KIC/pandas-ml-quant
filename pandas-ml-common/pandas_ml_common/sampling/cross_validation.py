@@ -36,7 +36,7 @@ class KEquallyWeightEvents(KFold):
         x_indices = np.arange(n_samples)
 
         # get distribution of labels
-        labels, indices, counts = np.unique(y._.values, axis=0, return_inverse=True, return_counts=True)
+        labels, indices, counts = np.unique(y._.values if isinstance(y, (pd.Series, pd.DataFrame)) else y, axis=0, return_inverse=True, return_counts=True)
         required_samples = counts.max()
 
         with temp_seed(self.seed):

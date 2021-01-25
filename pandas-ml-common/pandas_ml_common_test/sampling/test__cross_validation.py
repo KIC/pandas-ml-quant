@@ -20,13 +20,13 @@ class TestCrossValidation(TestCase):
         self.assertGreaterEqual(x[indices[1][1]].sum(), 1)
 
     def test__equal_weight_events(self):
-        x = np.array([0, 0, 0, 1])
+        x = pd.DataFrame({"a": np.array([0, 0, 0, 1])})
         cv = KEquallyWeightEvents(n_splits=2)
         indices = list(cv.split(x, x))
 
         self.assertEqual(len(indices), 2)
-        self.assertGreaterEqual(x[indices[0][1]].sum(), 1)
-        self.assertGreaterEqual(x[indices[1][1]].sum(), 1)
+        self.assertGreaterEqual(x.loc[indices[0][1]].values.sum(), 1)
+        self.assertGreaterEqual(x.loc[indices[1][1]].values.sum(), 1)
 
     def test__partitioning_by_multi_index_row(self):
         df = pd.DataFrame({"a": [1, 2] * 2})
