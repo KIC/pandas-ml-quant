@@ -50,3 +50,12 @@ jobs:
     - name: execute nox tests on TA_QUANT
       working-directory: pandas-ta-quant
       run: nox
+    - name: execute nox tests on TA_QUANT_PLOT
+      working-directory: pandas-ta-quant-plot
+      run: nox
+    - name: execute nox tests on ML_QUANT
+      working-directory: pandas-ml-quant
+      run: nox
+    - name: execute nox tests on QUANT_DATA_PROVIDER
+      working-directory: pandas-quant-data-provider
+      run: nox
