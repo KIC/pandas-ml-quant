@@ -1,4 +1,4 @@
-from pandas_ml_quant_data_provider.datafetching import fetch_yahoo, fetch_investing, fetch_cryptocompare_daily, \
+from pandas_quant_data_provider.datafetching import fetch_yahoo, fetch_investing, fetch_cryptocompare_daily, \
     fetch_cryptocompare_hourly, fetch_fred
 
 YAHOO = fetch_yahoo

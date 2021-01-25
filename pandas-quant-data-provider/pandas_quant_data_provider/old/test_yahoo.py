@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import pandas as pd
 
-from pandas_ml_quant_data_provider import quant_data as qd
+from pandas_quant_data_provider import quant_data as qd
 
 
 class TestQuantData(TestCase):

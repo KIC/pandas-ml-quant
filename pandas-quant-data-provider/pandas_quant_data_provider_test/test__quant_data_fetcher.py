@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from pandas_ml_quant_data_provider import QuantDataFetcher
+from pandas_quant_data_provider import QuantDataFetcher
 
 
 def load(symbol: str):

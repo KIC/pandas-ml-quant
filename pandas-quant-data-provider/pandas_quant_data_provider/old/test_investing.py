@@ -1,5 +1,5 @@
 from unittest import TestCase
-from pandas_ml_quant_data_provider import quant_data as qd
+from pandas_quant_data_provider import quant_data as qd
 import pandas as pd
 
 

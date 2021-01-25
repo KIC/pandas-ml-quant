@@ -11,7 +11,7 @@ data is stored into a data base using dolthub. Querying this data requires you t
 following their [installation instructions][dolt].  
 
 ```shell script
-pip install pandas-ml-quant-data-provider
+pip install pandas-quant-data-provider
  
 ```
    
@@ -19,9 +19,10 @@ pip install pandas-ml-quant-data-provider
 
  
 Example:
+
 ```python
 # monkey patch pandas 
-from pandas_ml_quant_data_provider import pd, YAHOO, INVESTING, CRYPTO_COMPARE
+from pandas_quant_data_provider import pd, YAHOO, INVESTING, CRYPTO_COMPARE
 
 # fetch data from various data sources 
 #   * fetches all available dates

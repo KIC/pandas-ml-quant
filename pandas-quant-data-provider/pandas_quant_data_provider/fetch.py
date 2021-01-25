@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils import call_callable_dynamic_args
-from pandas_ml_quant_data_provider.data_provider.yfinance_provider import fetch_yahoo, YahooSymbol
-from pandas_ml_quant_data_provider.symbol import Symbol
+from pandas_quant_data_provider.data_provider.yfinance_provider import fetch_yahoo, YahooSymbol
+from pandas_quant_data_provider.symbol import Symbol
 
 _log = logging.getLogger(__name__)
 

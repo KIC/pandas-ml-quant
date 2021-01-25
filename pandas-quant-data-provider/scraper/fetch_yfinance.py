@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-import pandas_ml_quant_data_provider as qd
+import pandas_quant_data_provider as qd
 from pandas_ml_common import serialize
 from scraper.dolting import start_server_and_get_engine, dolt_commit
 from concurrent.futures import ThreadPoolExecutor

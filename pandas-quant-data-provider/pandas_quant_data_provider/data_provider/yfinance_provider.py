@@ -6,8 +6,8 @@ from cachier import cachier
 from yfinance import utils as yf_utils
 
 from pandas_ml_common import pd
-from pandas_ml_quant_data_provider.data_provider.time_utils import time_until_end_of_day
-from pandas_ml_quant_data_provider.symbol import Symbol
+from pandas_quant_data_provider.data_provider.time_utils import time_until_end_of_day
+from pandas_quant_data_provider.symbol import Symbol
 
 
 class YahooSymbol(Symbol):

@@ -9,7 +9,7 @@ from cachier import cachier
 
 from pandas_ml_common.utils import call_silent
 from pandas_ml_common.utils.logging_utils import LogOnce
-from pandas_ml_quant_data_provider.data_provider.time_utils import time_until_end_of_day
+from pandas_quant_data_provider.data_provider.time_utils import time_until_end_of_day
 
 _log = logging.getLogger(__name__)
 log_once = LogOnce()

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from pangres import upsert
 
-from pandas_ml_quant_data_provider.quant_data import DataProvider
+from pandas_quant_data_provider.quant_data import DataProvider
 
 _log = logging.getLogger(__file__)
 

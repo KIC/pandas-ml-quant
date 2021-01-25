@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pandas as pd
 
-import pandas_ml_quant_data_provider as dp
+import pandas_quant_data_provider as dp
 
 
 class TestYFinance(TestCase):
