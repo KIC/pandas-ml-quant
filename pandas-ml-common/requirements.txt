@@ -1,4 +1,5 @@
 dill
 numpy
 pandas
+scikit-learn
 sortedcontainers
