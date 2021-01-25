@@ -13,6 +13,8 @@ nox.options.envdir = '../.nox'
 def tests(session):
     # create distribution and install
     session.install("-r", "dev-requirements.txt")
+    session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
+
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
     session.install(f"/tmp/pandas-quant-data-provider-{__version__}.zip")
 

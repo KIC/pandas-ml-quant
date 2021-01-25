@@ -1,4 +1,3 @@
-from .alias import *
 from .bands import *
 from .covariances import *
 from .encoders import *

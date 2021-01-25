@@ -6,10 +6,10 @@ cvxpy
 ipywidgets
 matplotlib
 minisom
-mgarch
+#mgarch
+mgarch-setup-fix
 mlxtend
 moviepy
-mplfinance
 numba
 numpy
 pandas

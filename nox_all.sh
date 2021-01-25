@@ -9,15 +9,16 @@ rm -rf "$ABSOLUTE_PATH/.nox/*"
 
 # run all tox tests
 echo "run nox tests"
-cd "$ABSOLUTE_PATH/pandas-ml-common" && nox && echo "done $(pwd)" && cd - || exit
-cd "$ABSOLUTE_PATH/pandas-ml-utils" && nox && echo "done $(pwd)" && cd - || exit
-cd "$ABSOLUTE_PATH/pandas-ml-utils-torch" && nox && echo "done $(pwd)" && cd - || exit
-cd "$ABSOLUTE_PATH/pandas-ta-quant" && tox && echo "done $(pwd)" && cd - || exit
-cd "$ABSOLUTE_PATH/pandas-ta-quant-plot" && tox && echo "done $(pwd)" && cd - || exit
-cd "$ABSOLUTE_PATH/pandas-ml-quant" && tox && echo "done $(pwd)" && cd - || exit
-cd "$ABSOLUTE_PATH/pandas-quant-data-provider" && tox && echo "done $(pwd)" && cd - || exit
-# FIXME pandas-quant-data-provider
-# TODO run integration tess and private integration tests as nox tests as well
+cd "$ABSOLUTE_PATH/pandas-ml-common" && nox -x && echo "done $(pwd)" && cd -
+cd "$ABSOLUTE_PATH/pandas-ml-utils" && nox -x && echo "done $(pwd)" && cd
+cd "$ABSOLUTE_PATH/pandas-ml-utils-torch" && nox -x && echo "done $(pwd)" && cd -
+cd "$ABSOLUTE_PATH/pandas-ta-quant" && nox -x && echo "done $(pwd)" && cd -
+cd "$ABSOLUTE_PATH/pandas-ta-quant-plot" && nox -x && echo "done $(pwd)" && cd -
+cd "$ABSOLUTE_PATH/pandas-ml-quant" && nox -x && echo "done $(pwd)" && cd -
+cd "$ABSOLUTE_PATH/pandas-quant-data-provider" && nox -x && echo "done $(pwd)" && cd -
+cd "$ABSOLUTE_PATH/pandas-ml-1ntegration-test" && nox -x && echo "done $(pwd)" && cd -
+
+# TODO run private integration tests as nox tests as well
 # TODO finalize remaining tox tests: pandas-quant-data-provider, pandas-ml-1ntegration-test, quant plot
 #   cd "$ABSOLUTE_PATH/pandas-quant-data-provider" && tox && echo "done $(pwd)" && cd - || exit
 

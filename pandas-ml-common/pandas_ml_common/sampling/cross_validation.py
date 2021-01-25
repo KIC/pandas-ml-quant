@@ -24,7 +24,7 @@ class KFoldBoostRareEvents(KFold):
             yield np.hstack([train_idx, rare_event_indices]), np.hstack([test_idx, rare_event_indices])
 
 
-class KEquallyWeightEvents(object):
+class KEquallyWeightEvents(KFold):
 
     def __init__(self, n_splits='warn', seed=None):
         super().__init__()
@@ -36,7 +36,7 @@ class KEquallyWeightEvents(object):
         x_indices = np.arange(n_samples)
 
         # get distribution of labels
-        labels, indices, counts = np.unique(y, axis=0, return_inverse=True, return_counts=True)
+        labels, indices, counts = np.unique(y._.values, axis=0, return_inverse=True, return_counts=True)
         required_samples = counts.max()
 
         with temp_seed(self.seed):

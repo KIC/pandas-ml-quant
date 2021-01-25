@@ -17,7 +17,7 @@ def fix_github_links(line):
 
 
 setup(
-   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   name="pandas-ml-quant",
    version=__version__,
    author='KIC',
    author_email='',
@@ -29,7 +29,7 @@ setup(
    long_description='\n'.join([fix_github_links(l) for l in open('Readme.md').readlines()]),
    long_description_content_type='text/markdown',
    install_requires=open("requirements.txt").read().splitlines() +
-                    [f"pandas-ml-common=={__version__}", f"pandas-ml-utils=={__version__}", f"pandas-ta-qunat=={__version__}"],
+                    [f"pandas-ml-common=={__version__}", f"pandas-ml-utils=={__version__}", f"pandas-ta-quant=={__version__}"],
    extras_require={
       "dev": open("dev-requirements.txt").read().splitlines(),
    },

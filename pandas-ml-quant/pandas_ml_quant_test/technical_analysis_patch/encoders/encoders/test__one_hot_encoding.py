@@ -1,8 +1,8 @@
 from unittest import TestCase
 
-from pandas_ta_quant import pd, np
-from pandas_ta_quant.technical_analysis import ta_one_hot_encode_discrete
-from pandas_ta_quant_test.config import DF_TEST
+from pandas_ml_quant import pd, np
+from pandas_ml_quant.technical_analysis_patch import ta_one_hot_encode_discrete
+from pandas_ml_quant_test.config import DF_TEST
 
 
 class TestOneHotEncoder(TestCase):

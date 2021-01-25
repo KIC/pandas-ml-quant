@@ -15,6 +15,7 @@ def tests(session):
     session.install("-r", "dev-requirements.txt")
     session.install("-r", "requirements.txt")
     session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
+    session.install(f"/tmp/pandas-ta-quant-{__version__}.zip")
 
     # create distribution and install
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})

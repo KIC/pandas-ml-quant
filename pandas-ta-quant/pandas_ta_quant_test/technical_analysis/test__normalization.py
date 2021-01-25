@@ -22,14 +22,6 @@ class TestRescaling(TestCase):
         self.assertListEqual([1, -1], columns[-1:].values[-1].tolist())
         self.assertListEqual([1, -1], rows[-1:].values[-1].tolist())
 
-    def test_rescale_embedded(self):
-        df = DF_TEST[["Close", "High"]][-5:].ta.rnn(3).copy()
-        rows = ta_rescale(df, (0, 1), axis=1)
-        print(df)
-        print(rows)
-
-        self.assertEqual(3, np.argmax(rows.iloc[-1]))
-
     def test_relative_candles(self):
         df = DF_TEST[-2:].copy()
         relative = ta_realative_candles(df, volume=None)
