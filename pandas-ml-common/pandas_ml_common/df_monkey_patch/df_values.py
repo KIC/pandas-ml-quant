@@ -20,15 +20,26 @@ class MLCompatibleValues(object):
 
         :return: numpy array with shape of MultiIndex and/or nested arrays from cells
         """
+        return self.get_values()
 
+    def get_values(self, split_multi_index_rows=True, squeeze=False, dtype=None):
         # get raw values
-        values = unpack_nested_arrays(self.df)
+        values = unpack_nested_arrays(self.df, split_multi_index_rows, dtype)
 
         # return in multi level shape if multi index is used
         def reshape_when_multi_index_column(values):
             if has_indexed_columns(self.df) and isinstance(self.df.columns, pd.MultiIndex):
                 index_shape = multi_index_shape(self.df.columns)
-                values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
+                try:
+                    # try to reshape the nested arrays into the shape of the multi index
+                    values = values.reshape((values.shape[0],) + index_shape + values.shape[len(index_shape):])
+                except ValueError as ve:
+                    # but it might well be that the shapes do not match, then just ignore the index shape
+                    if not "cannot reshape array" in str(ve):
+                        raise ve
+
+            if squeeze and values.ndim > 2 and values.shape[2] == 1:
+                values = values.reshape(values.shape[:-1])
 
             return values
 

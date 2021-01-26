@@ -6,4 +6,6 @@
 #   create docker image and alias
 #   see issue https://github.com/nektos/act/issues/418
 #   docker build . -t ubuntu-builder
-alias act="act -P ubuntu-latest=ubuntu-builder"
+
+# NOTE we need to call `act -b` because of the symlinks which cause troubles otherwise
+alias act="act -P ubuntu-latest=ubuntu-builder -b"

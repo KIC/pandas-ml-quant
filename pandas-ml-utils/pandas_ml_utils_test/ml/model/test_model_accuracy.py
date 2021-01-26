@@ -47,7 +47,7 @@ class TestModelAccuracy(TestCase):
             print(fp.context, dist)
             losses = list(fit.model._history[("train", 0)].values())
 
-            self.assertLessEqual(dist, 1.1, fp.context)
+            self.assertLessEqual(dist, 1.22, fp.context)
             if len(losses) > 1:
                 self.assertLess(losses[-1], losses[0])
 

@@ -5,18 +5,31 @@ ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # make sure we start with a clean environment
 echo "clean environment"
-rm -rf "$ABSOLUTE_PATH/.nox/*"
+sudo rm -rf "$ABSOLUTE_PATH/.nox/*"
+
+run_tests () {
+  wdir="$ABSOLUTE_PATH/$1"
+  echo ----------------------------------------------------------------------------------------------------------
+  echo $wdir
+  echo ----------------------------------------------------------------------------------------------------------
+  echo
+
+  cd "$wdir"
+  nox -x
+  echo "done $(pwd)"
+  cd -
+}
 
 # run all tox tests
 echo "run nox tests"
-cd "$ABSOLUTE_PATH/pandas-ml-common" && nox -x && echo "done $(pwd)" && cd -
-cd "$ABSOLUTE_PATH/pandas-ml-utils" && nox -x && echo "done $(pwd)" && cd
-cd "$ABSOLUTE_PATH/pandas-ml-utils-torch" && nox -x && echo "done $(pwd)" && cd -
-cd "$ABSOLUTE_PATH/pandas-ta-quant" && nox -x && echo "done $(pwd)" && cd -
-cd "$ABSOLUTE_PATH/pandas-ta-quant-plot" && nox -x && echo "done $(pwd)" && cd -
-cd "$ABSOLUTE_PATH/pandas-ml-quant" && nox -x && echo "done $(pwd)" && cd -
-cd "$ABSOLUTE_PATH/pandas-quant-data-provider" && nox -x && echo "done $(pwd)" && cd -
-cd "$ABSOLUTE_PATH/pandas-ml-1ntegration-test" && nox -x && echo "done $(pwd)" && cd -
+run_tests "pandas-ml-common"
+run_tests "pandas-ml-utils"
+run_tests "pandas-ml-utils-torch"
+run_tests "pandas-ta-quant"
+run_tests "pandas-ta-quant-plot"
+run_tests "pandas-ml-quant"
+run_tests "pandas-quant-data-provider"
+run_tests "pandas-ml-1ntegration-test"
 
 # TODO run private integration tests as nox tests as well
 # TODO finalize remaining tox tests: pandas-quant-data-provider, pandas-ml-1ntegration-test, quant plot

@@ -5,6 +5,24 @@ import torch.nn as nn
 from torch.nn import init
 
 
+class Flatten(nn.Module):
+
+    def __init__(self, *args):
+        super().__init__()
+
+    def forward(self, input, *args):
+        return input.view(input.size(0), -1)
+
+
+class Squeeze(nn.Module):
+
+    def __init__(self, *args):
+        super().__init__()
+
+    def forward(self, input, *args):
+        return input.squeeze()
+
+
 class Reshape(nn.Module):
 
     def __init__(self, *args):

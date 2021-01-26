@@ -29,8 +29,8 @@ class ModelContext(object):
 
         return fit
 
-    def extract(self, model: Union[Model, FeaturesAndLabels]) -> FeaturesWithLabels:
-        return self.df._.extract(model.features_and_labels if isinstance(model, Model) else model)
+    def extract(self, model_or_fnl: Union[Model, FeaturesAndLabels]) -> FeaturesWithLabels:
+        return self.df._.extract(model_or_fnl.features_and_labels if isinstance(model_or_fnl, Model) else model_or_fnl)
 
     def __enter__(self):
         return self
