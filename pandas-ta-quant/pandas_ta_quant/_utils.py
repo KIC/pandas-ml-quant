@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from numba import guvectorize, float32, int32, float64, int64
 
+from pandas_ml_common.utils import ReScaler
+
 
 def sort_distance(s1: pd.Series, s2: pd.Series, top_percent=None) -> np.ndarray:
     s = (s1 / s2 - 1).dropna().abs()
@@ -51,6 +53,23 @@ def wilders_smoothing(arr: np.ndarray, period: int, res: np.ndarray):
     res[period - 1] = arr[0:period].mean()
     for i in range(period, len(arr)):
         res[i] = alpha * res[i-1] + arr[i] * beta
+
+
+def _rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
+    if axis is not None:
+        return df.apply(lambda x: _rescale(x, range), raw=False, axis=axis, result_type='broadcast')
+    else:
+        rescaler = ReScaler((df.values.min(), df.values.max()), range)
+        rescaled = rescaler(df.values)
+
+        if digits is not None:
+            rescaled = np.around(rescaled, digits)
+
+        if rescaled.ndim > 1:
+            return pd.DataFrame(rescaled, columns=df.columns, index=df.index)
+        else:
+            return pd.Series(rescaled, name=df.name, index=df.index)
+
 
 
 # TODO eventually turn this into a decorator ???

@@ -3,9 +3,9 @@ from unittest import TestCase
 import numpy as np
 
 from pandas_ml_quant import pd
-from pandas_ml_quant.technical_analysis_patch import ta_rnn
+from pandas_ml_quant.technical_analysis_patch import ta_rnn, ta_normalize_row
 from pandas_ml_quant_test.config import DF_TEST
-from pandas_ta_quant.technical_analysis import ta_rescale, ta_normalize_row
+from pandas_ta_quant.technical_analysis import ta_rescale
 
 
 class TestRegressionLagging(TestCase):

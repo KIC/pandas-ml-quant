@@ -1,26 +1,20 @@
 from unittest import TestCase
 
 import numpy as np
-import pandas as pd
 
-from pandas_ta_quant.technical_analysis import ta_ma_ratio, ta_normalize_row, ta_delta_hedged_price
-from pandas_ta_quant_test.config import DF_TEST, DF_TEST2
+from pandas_ta_quant.technical_analysis import ta_ma_ratio, ta_returns, ta_cumret, ta_log_returns, ta_performance, \
+    ta_cumlogret, ta_realative_candles
+from pandas_ta_quant_test.config import DF_TEST
 
 
 class TestNormalizer(TestCase):
 
-    def test_normalize_row(self):
-        df = pd.DataFrame({"a": [1,2,3], "b": [3,6,9]})
-        mm01 = ta_normalize_row(df, 'minmax01')
-        mm11 = ta_normalize_row(df, 'minmax-11')
-        std = ta_normalize_row(df, 'standard')
-        uni = ta_normalize_row(df, 'uniform')
+    def test_relative_candles(self):
+        df = DF_TEST[-2:].copy()
+        relative = ta_realative_candles(df, volume=None)
 
-        np.testing.assert_array_almost_equal(mm01.values, np.stack([np.zeros(3), np.ones(3)], axis=1))
-        np.testing.assert_array_almost_equal(mm11.values, np.stack([np.zeros(3) - 1, np.ones(3)], axis=1))
-        np.testing.assert_array_almost_equal(std.values, np.array([[-1,  1], [0, 4], [1,  7]]))
-        # since we only have 2 columns and we want the values to be unified we assume both be the same
-        np.testing.assert_array_almost_equal(uni.values, np.ones((3, 2)))
+        np.testing.assert_array_almost_equal(np.array([0.002469,  0.002021,  0.002533, -0.002829]),
+                                             relative.values[-1])
 
     def test_ma_ratio(self):
         df = DF_TEST
@@ -29,10 +23,18 @@ class TestNormalizer(TestCase):
         print(ma_ration_scaled.columns)
         self.assertTrue(True)
 
-    def test_delta_hedged_prices(self):
-        df = DF_TEST
-        bench = DF_TEST2["Close"]
+    def test_cumret(self):
+        c = DF_TEST["Close"]
+        perf = (1 + c.pct_change()).cumprod().rename("perf")
+        cumrets = ta_cumret(ta_returns(c, 2), 2).rename("cumrets")
 
-        self.assertEqual((3788, 6), ta_delta_hedged_price(df, bench).shape)
-        self.assertEqual((3788,), ta_delta_hedged_price(df["Close"], bench).shape)
-        self.assertEqual((6763, 5), ta_delta_hedged_price(df, "Open").shape)
+        results = perf.to_frame().join(cumrets).dropna()
+        np.testing.assert_array_almost_equal(results["cumrets"].values[-20:-2], results["perf"].values[-20:-2])
+
+    def test_cumlogret(self):
+        c = DF_TEST["Close"]
+        perf = ta_performance(c)
+        logret = ta_log_returns(c)
+        cumrets = ta_cumlogret(logret)
+
+        np.testing.assert_array_almost_equal(cumrets.values, perf.values)
