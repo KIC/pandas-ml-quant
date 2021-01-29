@@ -78,12 +78,13 @@ class PricePredictionSummary(Summary):
 
         try:
             # compound
-            comp_lower = (self.prediction_reconstruction * pd.Series(self.lower + 1, index=self.predicted_returns.index)).dropna()
-            comp_upper = (self.prediction_reconstruction * pd.Series(self.upper + 1, index=self.predicted_returns.index)).dropna()
+            comp_lower = pd.concat([self.prediction_reconstruction, pd.Series(self.lower + 1, index=self.predicted_returns.index)], join='inner', axis=1).apply(np.prod, axis=1).dropna()
+            comp_upper = pd.concat([self.prediction_reconstruction, pd.Series(self.upper + 1, index=self.predicted_returns.index)], join='inner', axis=1).apply(np.prod, axis=1).dropna()
+            # print(comp_lower.shape, comp_upper.shape)
 
             self.label_reconstruction.dropna().plot(ax=ax[0])
             self.prediction_reconstruction.dropna().plot(ax=ax[0], color='orange')
-            ax[0].fill_between(comp_lower.index, comp_lower.values, comp_upper.values, color='orange', alpha=.25)
+            ax[0].fill_between(comp_lower.index, comp_lower.values.squeeze(), comp_upper.values.squeeze(), color='orange', alpha=.25)
             ax[0].legend(['Label', 'Prediction'])
 
             # returns
