@@ -39,7 +39,7 @@ option to move the modules into their own repository in the future if there will
 
 The submodules are:
  * pandas-ml-1ntegration-test  more complex tests involving several modules and eventually external data
- * pandas-ml-airflow  very experimental module to integrate models withing apache airflow 
+ * pandas-ml-airflow  very experimental module to integrate models within apache airflow 
  * pandas-ml-common  functionalities around data access and preparation like train/test splitting, cross validation, ...   
  * pandas-ml-quant  enhancing pandas-ml-utils for modeling financial timeseries
  * pandas-ml-quant-rl  very experimental module for reinforcement learning
@@ -71,7 +71,7 @@ with df.model('file_name') as m:
     # and create all objects needed for your model
     # this makes sure when you save (pickle) your model that it can load conveniently without polluting
     # your global name space   
-    from pandas_ml_utils import SkModel, FeaturesAndLabels, RegressionSummary, naive_splitter
+    from pandas_ml_utils import SkModel, FeaturesAndLabels, FittingParameter, RegressionSummary, naive_splitter
     from sklearn.neural_network import MLPRegressor
 
     fit = m.fit(
@@ -88,7 +88,7 @@ with df.model('file_name') as m:
             ),
             summary_provider=RegressionSummary
         ),
-        naive_splitter()
+        FittingParameter(naive_splitter())
     )
 
  
