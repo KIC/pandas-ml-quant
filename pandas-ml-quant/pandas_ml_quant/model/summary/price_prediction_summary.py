@@ -77,9 +77,13 @@ class PricePredictionSummary(Summary):
         fig, ax = plt.subplots(2, 1, figsize=self.figsize, sharex=True)
 
         try:
-            # comptound
+            # compound
+            comp_lower = (self.prediction_reconstruction * pd.Series(self.lower + 1, index=self.predicted_returns.index)).dropna()
+            comp_upper = (self.prediction_reconstruction * pd.Series(self.upper + 1, index=self.predicted_returns.index)).dropna()
+
             self.label_reconstruction.dropna().plot(ax=ax[0])
-            self.prediction_reconstruction.dropna().plot(ax=ax[0])
+            self.prediction_reconstruction.dropna().plot(ax=ax[0], color='orange')
+            ax[0].fill_between(comp_lower.index, comp_lower.values, comp_upper.values, color='orange', alpha=.25)
             ax[0].legend(['Label', 'Prediction'])
 
             # returns
@@ -111,6 +115,7 @@ class PricePredictionSummary(Summary):
             (self.label_returns.values.squeeze() < self.lower).sum()
 
         return pd.DataFrame({
+            "last date": [dfpp.index[-1]],
             "mse": [mse],
             "Direction Correct Ratio": [direction_correct_ratio],
             "Correlation": [corr],
