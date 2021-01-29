@@ -2,10 +2,28 @@ from unittest import TestCase
 
 from pandas_ml_common import pd
 from pandas_ml_common.decorator import MultiFrameDecorator
-from pandas_ml_common.utils import intersection_of_index, loc_if_not_none
+from pandas_ml_common.utils import intersection_of_index, loc_if_not_none, add_multi_index, get_pandas_object, Constant
 
 
 class TestDfIndexUtils(TestCase):
+
+    def test_get_pandas_obj(self):
+        df = pd.DataFrame({"hallo": [1, 2, 3]})
+        dfmi = df.copy()
+        dfmi.columns = pd.MultiIndex.from_product([["a"], dfmi.columns])
+
+        self.assertIsNone(get_pandas_object(df, None))
+        self.assertListEqual([1, 2, 3], get_pandas_object(df, "hallo").to_list())
+        self.assertListEqual([9, 9, 9], get_pandas_object(df, Constant(9)).to_list())
+        self.assertListEqual([2., 4., 6.], get_pandas_object(df, 2.0, {float: lambda df, item, **kwargs: df["hallo"] * item}).to_list())
+        self.assertListEqual([2, 4, 6], get_pandas_object(df, df["hallo"] * 2).to_list())
+        self.assertListEqual([2, 4, 6], get_pandas_object(df, lambda df: df["hallo"] * 2).to_list())
+        self.assertEqual((3, 0), get_pandas_object(df, "allo").shape)
+
+        self.assertListEqual([1, 2, 3], get_pandas_object(dfmi, "hallo").iloc[:,0].to_list())
+        self.assertListEqual([1, 2, 3], get_pandas_object(dfmi, "a").iloc[:,0].to_list())
+        self.assertListEqual([1, 2, 3], get_pandas_object(dfmi, ".*ll.*").iloc[:, 0].to_list())
+        self.assertEqual((3, 0), get_pandas_object(dfmi, "allo").shape)
 
     def test_intersection_of_index(self):
         df1 = pd.DataFrame({}, index=[1, 2, 3, 4])
@@ -33,3 +51,14 @@ class TestDfIndexUtils(TestCase):
 
         self.assertListEqual([3, 4], index1.tolist())
         self.assertListEqual([3, 4], index2.tolist())
+
+    def test_add_multi_index(self):
+        df = pd.DataFrame({}, index=[1, 2, 3, 4])
+        df1 = add_multi_index(df, "A", axis=0)
+        df2 = add_multi_index(df1, "B", axis=0, level=1)
+        df3 = add_multi_index(df1, "B", axis=0, level=2)
+        # print(df3)
+
+        self.assertListEqual(df1.index.to_list(), [("A", 1), ("A", 2), ("A", 3), ("A", 4)])
+        self.assertListEqual(df2.index.to_list(), [("A", "B", 1), ("A", "B", 2), ("A", "B", 3), ("A", "B", 4)])
+        self.assertListEqual(df3.index.to_list(), [(1, "A", "B"), (2, "A", "B"), (3, "A", "B"), (4, "A", "B")])

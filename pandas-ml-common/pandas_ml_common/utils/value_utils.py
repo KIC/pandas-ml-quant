@@ -1,24 +1,36 @@
 import logging
+from typing import List, Union, Any
 
 import numpy as np
 import pandas as pd
+from pandas.core.base import PandasObject
+
+from pandas_ml_common.utils.index_utils import unique_level_rows
 
 _log = logging.getLogger(__name__)
 
 
-def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
-    # get raw values
-    values = df.values
-    res = None
+def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_multi_index_rows=True, dtype=None) -> Union[List[np.ndarray], np.ndarray]:
+    if df is None:
+        return None
+    elif isinstance(df, PandasObject):
+        # in case of multiple assets stacked on top of each other
+        if split_multi_index_rows and isinstance(df.index, pd.MultiIndex) and df.index.nlevels > 1:
+            return [unpack_nested_arrays(df.loc[group], split_multi_index_rows, dtype) for group in unique_level_rows(df)]
+        else:
+            values = df.values
+    else:
+        values = df
 
     # un-nest eventually nested numpy arrays
+    res = None
     if values.dtype == 'object':
         _log.debug("unnesting objects, expecting numpy arrays")
 
         if values.ndim > 1:
             # stack all rows per column then stack all columns
-            res = np.array([np.array([np.array(v) for v in values[:, col]]) for col in range(values.shape[1])]) \
-                    .swapaxes(0, 1)
+            column_values = [np.array([np.array(v, dtype=dtype) for v in values[:, col]]) for col in range(values.shape[1])]
+            res = np.array(column_values).swapaxes(0, 1)  # ignore warning as this throws an exception anyways
         else:
             # stack all rows
             res = np.array([np.array(v) for v in values])
@@ -26,9 +38,36 @@ def unpack_nested_arrays(df: pd.DataFrame) -> np.ndarray:
         res = values
 
     if res.ndim == 3 and res.shape[1] == 1:
-        return res[:, 0, :]
-    else:
-        return res
+        res = res[:, 0, :]
+    if res.ndim == 3 and res.shape[-1] == 1:
+        res = res[:, :, 0]
+
+    return res
+
+
+def wrap_row_level_as_nested_array(df: pd.DataFrame, row_level=-1, column_name=None, dropna=True):
+    if not isinstance(df.index, pd.MultiIndex):
+        return df
+
+    if dropna: df = df.dropna()
+
+    queries = {i[:row_level] + (i[row_level + 1:] if len(i[row_level:]) > 1 else ()) for i in df.index}
+    column_name = ", ".join([str(c) for c in df.columns]) if column_name is None else column_name
+    column = np.empty(len(queries), dtype=object)
+
+    for i, query in enumerate(queries):
+        column[i] = df.loc[query].values.tolist()
+
+    res = pd.DataFrame({column_name: column}, index=queries)
+    if res.index.nlevels == 1:
+        res.index = [i[0] for i in res.index]
+
+    return res
+
+
+def hexplode(df: pd.DataFrame, col_name: Any, new_columns) -> pd.DataFrame:
+    t = pd.DataFrame(df[col_name].tolist(), columns=new_columns, index=df.index)
+    return pd.concat([df.drop(col_name, axis=1), t], axis=1)
 
 
 def to_pandas(arr, index, columns) -> pd.DataFrame:
@@ -103,3 +142,36 @@ def to_pandas(arr, index, columns) -> pd.DataFrame:
             df[col] = arr if i <= 0 else np.nan
 
     return df
+
+
+def as_list(value):
+    return value if value is None or isinstance(value, (tuple, list)) else [value]
+
+
+def get_correlation_pairs(df: pd.DataFrame):
+    corr = df.corr().abs()
+
+    # eventually flatten MultiIndex
+    if isinstance(corr.columns, pd.MultiIndex):
+        corr.columns = corr.columns.tolist()
+        corr.index = corr.index.tolist()
+
+    redundant = {(df.columns[i], df.columns[j]) for i in range(0, df.shape[1]) for j in range(0, i + 1)}
+    sorted_corr = corr.unstack().drop(labels=redundant).sort_values()
+    return corr, sorted_corr
+
+
+def cumcount(s: pd.Series):
+    last_value = None
+    count = 1
+    res = {}
+
+    for i, v in s.iteritems():
+        if last_value == v:
+            count += 1
+        else:
+            res[i] = count
+            last_value = v
+            count = 1
+
+    return pd.Series(res, name=f'cumcount({s.name})')

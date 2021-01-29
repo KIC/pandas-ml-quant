@@ -1,0 +1,11 @@
+cachetools
+fredapi
+investpy
+numpy
+pandas
+pangres
+simple-plugin-loader
+sortedcontainers
+sqlalchemy
+yfinance
+cachier

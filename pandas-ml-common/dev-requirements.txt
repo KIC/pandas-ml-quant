@@ -1,3 +1,5 @@
+ipykernel
+nbconvert
+nbformat
+scikit-learn
 twine
-keras
-tensorflow<2

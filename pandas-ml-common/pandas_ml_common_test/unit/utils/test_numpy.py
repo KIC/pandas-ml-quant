@@ -1,7 +1,7 @@
 from unittest import TestCase
 import numpy as np
 
-from pandas_ml_common.utils.numpy_utils import get_buckets, CircularBuffer
+from pandas_ml_common.utils.numpy_utils import get_buckets, CircularBuffer, one_hot
 
 
 class TestNumpyUtils(TestCase):
@@ -35,3 +35,12 @@ class TestNumpyUtils(TestCase):
         np.testing.assert_array_equal(b.get_filled(), np.arange(10, 20).astype(float))
         np.testing.assert_array_equal(b2.get_filled(), np.arange(0, 5).astype(float))
 
+    def test_one_hot(self):
+        """given integer numbers"""
+        x = np.arange(5)
+
+        """when one hot encoded"""
+        ohx = one_hot(x, None)
+
+        """then x is one hot encoded"""
+        np.testing.assert_array_equal(ohx, np.eye(5))

@@ -1,5 +1,6 @@
 .venv/
 .idea/
+.tox/
 .ipynb_checkpoints/
 __pycache__/
 .pytest_cache/
@@ -10,6 +11,8 @@ __pycache__/
 dist/
 _build/
 .scratch.py
+scratch/
+scratch.*
 __temp__.*
 *_output.ipynb
 /pandas-ml-1ntegration-test/test/test_4_debug.py
@@ -17,3 +20,5 @@ private/
 mount.sh
 streamlit_apps/models/
 *.kic
+/pandas-ml-airflow/scratch/
+*.old

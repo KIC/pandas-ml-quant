@@ -1,5 +1,7 @@
 from unittest import TestCase
+
 import numpy as np
+
 from pandas_ml_quant.utils import index_of_bucket
 
 

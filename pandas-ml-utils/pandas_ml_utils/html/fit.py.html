@@ -1,10 +1,13 @@
 <%include file="./style.html" />
 
 <div style="width: 100%; overflow-x: scroll;">
-    <div class="full-width">
+    % if loss_plot is not None:
         <h2>Loss</h2>
-        <img src="${loss_plot}" />
-    </div>
+        <div class="full-width">
+            <img src="${loss_plot}" />
+        </div>
+    % endif
+
     <h2>Summary</h2>
     <table class="full-width">
         <thead>
@@ -15,8 +18,8 @@
         </thead>
         <tbody>
             <tr>
-                <td>${fit.training_summary._repr_html_()}</td>
-                <td>${fit.test_summary._repr_html_()}</td>
+                <td width="50%">${fit.training_summary._repr_html_()}</td>
+                <td width="50%">${fit.test_summary._repr_html_()}</td>
             </tr>
             <tr>
                 <td colspan="2">

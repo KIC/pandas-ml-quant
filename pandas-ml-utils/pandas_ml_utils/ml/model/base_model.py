@@ -1,14 +1,24 @@
+import logging
 import os
+from abc import abstractmethod
+from collections import defaultdict
 from copy import deepcopy
-from typing import Callable, Tuple
+from functools import partial
+from typing import Callable, Tuple, List
 
 import dill as pickle
 import numpy as np
+import pandas as pd
 
-from pandas_ml_common import Typing
+from pandas_ml_common import Typing, Sampler, LazyInit
+from pandas_ml_common.sampling.sampler import XYWeight
+from pandas_ml_common.utils import merge_kwargs, call_callable_dynamic_args
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
-from pandas_ml_utils.ml.data.splitting.sampeling import Sampler
+from pandas_ml_utils.ml.fitting import FittingParameter
 from pandas_ml_utils.ml.summary import Summary
+
+_log = logging.getLogger(__name__)
 
 
 class Model(object):
@@ -53,8 +63,10 @@ class Model(object):
         """
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
-        self._validation_indices = []
-        self._history = []
+        self._history = defaultdict(dict)
+        self._labels_columns = None
+        self._feature_columns = None
+        self._fit_meta_data: FittingParameter = None
         self.kwargs = kwargs
 
     @property
@@ -65,21 +77,105 @@ class Model(object):
     def summary_provider(self):
         return self._summary_provider
 
-    @property
-    def validation_indices(self):
-        return self._validation_indices
+    def fit(self, x_y_weights: XYWeight, fitting_parameter: FittingParameter, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
+        self._fit_meta_data = fitting_parameter
+        self.init_fit(**kwargs)
+        processed_batches = 0
 
-    def __getitem__(self, item):
-        """
-        returns arguments which are stored in the kwargs filed. By providing a tuple, a default in case of missing
-        key can be specified
-        :param item: name of the item im the kwargs dict or tuple of name, default
-        :return: item or default
-        """
-        if isinstance(item, tuple) and len(item) == 2:
-            return self.kwargs[item[0]] if item[0] in self.kwargs else item[1]
+        sampler = self._sampler_with_callbacks(
+            Sampler(
+                x_y_weights,
+                splitter=fitting_parameter.splitter,
+                filter=fitting_parameter.filter,
+                cross_validation=fitting_parameter.cross_validation,
+                epochs=fitting_parameter.epochs,
+                fold_epochs=fitting_parameter.fold_epochs,
+                batch_size=fitting_parameter.batch_size
+            ),
+            verbose,
+            callbacks
+        )
+
+        for batch in sampler.sample_for_training():
+            self.fit_batch(batch.x, batch.y, batch.weight, batch.fold, **kwargs)
+            processed_batches += 1
+
+        if processed_batches <= 0:
+            raise ValueError(f"Not enough data {[len(f) for f in sampler.frames[0]]}")
+
+        training_data = sampler.get_in_sample_features()
+        df_training_prediction = self.train_predict(training_data, **kwargs)
+
+        test_data = sampler.get_out_of_sample_features()
+        df_test_prediction = self.predict(test_data) if len(test_data) > 0 else pd.DataFrame({})
+
+        return df_training_prediction, df_test_prediction
+
+    def _sampler_with_callbacks(self, sampler: Sampler, verbose: int = 0, callbacks=None) -> Sampler:
+        return sampler.with_callbacks(
+            on_start=self._record_meta,
+            on_fold=self.init_fold,
+            after_fold_epoch=partial(self._record_loss, callbacks=callbacks, verbose=verbose),
+            after_epoch=self.merge_folds,
+            after_end=self.finish_learning
+        )
+
+    def _record_meta(self, epochs, batch_size, fold_epochs, cross_validation, features, labels: List[str]):
+        partial_fit = any([size > 1 for size in [epochs, batch_size, fold_epochs] if size is not None])
+        self._labels_columns = labels
+        self._feature_columns = features
+
+    def _record_loss(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks, loss_history_key=None):
+        train_loss = self.calculate_loss(fold, train_data.x, train_data.y, train_data.weight)
+        self._history["train", loss_history_key or fold][(epoch, fold_epoch)] = train_loss
+
+        if len(test_data) > 0:
+            test_loss = np.array([self.calculate_loss(fold, x, y, w) for x, y, w in test_data if len(x) > 0]).mean()
         else:
-            return self.kwargs[item] if item in self.kwargs else None
+            test_loss = np.NaN
+        self._history["test", loss_history_key or fold][(epoch, fold_epoch)] = test_loss
+
+        self.after_fold_epoch(epoch, fold, fold_epoch, train_loss, test_loss)
+        if verbose > 0:
+            print(f"epoch: {epoch}, train loss: {train_loss}, test loss: {test_loss}")
+
+        call_callable_dynamic_args(
+            callbacks,
+            epoch=epoch, fold=fold, fold_epoch=fold_epoch, loss=train_loss, val_loss=test_loss,
+            y_train=train_data.y, y_test=[td.y for td in test_data],
+            y_hat_train=LazyInit(lambda: self.predict(train_data.x)),
+            y_hat_test=[LazyInit(lambda: self.predict(td.x)) for td in test_data]
+        )
+
+    def init_fit(self, **kwargs):
+        pass
+
+    def init_fold(self, epoch: int, fold: int):
+        pass
+
+    @abstractmethod
+    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
+        raise NotImplemented
+
+    def after_fold_epoch(self, epoch, fold, fold_epoch, loss, val_loss):
+        pass
+
+    @abstractmethod
+    def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
+        raise NotImplemented
+
+    def merge_folds(self, epoch: int):
+        pass
+
+    def train_predict(self, *args, **kwargs) -> Typing.PatchedDataFrame:
+        return self.predict(*args, **kwargs)
+
+    @abstractmethod
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples: int = 1, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
+
+    def finish_learning(self):
+        pass
 
     def save(self, filename: str):
         """
@@ -92,78 +188,20 @@ class Model(object):
 
         print(f"saved model to: {os.path.abspath(filename)}")
 
-    def fit(self, sampler: Sampler, **kwargs) -> float:
-        """
-        draws folds from the data generator as long as it yields new data and fits the model to one fold
-
-        :param sampler: a data generating process class:`pandas_ml_utils.ml.data.splitting.sampeling.Sampler`
-        :return: returns the average loss over oll folds
-        """
-
-        # sample: train[features, labels, target, weights], test[features, labels, target, weights]
-        losses = [self.fit_fold(i, s[0][0], s[0][1], s[1][0], s[1][1], s[0][3], s[1][3], **kwargs)
-                  for i, s in enumerate(sampler.sample())]
-
-        self._history = losses
-
-        # this loss is used for hyper parameter tuning so we take the average of the minimum loss of each fold
-        return np.array([(fold_loss[0].min() if fold_loss[0].size > 0 else np.nan) for fold_loss in losses]).mean()
-
-    def plot_loss(self, figsize=(8, 6), secondary_y=False, **kwargs):
+    def plot_loss(self, figsize=(8, 6), **kwargs):
         """
         plot a diagram of the training and validation losses per fold
         :return: figure and axis
         """
 
         import matplotlib.pyplot as plt
+        cm = 'tab20c'  # 'Pastel1'
+        df = pd.DataFrame(self._history)
         fig, ax = plt.subplots(1, 1, figsize=(figsize if figsize else plt.rcParams.get('figure.figsize')))
-
-        for fold_nr, fold_loss in enumerate(self._history):
-            p = ax.plot(fold_loss[0], '-', label=f'{fold_nr}: loss')
-            ax2 = ax.twinx() if secondary_y else ax
-            ax2.plot(fold_loss[1], '--', color=p[-1].get_color(), label=f'{fold_nr}: val loss')
-
+        df['test'].plot(style='--', colormap=cm, ax=ax)
+        df['train'].plot(colormap=cm, ax=ax)
         plt.legend(loc='upper right')
-        return fig, ax
-
-    def predict(self, sampler: Sampler, **kwargs) -> np.ndarray:
-        """
-        predict as many samples as we can sample from the sampler
-
-        :param sampler:
-        :return:
-        """
-        # make shape (rows, samples, ...)
-        return np.array([self.predict_sample(t[0]) for (t, _) in sampler.sample()]).swapaxes(0, 1)
-
-    def fit_fold(self,
-                 fold_nr: int,
-                 x: np.ndarray, y: np.ndarray,
-                 x_val: np.ndarray, y_val: np.ndarray,
-                 sample_weight_train: np.ndarray, sample_weight_test: np.ndarray,
-                 **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        function called to fit the model to one fold of the data generator (i.e. k-folds)
-        :param fold_nr: number of fold in case of cross validation is used
-        :param x: x
-        :param y: y
-        :param x_val: x validation
-        :param y_val: y validation
-        :param sample_weight_train: sample weights for loss penalisation (default np.ones)
-        :param sample_weight_test: sample weights for loss penalisation (default np.ones)
-        :return: loss of the fit
-        """
-        pass
-
-    def predict_sample(self, x: np.ndarray, **kwargs) -> np.ndarray:
-        """
-        prediction of the model for each sample and target
-
-        :param x: x
-        :return: prediction of the model for each target
-        """
-
-        pass
+        return fig
 
     def __call__(self, *args, **kwargs):
         """
@@ -174,8 +212,81 @@ class Model(object):
         :param kwargs: arguments which are eventually provided by hyperopt or by different targets
         :return:
         """
-        if not kwargs:
-            return deepcopy(self)
+        copy = deepcopy(self)
+        copy.kwargs = merge_kwargs(copy.kwargs, kwargs)
+        return copy
+
+
+class AutoEncoderModel(Model):
+
+    # mode constants
+    AUTOENCODE = 'autoencode'
+    ENCODE = 'encode'
+    DECODE = 'decode'
+
+    def __init__(self,
+                 features_and_labels: FeaturesAndLabels,
+                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 **kwargs):
+        super().__init__(features_and_labels, summary_provider, **kwargs)
+        self.mode = AutoEncoderModel.AUTOENCODE
+
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
+        if self.mode == AutoEncoderModel.AUTOENCODE:
+            return self._auto_encode(features, samples, **kwargs)
+        elif self.mode == AutoEncoderModel.ENCODE:
+            return self._encode(features, samples, **kwargs)
+        elif self.mode == AutoEncoderModel.DECODE:
+            return self._decode(latent, samples, **kwargs)
         else:
-            raise ValueError(f"construction of model with new parameters is not supported\n{type(self)}: {kwargs}")
+            raise ValueError("Illegal mode")
+
+    def as_auto_encoder(self) -> 'AutoEncoderModel':
+        copy = self()
+        copy.mode = AutoEncoderModel.AUTOENCODE
+        return copy
+
+    def as_encoder(self) -> 'AutoEncoderModel':
+        copy = self()
+        copy.mode = AutoEncoderModel.ENCODE
+        return copy
+
+    def as_decoder(self) -> 'AutoEncoderModel':
+        copy = self()
+        copy.mode = AutoEncoderModel.DECODE
+        return copy
+
+    @abstractmethod
+    def _auto_encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
+
+    @abstractmethod
+    def _encode(self, features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
+
+    @abstractmethod
+    def _decode(self, latent_features: pd.DataFrame, samples, **kwargs) -> Typing.PatchedDataFrame:
+        raise NotImplemented
+
+
+class SubModelFeature(object):
+
+    def __init__(self, name: str, model: Model):
+        self.name = name
+        self.model = model
+
+    def fit(self, df: Typing.PatchedDataFrame, **kwargs):
+        _log.info(f"fitting submodel: {self.name}")
+        with df.model() as m:
+            fit = m.fit(self.model, **kwargs)
+            self.model = fit.model
+
+        _log.info(f"fitted submodel: {fit}")
+        return self.predict(df, **kwargs)
+
+    def predict(self, df: Typing.PatchedDataFrame, **kwargs):
+        if isinstance(self.model, AutoEncoderModel):
+            return df.model.predict(self.model.as_encoder(), **kwargs)[PREDICTION_COLUMN_NAME]
+        else:
+            return df.model.predict(self.model, **kwargs)[PREDICTION_COLUMN_NAME]
 

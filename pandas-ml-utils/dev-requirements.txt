@@ -1,6 +1,5 @@
-twine
-tensorflow<2
-keras
-keras-rl
-gym
-torch
+drawilleplot
+ipykernel
+jupyter_client
+matplotlib
+nbconvert

@@ -1,10 +1,10 @@
 import logging
 import re
-from collections import OrderedDict, Callable
-from typing import List, Iterable
+from collections import OrderedDict
+from typing import List, Union, Callable
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pandas.core.base import PandasObject
 
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
@@ -13,20 +13,43 @@ from pandas_ml_common.utils.types import Constant
 _log = logging.getLogger(__name__)
 
 
+def concat_indices(indices: List[pd.Index]):
+    if indices is None or len(indices) < 2:
+        return indices
+
+    idx = indices[0] if isinstance(indices[0], pd.Index) else pd.Index(indices[0])
+
+    for i in range(1, len(indices)):
+        idx = idx.append(indices[i] if isinstance(indices[i], pd.Index) else pd.Index(indices[i]))
+
+    return idx
+
+
 def has_indexed_columns(po: PandasObject):
     return hasattr(po, "columns") and isinstance(po.columns, pd.Index)
 
 
-def flatten_multi_column_index(df: pd.DataFrame):
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.tolist()
+def flatten_multi_column_index(df: pd.DataFrame, as_string=False):
+    if df.ndim > 1:
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [", ".join(col) for col in df.columns.tolist()] if as_string else df.columns.tolist()
 
     return df
 
 
-def add_multi_index(df, head, inplace=False):
+def add_multi_index(df, head, inplace=False, axis=1, level=0):
     df = df if inplace else df.copy()
-    df.columns = pd.MultiIndex.from_product([[head], df.columns.tolist()])
+
+    if axis == 0:
+        df.index = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.index.tolist()]).swaplevel(0, level)
+    elif axis == 1:
+        if df.ndim > 1:
+            df.columns = pd.MultiIndex.from_tuples([(head, *(t if isinstance(t, tuple) else (t, ))) for t in df.columns.tolist()]).swaplevel(0, level)
+        else:
+            df.name = (head, df.name)
+    else:
+        raise ValueError("illegal axis, expected 0|1")
+
     return df
 
 
@@ -40,7 +63,13 @@ def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_m
         else:
             return join
 
+    if len(join) <= 0:
+        _log.warning(f"right dataframe is empty: {prefix}")
+
     if force_multi_index:
+        if not isinstance(join, pd.DataFrame):
+            join = join.to_frame()
+
         if not isinstance(df.columns, pd.MultiIndex) and len(df.columns) > 0:
             if len(prefix_left) <= 0:
                 raise ValueError("You need to provide a prefix_left")
@@ -68,11 +97,17 @@ def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_m
 
 
 def unique_level_columns(df: pd.DataFrame, level=0):
-    return unique(df.columns.get_level_values(level)) if isinstance(df.columns, pd.MultiIndex) else df.columns
+    idx = df if isinstance(df, pd.Index) else df.columns
+    return unique_level(idx, level)
 
 
-def unique_level_rows(df: pd.DataFrame, level=0):
-    return unique(df.index.get_level_values(level)) if isinstance(df.index, pd.MultiIndex) else df.index
+def unique_level_rows(df: Union[pd.DataFrame, pd.Index], level=0):
+    idx = df if isinstance(df, pd.Index) else df.index
+    return unique_level(idx, level)
+
+
+def unique_level(idx: pd.Index, level=0):
+    return unique(idx.get_level_values(level)) if isinstance(idx, pd.MultiIndex) else idx
 
 
 def unique(items):
@@ -95,7 +130,7 @@ def intersection_of_index(*dfs: pd.DataFrame):
         if dfs[i] is not None:
             intersect_index = intersect_index.intersection(dfs[i].index)
 
-    return intersect_index
+    return intersect_index.sort_values()
 
 
 def loc_if_not_none(df, value):
@@ -105,12 +140,14 @@ def loc_if_not_none(df, value):
         return df.loc[value]
 
 
-def get_pandas_object(po: PandasObject, item, **kwargs):
+def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
     if item is None:
         _log.info("passed item was None")
         return None
     elif isinstance(item, Constant):
         return pd.Series(np.full(len(po), item.value), name=f"{item.value}", index=po.index)
+    elif type_map is not None and type(item) in type_map:
+        return call_callable_dynamic_args(type_map[type(item)], po, item, **kwargs)
     elif isinstance(item, PandasObject):
         return item
     else:
@@ -124,7 +161,7 @@ def get_pandas_object(po: PandasObject, item, **kwargs):
         if isinstance(item, List):
             res = None
             for sub_item in item:
-                sub_po = get_pandas_object(po, sub_item, **kwargs)
+                sub_po = get_pandas_object(po, sub_item, type_map, **kwargs)
                 if sub_po is None:
                     pass  # do nothing
                 if isinstance(sub_po, pd.Series):

@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from numba import guvectorize, float32, int32, float64, int64
 
-from pandas_ml_common.utils import has_indexed_columns
-
 
 def returns_to_log_returns(returns):
     return np.log(1 + returns)
@@ -26,13 +24,14 @@ def wilders_smoothing(arr: np.ndarray, period: int, res: np.ndarray):
         res[i] = alpha * res[i-1] + arr[i] * beta
 
 
+# TODO eventually turn this into a decorator ???
 def with_column_suffix(suffix, po, ref_po=None):
     if ref_po is None:
         ref_po = po
 
-    if has_indexed_columns(po):
-        if isinstance(po.index, pd.MultiIndex):
-            po.columns = pd.MultiIndex.from_tuples([(suffix, *col) for col in ref_po.columns.to_list()])
+    if po.ndim > 1:
+        if isinstance(po.columns, pd.MultiIndex):
+            po.columns = pd.MultiIndex.from_tuples([(f'{col[0]}_{suffix}', *col[1:]) for col in ref_po.columns.to_list()])
             return po
         else:
             po.columns = ref_po.columns

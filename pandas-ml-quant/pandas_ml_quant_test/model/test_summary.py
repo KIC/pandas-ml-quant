@@ -1,11 +1,13 @@
 from unittest import TestCase
 
+import numpy as np
+import pandas as pd
+
 from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_quant.model.summary import WeightedClassificationSummary
-from pandas_ml_quant_test.config import DF_TEST_MULTI_CASS
+from pandas_ml_quant.model.summary.portfolio_weights_summary import PortfolioWeightsSummary
+from pandas_ml_quant_test.config import DF_TEST_MULTI_CLASS, DF_TEST_MULTI
 from pandas_ml_utils.constants import *
-import pandas as pd
-import numpy as np
 
 
 class TestSummary(TestCase):
@@ -14,7 +16,7 @@ class TestSummary(TestCase):
         # df = DF_TEST_MULTI_CASS
         target = np.arange(1, 4)
         price = np.arange(0, 4) + 0.5
-        labels = [one_hot(np.arange(0, 4), len(target) + 1).tolist() for _ in range(len(price))]
+        labels = [one_hot(np.random.randint(0, len(target)), len(target) + 1).tolist() for _ in range(len(price))]
 
         predictions = range(len(price))
         expected_losses = [0.0, -0.5, -0.5, 0]
@@ -33,7 +35,7 @@ class TestSummary(TestCase):
         # df = DF_TEST_MULTI_CASS
         target = np.arange(1, 5)
         price = np.arange(0, 5) + 0.5
-        labels = [one_hot(np.arange(0, 4), len(target) + 1).tolist() for _ in range(len(price))]
+        labels = [one_hot(np.random.randint(0, len(target)), len(target) + 1).tolist() for _ in range(len(price))]
 
         predictions = range(len(price))
         expected_losses = [0.0, -0.5, -0.5, 0]
@@ -49,7 +51,8 @@ class TestSummary(TestCase):
             print(s.df_gross_loss)
 
     def test_multi_class_summary(self):
-        df = DF_TEST_MULTI_CASS
+        df = DF_TEST_MULTI_CLASS
         s = WeightedClassificationSummary(df, None)
         print(df[TARGET_COLUMN_NAME].shape)
         print(s._gross_confusion())
+

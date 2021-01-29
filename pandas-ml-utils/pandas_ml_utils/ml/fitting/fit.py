@@ -5,7 +5,6 @@ import pandas as pd
 import pandas_ml_utils.html as html
 from pandas_ml_common import Typing
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
-from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -16,7 +15,7 @@ class Fit(object):
     """
 
     def __init__(self,
-                 model: Model,
+                 model: 'Model',
                  training_summary: Summary,
                  test_summary: Summary,
                  trails: Any = None,
@@ -26,6 +25,10 @@ class Fit(object):
         self.test_summary = test_summary
         self._trails = trails
         self._kwargs = kwargs
+        self._hide_loss_plot = False
+
+    def plot_loss(self, figsize=(8, 6), **kwargs):
+        return self.model.plot_loss(figsize, **kwargs)
 
     def values(self):
         """
@@ -56,6 +59,10 @@ class Fit(object):
         """
         self.model.save(filename)
 
+    def with_hidden_loss_plot(self):
+        self._hide_loss_plot = True
+        return self
+
     def with_summary(self, summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary, **kwargs):
         return Fit(self.model,
                    summary_provider(self.training_summary.df, **{**self._kwargs, **kwargs}),
@@ -64,14 +71,27 @@ class Fit(object):
                    **self._kwargs)
 
     def __str__(self):
-        return f"train:\n" \
-               f"{self.training_summary}" \
-               f"\ntest:\n" \
-               f"{self.test_summary}"
+        summaries = f"train:\n{self.training_summary}\ntest:\n{self.test_summary}"
+        backend = None
+        try:
+            import matplotlib
+            backend = matplotlib.get_backend()
+            matplotlib.use('module://drawilleplot')
+            fig = self.model.plot_loss()
+            return f"{fig}\n{summaries}"
+        except:
+            return summaries
+        finally:
+            if backend is not None:
+                import matplotlib
+                matplotlib.use(backend)
 
     def _repr_html_(self):
         from mako.template import Template
         from mako.lookup import TemplateLookup
 
         template = Template(filename=html.FIT_TEMPLATE, lookup=TemplateLookup(directories=['/']))
-        return template.render(fit=self, loss_plot=plot_to_html_img(self.model.plot_loss, **self._kwargs))
+        return template.render(
+            fit=self,
+            loss_plot=plot_to_html_img(self.model.plot_loss, **self._kwargs) if not self._hide_loss_plot else None
+        )

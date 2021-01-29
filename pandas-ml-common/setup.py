@@ -1,24 +1,35 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.1.15'
+__version__ = '0.2.0'
 
 import os
+import re
 from setuptools import setup, find_packages
+
+url = 'https://github.com/KIC/pandas-ml-quant/pandas-ml-common'
+
+
+def fix_github_links(line):
+   fixed_images = re.sub(r'(^\[ghi\d+]:\s+)', f'\\1{url}/raw/{__version__}/', line)
+   fixed_location = re.sub(r'(^\[ghl\d+]:\s+)', f'\\1{url}/tree/{__version__}/', fixed_images)
+   fixed_files = re.sub(r'(^\[ghf\d+]:\s+)', f'\\1{url}/blob/{__version__}/', fixed_location)
+   return fixed_files
 
 
 setup(
-   name=os.path.basename(os.path.dirname(os.path.abspath(__file__))),
+   name="pandas-ml-common",
    version=__version__,
    author='KIC',
    author_email='',
    packages=find_packages(),
    scripts=[],
-   url='https://github.com/KIC/pandas-ml-quant',
+   url=url,
    license='MIT',
    description=__doc__,
-   long_description=open('Readme.md').read(),
+   long_description='\n'.join([fix_github_links(l) for l in open('Readme.md').readlines()]),
    long_description_content_type='text/markdown',
    install_requires=open("requirements.txt").read().splitlines(),
    extras_require={
+      "cross_validation": ["scikit-learn"],
       "dev": open("dev-requirements.txt").read().splitlines(),
    },
    include_package_data=True,

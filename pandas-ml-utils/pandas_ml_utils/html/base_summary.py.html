@@ -1,1 +1,40 @@
-${summary.df._repr_html_() if summary.df is not None else "n.a."}
+<%include file="./style.html" />
+
+<div class="full-width">
+    % if layout is not None:
+        <table width="100%" class="full-width no-boder" cellspacing="0" cellpadding="0">
+            % for row in layout:
+                <tr class="no-border">
+                    % for fig, rowspan, colspan in row:
+                        <td class="no-border va-top" rowspan="${rowspan}" colspan="${colspan}" width="${100 / laypout_nr_columns * colspan}%">
+                            % if fig < 0:
+                                <br/>
+                            % elif figures[fig][0] == 'img':
+                                <img src="${figures[fig][1]}" class="left big" />
+                            % else:
+                                <div class="full-width">
+                                    ${figures[fig][1]}
+                                </div>
+                            % endif
+                        </td>
+                    % endfor
+                </tr>
+            % endfor
+        </table>
+    % else:
+        % for render, fig in figures:
+            <div class="full-width">
+                % if render == 'img':
+                    <img src="${fig}" class="left big" />
+                % else:
+                    <div class="full-width">
+                        ${fig[1]}
+                    </div>
+                % endif
+            </div>
+        % endfor
+        <div class="full-width">
+            ${summary.df._repr_html_()}
+        </div>
+    % endif
+</div>

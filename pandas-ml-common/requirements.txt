@@ -1,7 +1,5 @@
-mpldatacursor
-mplfinance
-matplotlib
+dill
 numpy
 pandas
-numpy
-dill
+scikit-learn
+sortedcontainers

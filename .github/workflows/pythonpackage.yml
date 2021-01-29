@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python package
+name: NOX-Tests
 
 on:
   push:
@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: ["3.8"]
     env:
       LD_LIBRARY_PATH: '/tmp/lib:/usr/lib:/usr/local/lib/'
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install C dependencies
@@ -36,19 +36,29 @@ jobs:
         make
         make install
         pip install TA-Lib
-    - name: Install python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        find . -name *requirements.txt -exec echo install from {} \;
-        find . -name *requirements.txt -exec pip install -r {} \;
-        echo done
-    - name: Lint with flake8
-      run: |
-        pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        python run_all_tests.py
+    - name: Install nox
+      run: pip install -U nox pytest
+    - name: execute nox tests on COMMON
+      working-directory: pandas-ml-common
+      run: nox
+    - name: execute nox tests on ML_UTILS
+      working-directory: pandas-ml-utils
+      run: nox
+    - name: execute nox tests on ML_UTILS_TORCH
+      working-directory: pandas-ml-utils-torch
+      run: nox
+    - name: execute nox tests on TA_QUANT
+      working-directory: pandas-ta-quant
+      run: nox
+    - name: execute nox tests on TA_QUANT_PLOT
+      working-directory: pandas-ta-quant-plot
+      run: nox
+    - name: execute nox tests on ML_QUANT
+      working-directory: pandas-ml-quant
+      run: nox
+    - name: execute nox tests on QUANT_DATA_PROVIDER
+      working-directory: pandas-quant-data-provider
+      run: nox
+    - name: execute nox tests on INTEGRATION
+      working-directory: pandas-ml-1ntegration-test
+      run: nox
