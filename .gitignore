@@ -19,6 +19,10 @@ __temp__.*
 private/
 mount.sh
 streamlit_apps/models/
+streamlit_apps/streamlit/models/
 *.kic
 /pandas-ml-airflow/scratch/
 *.old
+*outnb
+/.run/fetch_optionable_stocks (dolt).run.xml
+/todo.md
