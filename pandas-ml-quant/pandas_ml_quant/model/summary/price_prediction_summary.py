@@ -8,7 +8,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 from pandas_ml_common import Typing
 from pandas_ml_utils import Summary, Model, call_callable_dynamic_args
 from pandas_ml_utils.constants import *
-import scipy.stats as st
+from pandas_ml_utils.ml.confidence import NormalConfidence
 
 
 class PricePredictionSummary(Summary):
@@ -19,7 +19,7 @@ class PricePredictionSummary(Summary):
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame] = lambda y: y.ta.cumret(),
             predicted_returns: Callable[[pd.DataFrame], pd.DataFrame] = lambda y_hat: y_hat,
             predicted_reconstruction: Callable[[pd.DataFrame], pd.DataFrame] = lambda y_hat: y_hat.ta.cumret(),
-            predicted_confidence: Callable[[pd.DataFrame], pd.DataFrame] = lambda y, y_hat: np.sqrt(((y_hat.values - y.values) ** 2).mean()),
+            predicted_std: Callable[[pd.DataFrame], pd.DataFrame] = lambda y, y_hat: np.sqrt(((y_hat.values - y.values) ** 2).mean()),
             **kwargs):
         return lambda df, model, **kwargs2: PricePredictionSummary(
             df,
@@ -28,7 +28,7 @@ class PricePredictionSummary(Summary):
             label_reconstruction,
             predicted_returns,
             predicted_reconstruction,
-            predicted_confidence,
+            predicted_std,
             **{**kwargs, **kwargs2}
         )
 
@@ -41,7 +41,7 @@ class PricePredictionSummary(Summary):
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
             predicted_returns: Callable[[pd.DataFrame], pd.DataFrame],
             predicted_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
-            predicted_confidence: Callable[[pd.DataFrame], pd.DataFrame],
+            predicted_std: Callable[[pd.DataFrame], pd.DataFrame],
             confidence: Union[float, Tuple[float, float]] = 0.95,
             figsize=(16, 16),
             **kwargs):
@@ -59,18 +59,17 @@ class PricePredictionSummary(Summary):
         self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df)
         self.predicted_returns = call_callable_dynamic_args(predicted_returns, y_hat=df[PREDICTION_COLUMN_NAME], df=df)
         self.prediction_reconstruction = call_callable_dynamic_args(predicted_reconstruction, y_hat=self.predicted_returns, df=df)
-        self.predicted_confidence = call_callable_dynamic_args(predicted_confidence, y=self.label_returns, y_hat=self.predicted_returns, df=df)
+
+        # confidence intervals
         self.expected_confidence = np.sum(confidence)
+        self.normal_confidence = NormalConfidence(confidence)
 
-        self.confidence = (
-            np.abs(st.norm.ppf(confidence[0])),  # i.e 0.025
-            np.abs(st.norm.ppf(confidence[1]))   # i.e 0.972
-        ) if isinstance(confidence, tuple) else (
-            np.abs(st.norm.ppf((1. - confidence) / 2.)),
-        ) * 2
+        self.predicted_std = call_callable_dynamic_args(predicted_std, y=self.label_returns, y_hat=self.predicted_returns, df=df)
+        if isinstance(self.predicted_std, float):
+            self.predicted_std = pd.Series(np.ones(len(self.predicted_returns)) * self.predicted_std, index=self.predicted_returns.index)
 
-        self.lower = (self.predicted_returns - self.predicted_confidence * self.confidence[0]).values.squeeze()
-        self.upper = (self.predicted_returns + self.predicted_confidence * self.confidence[1]).values.squeeze()
+        self.lower = pd.concat([self.predicted_returns, self.predicted_std], join='inner', axis=1).apply(self.normal_confidence.lower, axis=1)
+        self.upper = pd.concat([self.predicted_returns, self.predicted_std], join='inner', axis=1).apply(self.normal_confidence.upper, axis=1)
 
     def plot_prediction(self, *args, **kwargs):
         import matplotlib.pyplot as plt
@@ -78,8 +77,8 @@ class PricePredictionSummary(Summary):
 
         try:
             # compound
-            comp_lower = pd.concat([self.prediction_reconstruction, pd.Series(self.lower + 1, index=self.predicted_returns.index)], join='inner', axis=1).apply(np.prod, axis=1).dropna()
-            comp_upper = pd.concat([self.prediction_reconstruction, pd.Series(self.upper + 1, index=self.predicted_returns.index)], join='inner', axis=1).apply(np.prod, axis=1).dropna()
+            comp_lower = pd.concat([self.prediction_reconstruction, self.lower + 1], join='inner', axis=1).apply(np.prod, axis=1).dropna()
+            comp_upper = pd.concat([self.prediction_reconstruction, self.upper + 1], join='inner', axis=1).apply(np.prod, axis=1).dropna()
             # print(comp_lower.shape, comp_upper.shape)
 
             self.label_reconstruction.dropna().plot(ax=ax[0])
@@ -121,6 +120,6 @@ class PricePredictionSummary(Summary):
             "Direction Correct Ratio": [direction_correct_ratio],
             "Correlation": [corr],
             "r^2": [r2],
-            "σ": [np.mean(self.predicted_confidence)],
+            "σ": [np.mean(self.predicted_std)],
             f"confidence (exp: {self.expected_confidence:.2f})": 1 - tail_events / len(dfpp)
         }).T
