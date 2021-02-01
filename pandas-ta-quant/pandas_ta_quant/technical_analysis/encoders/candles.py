@@ -6,7 +6,8 @@ from pandas_ta_quant._decorators import *
 
 
 @for_each_top_level_row
-def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume"):
+@for_each_top_level_column
+def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", drop_nan_volume=True):
     relative = _pd.DataFrame(index=df.index)
     relative[open] = (_np.log(df[open]) - _np.log(df[close].shift(1)))
     relative[close] = (_np.log(df[close]) - _np.log(df[close].shift(1)))
@@ -14,13 +15,16 @@ def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low",
     relative[low] = (_np.log(df[low]) - _np.log(df[close].shift(1)))
 
     if volume is not None:
-        relative[volume] = relative[volume].pct_change()
+        rel_vol = relative[volume].pct_change()
+        if not drop_nan_volume or not rel_vol.isnull().all():
+            relative[volume] = rel_vol
 
     return relative
 
 
 @for_each_top_level_row
-def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative_close=False):
+@for_each_top_level_column
+def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative_close=False, drop_nan_volume=True):
     o = _get_pandas_object(df, open)
     c = _get_pandas_object(df, close)
     h = _get_pandas_object(df, high)
@@ -37,12 +41,15 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
     }, index=df.index)
 
     if volume is not None:
-        res[volume] = df[volume].pct_change()
+        rel_vol = df[volume].pct_change()
+        if not drop_nan_volume or not rel_vol.isnull().all():
+            res[volume] = rel_vol
 
     return res
 
 
 @for_each_top_level_row
+@for_each_top_level_column
 def ta_candle_category(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", body_threshold=0.975, gap_thresold=0.002):
     """
     We try to classify single candle sticks based on simple rules:

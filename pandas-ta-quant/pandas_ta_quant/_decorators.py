@@ -25,7 +25,8 @@ def for_each_top_level_column(func, level=0):
     @wraps(func)
     def exec_on_each_tl_column(df: pd.DataFrame, *args, **kwargs):
         if df.ndim > 1 and isinstance(df.columns, pd.MultiIndex):
-            groups = [func(df.xs(group, axis=1, level=level), *args, **kwargs).to_frame().add_multi_index(group, inplace=True, level=level) for group in unique_level_columns(df, level)]
+            top_level = unique_level_columns(df, level)
+            groups = [func(df.xs(group, axis=1, level=level), *args, **kwargs).to_frame().add_multi_index(group, inplace=True, level=level) for group in top_level]
             return pd.concat(groups, axis=1)
         else:
             return func(df, *args, **kwargs)

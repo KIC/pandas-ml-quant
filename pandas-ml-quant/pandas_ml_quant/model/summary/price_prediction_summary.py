@@ -110,16 +110,26 @@ class PricePredictionSummary(Summary):
         r2 = r2_score(dflp, dfpp)
 
         # calculate confidence ratio
-        tail_events = \
-            (self.label_returns.values.squeeze() > self.upper).sum() + \
-            (self.label_returns.values.squeeze() < self.lower).sum()
+        left_tail_events_mask = (self.label_returns.values.squeeze() < self.lower)
+        left_tail_events = left_tail_events_mask.sum()
+        left_cvar = self.label_returns[left_tail_events_mask].values.mean()
+        right_tail_events_mask = (self.label_returns.values.squeeze() > self.upper)
+        right_tail_events = right_tail_events_mask.sum()
+        right_cvar = self.label_returns[right_tail_events_mask].values.mean()
+        tail_events = left_tail_events + right_tail_events
 
         return pd.DataFrame({
+            "first date": [dfpp.index[0]],
             "last date": [dfpp.index[-1]],
+            "events": [len(dfpp)],
             "mse": [mse],
-            "Direction Correct Ratio": [direction_correct_ratio],
-            "Correlation": [corr],
+            "direction correct ratio": [direction_correct_ratio],
+            "correlation": [corr],
             "r^2": [r2],
             "σ": [np.mean(self.predicted_std)],
-            f"confidence (exp: {self.expected_confidence:.2f})": 1 - tail_events / len(dfpp)
+            f"confidence (exp: {self.expected_confidence:.2f})": 1 - tail_events / len(dfpp),
+            f"left tail events": left_tail_events / len(dfpp),
+            f"right tail events": right_tail_events / len(dfpp),
+            f"left cvar": left_cvar,
+            f"right cvar": right_cvar,
         }).T
