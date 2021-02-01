@@ -39,7 +39,7 @@ option to move the modules into their own repository in the future if there will
 
 The submodules are:
  * pandas-ml-1ntegration-test  more complex tests involving several modules and eventually external data
- * pandas-ml-airflow  very experimental module to integrate models within apache airflow 
+ * pandas-ml-airflow  a very experimental module to integrate models within apache airflow 
  * pandas-ml-common  functionalities around data access and preparation like train/test splitting, cross validation, ...   
  * pandas-ml-quant  enhancing pandas-ml-utils for modeling financial timeseries
  * pandas-ml-quant-rl  very experimental module for reinforcement learning
@@ -95,7 +95,7 @@ with df.model('file_name') as m:
 fit  # finally just return fit as the `Fit` object implements `_repr_html_()` which renders a nice report
 ```
 
-But before a model can be developed features need to be selected. 
+Before a model can be developed, features need to be selected. 
 ```python
 df.model.feature_selection(
     FeaturesAndLabels(
@@ -105,7 +105,7 @@ df.model.feature_selection(
 )
 ```
 
-Check this demo from the [exmaples](./pandas-ml-utils/examles/):
+Check this demo from the [examples](./pandas-ml-utils/examles/):
 
 ![Classification Example](.readme/images/classification.png)
 
@@ -130,14 +130,14 @@ Charting library
 ![Ta Plot](./.readme/videos/ta_plot.gif)
  
 ### [pandas-ml-quant-data-provider](pandas-quant-data-provider/Readme.md) 
-This is maily a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
+This is mainly a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
 or [investing](https://github.com/alvarobartt/investpy)
 
 ### Testing and experiments
 There are some more not published libraries used for testing and experiments.
   
 ## Installation
-Currently all libraries are somewhat entangled and will hike parallel the releases cycles. This dependency will weaken up
+Currently, all libraries are somewhat entangled and will hike parallel the releases cycles. This dependency will weaken up
 as we reach more stable release. 
 
 ```bash
