@@ -16,21 +16,29 @@ class ModelContext(object):
 
     def __init__(self, df: Typing.PatchedDataFrame, file_name: str = None):
         self.df = df
-        self.file_name = Template(file_name).substitute({
-            "V": f'{datetime.now().strftime("%Y%m-%d")}-{seconds_since_midnight()}'
-        }) if file_name is not None else None
+        self.file_name = file_name
 
     @wraps(DfModelPatch.fit)
     def fit(self, *args, **kwargs) -> Fit:
         fit = self.df.model.fit(*args, **kwargs)
 
         if self.file_name is not None:
-            fit.model.save(self.file_name)
+            file_name = Template(self.file_name).substitute({
+                **kwargs,
+                "V": f'{datetime.now().strftime("%Y%m-%d")}-{seconds_since_midnight()}'
+            })
+
+            fit.model.save(file_name)
 
         return fit
 
-    def extract(self, model_or_fnl: Union[Model, FeaturesAndLabels]) -> FeaturesWithLabels:
-        return self.df._.extract(model_or_fnl.features_and_labels if isinstance(model_or_fnl, Model) else model_or_fnl)
+    def extract(self, model_or_fnl: Union[Model, FeaturesAndLabels], **kwargs) -> FeaturesWithLabels:
+        if isinstance(model_or_fnl, Model):
+            kwargs = {**model_or_fnl.features_and_labels.kwargs, **model_or_fnl.kwargs, **kwargs}
+            return self.df._.extract(model_or_fnl.features_and_labels, **kwargs)
+        else:
+            kwargs = {**model_or_fnl.kwargs, **kwargs}
+            return self.df._.extract(model_or_fnl, **kwargs)
 
     def __enter__(self):
         return self

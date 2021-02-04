@@ -20,10 +20,11 @@ class TestAbstractModel(object):
 
         """and a model"""
         model = self.provide_classification_model(FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int))
+        temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
-        with df.model() as m:
+        with df.model(temp) as m:
             fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.49), batch_size=batch_size, epochs=epochs), verbose=0)
 
         print(fit.training_summary.df)
@@ -37,10 +38,8 @@ class TestAbstractModel(object):
         binary_prediction = prediction.iloc[:,0] >= 0.5
         np.testing.assert_array_equal(binary_prediction, np.array([True, False, False, True, True, False, False, True,]))
 
-        """and save and load the model"""
-        temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        """and load the model"""
         try:
-            fit.model.save(temp)
             copy = Model.load(temp)
             pd.testing.assert_frame_equal(df.model.predict(fit.model), df.model.predict(copy), check_less_precise=True)
         finally:
