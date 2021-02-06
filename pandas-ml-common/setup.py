@@ -3,6 +3,7 @@ __version__ = '0.2.1'
 
 import os
 import re
+
 from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist
 
@@ -60,7 +61,7 @@ setup(
         'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     keywords=['pandas', 'ml', 'util', 'quant'],
     cmdclass={
