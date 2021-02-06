@@ -9,7 +9,7 @@ advantages:
  * allows to implement auto-encoders easily by just providing the encode/decode functions
  * added loss functions like `SoftDTW` (fit time series) loss or `HeteroscedasticityLoss` (fit Normal Distribution) -> [example][ghl3]
 
-<br><br>
+<br/><br/>
 
 ![Fitting Example][ghi1]
 
