@@ -19,6 +19,7 @@ bband
 bbands
 cci
 coeff
+covariance
 covariances
 csv
 culb
