@@ -3,3 +3,5 @@ twine
 ipykernel
 nbconvert
 jupyter_client
+lxml
+markdown

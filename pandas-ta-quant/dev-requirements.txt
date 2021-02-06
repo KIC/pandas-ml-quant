@@ -1,5 +1,7 @@
 TA-Lib
 ipykernel
 jupyter_client
+lxml
+markdown
 matplotlib
 nbconvert

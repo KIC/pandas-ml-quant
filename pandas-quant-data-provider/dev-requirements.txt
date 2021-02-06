@@ -1,3 +1,5 @@
 doltpy
 ipykernel
 jupyter_client
+lxml
+markdown
