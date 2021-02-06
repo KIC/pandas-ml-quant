@@ -1,9 +1,10 @@
 ## The pandas ml common module
 
-This module holds all common extensions and utilities for the pandas ml quant stack.
+This module holds all common extensions and utilities for the pandas ml quant stack. 
+Feel free to study the [examples][ghl1] as well.
 
 * easy joining of data frames with multi indexes
-``` python
+```python
 from pandas_ml_common import pd, np
 
 df1 = pd.DataFrame({"a": np.random.random(10), "b": np.random.random(10)})
@@ -24,7 +25,7 @@ print(df1.inner_join(df1, prefix_left='A', prefix='B', force_multi_index=True).t
 
 
 * access columns with regex
-``` python
+```python
 df4 = pd.DataFrame({"a_22_a": np.random.random(1), "b_21_b": np.random.random(1)})
 df4._[r'.*\d+_.']
 ```
@@ -35,7 +36,7 @@ df4._[r'.*\d+_.']
 
 
 * easy access multi level index
-``` python
+```python
 df1.unique_level_columns(0)
 
 ['A', 'B']
@@ -44,7 +45,7 @@ df1.add_multi_index('Z', axis=1)
 ```
 
 * data splitting, sampling and folding (aka cross validation)
-``` python
+```python
 from pandas_ml_common import Sampler, XYWeight, random_splitter
 
 df2 = pd.DataFrame({"c": np.random.random(10)})
@@ -57,7 +58,7 @@ for batches in sampler.sample_for_training():
 
 
 * access to nested numpy arrays in data frame columns (`df._.values`)
-``` python
+```python
 df3 = pd.DataFrame({"a": [[1, 2], [3, 4], [5, 6]]})
 df3._.values
 
@@ -68,7 +69,7 @@ array([[1, 2],
 
 
 * dynamic method call providing suitable *args and **kwargs (dependency injection)
-``` python
+```python
 from pandas_ml_common import call_callable_dynamic_args
 
 def adder(a, b):
@@ -105,7 +106,7 @@ array([0.69373278, 0.69790163])
 ```
 
 
-* serialisation utils
+* serialization utils
 ```python
 from pandas_ml_common import serializeb, deserializeb
 
@@ -114,6 +115,7 @@ array([1, 2, 3])
 ```
 
 * re-scalings
+
 ```python
 from pandas_ml_common import ReScaler
 
@@ -123,3 +125,5 @@ rescaler = ReScaler((0, 1), (5, -5))
 rescaler(x)
 array([ 5.,  4.,  3.,  2.,  1.,  0., -1., -2., -3., -4.])
 ```
+
+[ghl1]: ./examples/

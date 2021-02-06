@@ -1,4 +1,4 @@
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 import os
 import shutil
@@ -11,10 +11,12 @@ nox.options.envdir = '../.nox'
 
 @nox.session(python=["3.8"], reuse_venv=False, venv_params=['--system-site-packages'])
 def tests(session):
+    dist_file = f"/tmp/pandas-ml-common-{__version__}.zip"
+
     # create distribution and install
     session.install("-r", "dev-requirements.txt")
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
-    session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
+    session.install(dist_file)
 
     # create notebook kernels
     kernel = "ml_commons"
@@ -35,3 +37,6 @@ def tests(session):
 
     # clean up egg info
     shutil.rmtree("pandas_ml_common.egg-info")
+
+    # make link check
+    session.run("python", "pandas_ml_common_test/check_links.py", dist_file)

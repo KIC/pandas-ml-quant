@@ -31,6 +31,9 @@ run_tests "pandas-ml-quant"
 run_tests "pandas-quant-data-provider"
 run_tests "pandas-ml-1ntegration-test"
 
+# run spellchecker
+pyspelling
+
 # TODO run private integration tests as nox tests as well
 # TODO finalize remaining tox tests: pandas-quant-data-provider, pandas-ml-1ntegration-test, quant plot
 #   cd "$ABSOLUTE_PATH/pandas-quant-data-provider" && tox && echo "done $(pwd)" && cd - || exit

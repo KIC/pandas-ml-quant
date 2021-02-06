@@ -1,5 +1,8 @@
+ipykernel
+jupyter_client
+lxml
+markdown
+nbconvert
+requests
 tox
 twine
-ipykernel
-nbconvert
-jupyter_client

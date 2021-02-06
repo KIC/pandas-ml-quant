@@ -8,8 +8,8 @@ max scalers, lagging and concatenating columns etc. As a result your notebook lo
 unreadable beast. Yet the mess becomes only worse once you start to deploy your research into a productive
 application. The untested hard coded data pipelines need be be maintained at two places. 
 
-The aim of this library is to conveniently operate with data frames without and abstract away the ugly un-
-reproducible data pipelines. The only thing you need is the original unprocessed data frame where you started.
+The aim of this library is to conveniently operate with data frames without and abstract away the ugly unreproducible 
+data pipelines. The only thing you need is the original unprocessed data frame where you started.
 The data pipeline becomes a part of your model and gets saved that way. Going into production is as easy as 
 this:
 
@@ -50,15 +50,15 @@ Note that the keras/tensorflow version is currently stalled as I focus on pytorc
 with PyMC4 and tensorflow probability
  
 ## Example
-You will find some demo projects in the [exmaples][ghl1] directory. But It might also be worth it to check
-the unit tests and the [integration tests][ghl2]. Here is how classification challange
+You will find some demo projects in the [examples][ghl1] directory. But It might also be worth it to check
+the unit tests and the [integration tests][ghl2]. Here is how classification challenge
 might look like:
   
 ![Classification Example][ghi1]
 
 
 [e1]: https://scikit-learn.org/stable/
-[ghl1]: ./examles/
+[ghl1]: ./examples/
 [ghl2]: ../pandas-ml-1ntegration-test
 [ghi1]: ../.readme/images/classification.png
 

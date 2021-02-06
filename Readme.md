@@ -3,6 +3,7 @@
 [![Python
 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![NOX Tests Status](https://github.com/KIC/pandas-ml-quant/workflows/NOX-Tests/badge.svg)](https://github.com/KIC/pandas-ml-quant/actions)
+[![Spelling](https://github.com/KIC/pandas-ml-quant/workflows/spellcheck/badge.svg)](https://github.com/KIC/pandas-ml-quant/actions)
 
 Whether it is some statistical analysis or machine learning, most likely it all starts with a `DataFrame`.
 But soon enough you will find yourself converting your data frames to numpy, splitting arrays, applying min
@@ -10,8 +11,8 @@ max scalers, lagging and concatenating columns etc. As a result your notebook lo
 unreadable beast. Yet the mess becomes only worse once you start to deploy your research into a productive
 application. Now the untested hard coded data pipelines need to be maintained at two places. 
 
-The aim of this library is to conveniently operate with data frames without and abstract away the ugly un-
-reproducible data pipelines. The only thing you need is the original unprocessed data frame where you started.
+The aim of this library is to conveniently operate with data frames without and abstract away the ugly unreproducible
+data pipelines. The only thing you need is the original unprocessed data frame where you started.
 
 ![Fitting Example](.readme/videos/probabilistic-model-fit.gif)
 You find this demo in the pytorch [examples](./pandas-ml-utils-torch/examles/)<br><br>
@@ -39,7 +40,7 @@ option to move the modules into their own repository in the future if there will
 
 The submodules are:
  * pandas-ml-1ntegration-test  more complex tests involving several modules and eventually external data
- * pandas-ml-airflow  very experimental module to integrate models within apache airflow 
+ * pandas-ml-airflow  a very experimental module to integrate models within apache airflow 
  * pandas-ml-common  functionalities around data access and preparation like train/test splitting, cross validation, ...   
  * pandas-ml-quant  enhancing pandas-ml-utils for modeling financial timeseries
  * pandas-ml-quant-rl  very experimental module for reinforcement learning
@@ -53,7 +54,7 @@ The submodules are:
 ### [pandas-ml-common](pandas-ml-common/Readme.md)
 This module contains helpers and utilities for the most common tasks like:
 * splitting data and generation of cross validation data sets
-* nesting and un-nesting of multi dimensional column data like images or geo data
+* nesting and unnesting of multi dimensional column data like images or geodata
 * helpers for pandas `MultiIndex`es 
 * dependency injection
 * data serialization 
@@ -95,7 +96,7 @@ with df.model('file_name') as m:
 fit  # finally just return fit as the `Fit` object implements `_repr_html_()` which renders a nice report
 ```
 
-But before a model can be developed features need to be selected. 
+Before a model can be developed, features need to be selected. 
 ```python
 df.model.feature_selection(
     FeaturesAndLabels(
@@ -105,11 +106,11 @@ df.model.feature_selection(
 )
 ```
 
-Check this demo from the [exmaples](./pandas-ml-utils/examles/):
+Check this demo from the [examples](./pandas-ml-utils/examles/):
 
 ![Classification Example](.readme/images/classification.png)
 
-### [pandas-ml-utils-toch](pandas-ml-utils-torch/Readme.md)
+### [pandas-ml-utils-torch](pandas-ml-utils-torch/Readme.md)
 Extends the pandas-ml-utils library for the use of pytorch models
 
 ### [pandas-ml-utils-keras](pandas-ml-utils-keras/Readme.md)
@@ -130,14 +131,14 @@ Charting library
 ![Ta Plot](./.readme/videos/ta_plot.gif)
  
 ### [pandas-ml-quant-data-provider](pandas-quant-data-provider/Readme.md) 
-This is maily a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
+This is mainly a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
 or [investing](https://github.com/alvarobartt/investpy)
 
 ### Testing and experiments
 There are some more not published libraries used for testing and experiments.
   
 ## Installation
-Currently all libraries are somewhat entangled and will hike parallel the releases cycles. This dependency will weaken up
+Currently, all libraries are somewhat entangled and will hike parallel the releases cycles. This dependency will weaken up
 as we reach more stable release. 
 
 ```bash

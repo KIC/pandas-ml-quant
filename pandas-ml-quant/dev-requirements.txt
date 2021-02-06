@@ -1,8 +1,11 @@
+TA-Lib
+ipykernel
+jupyter_client
+lxml
+markdown
+matplotlib
+mplfinance
+nbconvert
+requests
 tox
 twine
-TA-Lib
-mplfinance
-matplotlib
-ipykernel
-nbconvert
-jupyter_client

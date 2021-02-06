@@ -1,6 +1,6 @@
 # Pandas TA Quant
 
-Not only a pure python reimplementation of the famous [TA-Lib][e1]. Additional indicators are available like covariance 
+Not only a pure python re-implementation of the famous [TA-Lib][e1]. Additional indicators are available like covariance 
 measures or arma, garch and sarimax models. The library fully builds on top of pandas and pandas_ml_common, therefore
 allows to deal with MultiIndex easily:
 
@@ -16,7 +16,7 @@ df._[["Close", df._["Close"].ta.sma(200)]].plot(figsize=(20,10))
 
 ![Plot][ghi1]
 
-## Full List of idicators
+## Full List of indicators
 
 |                                | module                                                            |
 |:-------------------------------|:------------------------------------------------------------------|

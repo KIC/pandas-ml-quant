@@ -1,4 +1,4 @@
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 import os
 import shutil
@@ -11,6 +11,8 @@ nox.options.envdir = '../.nox'
 
 @nox.session(python=["3.8"], reuse_venv=False, venv_params=['--system-site-packages'])
 def tests(session):
+    dist_file = f"/tmp/pandas-ml-utils-torch-{__version__}.zip"
+
     # install testing requirements and local dependencies
     session.install("-r", "dev-requirements.txt")
     session.install("-r", "requirements.txt")
@@ -22,7 +24,7 @@ def tests(session):
 
     # create distribution and install
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
-    session.install(f"/tmp/pandas-ml-utils-torch-{__version__}.zip", "--no-deps")
+    session.install(dist_file, "--no-deps")
 
     # create notebook kernels
     kernel = "ml_utils_torch"
@@ -43,3 +45,6 @@ def tests(session):
 
     # clean up egg info
     shutil.rmtree("pandas_ml_utils_torch.egg-info")
+
+    # make link check
+    session.run("python", "pandas_ml_utils_torch_test/check_links.py", dist_file)

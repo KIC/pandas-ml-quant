@@ -96,6 +96,24 @@ def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_m
             return pd.merge(df.add_prefix(prefix_left), join.add_prefix(prefix), left_index=True, right_index=True, how='inner', sort=True)
 
 
+def same_columns_after_level(df: pd.DataFrame, level=0):
+    if df.ndim < 2:
+        return None
+
+    df = df[:1].copy()
+    top_level_columns = unique_level_columns(df, level)
+    last_columns = None
+    for tlc in top_level_columns:
+        xs = df.xs(tlc, axis=1, level=level)
+        this_columns = xs.columns.to_list()
+        if last_columns is None or last_columns == this_columns:
+            last_columns = this_columns
+        else:
+            return False
+
+    return True
+
+
 def unique_level_columns(df: pd.DataFrame, level=0):
     idx = df if isinstance(df, pd.Index) else df.columns
     return unique_level(idx, level)

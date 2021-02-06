@@ -26,3 +26,4 @@ streamlit_apps/streamlit/models/
 *outnb
 /.run/fetch_optionable_stocks (dolt).run.xml
 /todo.md
+*.egg-info

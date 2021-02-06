@@ -1,8 +1,11 @@
 from functools import wraps
 
 import pandas as pd
-
+import logging
 from pandas_ml_common import unique_level_rows, unique_level_columns
+from pandas_ml_common.utils import same_columns_after_level
+
+_log = logging.getLogger(__name__)
 
 
 def for_each_column(func):
@@ -25,8 +28,14 @@ def for_each_top_level_column(func, level=0):
     @wraps(func)
     def exec_on_each_tl_column(df: pd.DataFrame, *args, **kwargs):
         if df.ndim > 1 and isinstance(df.columns, pd.MultiIndex):
-            groups = [func(df.xs(group, axis=1, level=level), *args, **kwargs).to_frame().add_multi_index(group, inplace=True, level=level) for group in unique_level_columns(df, level)]
-            return pd.concat(groups, axis=1)
+            # check if the shape of the 2nd level is identical else threat as if not multi index
+            if same_columns_after_level(df, level):
+                top_level = unique_level_columns(df, level)
+                groups = [func(df.xs(group, axis=1, level=level), *args, **kwargs).to_frame().add_multi_index(group, inplace=True, level=level) for group in top_level]
+                return pd.concat(groups, axis=1)
+            else:
+                _log.warning(f"columns in further levels do not follow the same structure! Treat as normal Index")
+                return func(df, *args, **kwargs)
         else:
             return func(df, *args, **kwargs)
 

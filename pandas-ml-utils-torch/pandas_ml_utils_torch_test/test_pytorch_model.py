@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.optim import SGD, Adam
 
 from pandas_ml_common import naive_splitter
-from pandas_ml_utils import pd, FeaturesAndLabels
+from pandas_ml_utils import pd, FeaturesAndLabels, FittingParameter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils_torch import PytorchModel, PytorchAutoEncoderModel, PytorchNN
@@ -131,10 +131,12 @@ class TestPytorchModel(TestAbstractModel, TestCase):
 
             fit = m.fit(
                 PytorchModel(NN, FeaturesAndLabels(["a"], ["b"]), nn.MSELoss, Adam),
-                splitter=naive_splitter(0.5),
-                epochs=2,
-                fold_epochs=10,
-                batch_size=2
+                FittingParameter(
+                    splitter=naive_splitter(0.5),
+                    epochs=2,
+                    fold_epochs=10,
+                    batch_size=2
+                )
             )
 
         print(fit)
