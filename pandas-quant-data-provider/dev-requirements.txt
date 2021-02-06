@@ -3,3 +3,4 @@ ipykernel
 jupyter_client
 lxml
 markdown
+requests

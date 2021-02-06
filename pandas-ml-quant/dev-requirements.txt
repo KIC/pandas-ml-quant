@@ -1,10 +1,11 @@
-tox
-twine
 TA-Lib
-mplfinance
-matplotlib
 ipykernel
+jupyter_client
 lxml
 markdown
+matplotlib
+mplfinance
 nbconvert
-jupyter_client
+requests
+tox
+twine

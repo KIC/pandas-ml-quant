@@ -3,5 +3,6 @@ lxml
 markdown
 nbconvert
 nbformat
+requests
 scikit-learn
 twine
