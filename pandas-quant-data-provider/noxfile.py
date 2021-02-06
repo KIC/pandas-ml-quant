@@ -11,6 +11,8 @@ nox.options.envdir = '../.nox'
 
 @nox.session(python=["3.8"], reuse_venv=False, venv_params=['--system-site-packages'])
 def tests(session):
+    dist_file = f"/tmp/pandas-quant-data-provider-{__version__}.zip"
+
     # create distribution and install
     session.install("-r", "../pandas-ml-common/requirements.txt")
     session.install("-r", "requirements.txt")
@@ -18,7 +20,7 @@ def tests(session):
     session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
 
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
-    session.install(f"/tmp/pandas-quant-data-provider-{__version__}.zip")
+    session.install(dist_file)
 
     # create notebook kernels
     kernel = "data_provider"
@@ -39,3 +41,6 @@ def tests(session):
 
     # clean up egg info
     shutil.rmtree("pandas_quant_data_provider.egg-info")
+
+    # make link check
+    session.run("python", "pandas_quant_data_provider_test/check_links.py", dist_file)
