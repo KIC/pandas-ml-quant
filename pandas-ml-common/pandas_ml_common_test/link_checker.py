@@ -1,39 +1,40 @@
 import os
-import re
+import sys
 import tarfile
-import requests
+import zipfile
 from unittest import TestCase
 
 import markdown
+import requests
 from lxml import etree
-__version__ = '0.2.0'
 
-url = 'https://github.com/KIC/pandas-ml-quant/pandas-ml-common'
-
-
-def fix_github_links(line):
-    fixed_images = re.sub(r'(^\[ghi\d+]:\s+)', f'\\1{url}/raw/{__version__}/', line)
-    fixed_location = re.sub(r'(^\[ghl\d+]:\s+)', f'\\1{url}/tree/{__version__}/', fixed_images)
-    fixed_files = re.sub(r'(^\[ghf\d+]:\s+)', f'\\1{url}/blob/{__version__}/', fixed_location)
-    return fixed_files
+from pandas_ml_common_test.config import DATA_PATH
 
 
 def check_links_in_dist(dist_file, file):
-    file = os.path.join(os.path.basename(dist_file.replace('.tar.gz', '')), file)
-    with tarfile.open(dist_file, mode='r:gz') as tar:
-        md = tar.extractfile(file).readlines()
-        md = '\n'.join([fix_github_links(l.decode('utf-8')) for l in md])
+    if dist_file.endswith(".tar.gz"):
+        file = os.path.join(os.path.basename(dist_file.replace('.tar.gz', '')), file)
+        with tarfile.open(dist_file, mode='r:gz') as tar:
+            md = tar.extractfile(file).read().decode('utf-8')
+            check_links_in_markdown(md)
+    elif dist_file.endswith(".zip"):
+        file = os.path.join(os.path.basename(dist_file.replace('.zip', '')), file)
+        with zipfile.ZipFile(dist_file, 'r') as zip:
+            md = zip.read(file).decode('utf-8')
+            check_links_in_markdown(md)
+    else:
+        raise ValueError("unknown dist packaging, allowed .tar.gz|.zip")
 
-        doc = etree.fromstring('<html>' + markdown.markdown(md) + '</html>')
-        for link in doc.xpath('//a'):
-            print(link.text, link.get('href'))
-            print(requests.get(link.get('href')).status_code)
-        for image in doc.xpath('//img'):
-            print(image.text, image.get('src'))
-            print(requests.get(image.get('src')).status_code)
 
+def check_links_in_markdown(md):
+    if len(md) <= 0:
+        raise ValueError("Empty Readme!")
 
-class TestLinkChecker(TestCase):
+    doc = etree.fromstring('<html>' + markdown.markdown(md) + '</html>')
+    for link in doc.xpath('//a'):
+        print(link.text, link.get('href'))
+        assert requests.get(link.get('href')).status_code == 200, f"failed url {link.get('href')}"
+    for image in doc.xpath('//img'):
+        print(image.text, image.get('src'))
+        assert requests.get(image.get('src')).status_code == 200, f"failed url {image.get('src')}"
 
-    def test_link_checker(self):
-        check_links_in_dist('/tmp/foo.tgz/pandas-ml-utils-0.2.1.tar.gz', 'Readme.md')
