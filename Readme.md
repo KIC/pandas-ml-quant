@@ -3,6 +3,7 @@
 [![Python
 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![NOX Tests Status](https://github.com/KIC/pandas-ml-quant/workflows/NOX-Tests/badge.svg)](https://github.com/KIC/pandas-ml-quant/actions)
+[![Spelling](https://github.com/KIC/pandas-ml-quant/workflows/spellcheck/badge.svg)](https://github.com/KIC/pandas-ml-quant/actions)
 
 Whether it is some statistical analysis or machine learning, most likely it all starts with a `DataFrame`.
 But soon enough you will find yourself converting your data frames to numpy, splitting arrays, applying min
@@ -10,8 +11,8 @@ max scalers, lagging and concatenating columns etc. As a result your notebook lo
 unreadable beast. Yet the mess becomes only worse once you start to deploy your research into a productive
 application. Now the untested hard coded data pipelines need to be maintained at two places. 
 
-The aim of this library is to conveniently operate with data frames without and abstract away the ugly un-
-reproducible data pipelines. The only thing you need is the original unprocessed data frame where you started.
+The aim of this library is to conveniently operate with data frames without and abstract away the ugly unreproducible
+data pipelines. The only thing you need is the original unprocessed data frame where you started.
 
 ![Fitting Example](.readme/videos/probabilistic-model-fit.gif)
 You find this demo in the pytorch [examples](./pandas-ml-utils-torch/examles/)<br><br>
@@ -53,7 +54,7 @@ The submodules are:
 ### [pandas-ml-common](pandas-ml-common/Readme.md)
 This module contains helpers and utilities for the most common tasks like:
 * splitting data and generation of cross validation data sets
-* nesting and un-nesting of multi dimensional column data like images or geo data
+* nesting and unnesting of multi dimensional column data like images or geodata
 * helpers for pandas `MultiIndex`es 
 * dependency injection
 * data serialization 
@@ -109,7 +110,7 @@ Check this demo from the [examples](./pandas-ml-utils/examles/):
 
 ![Classification Example](.readme/images/classification.png)
 
-### [pandas-ml-utils-toch](pandas-ml-utils-torch/Readme.md)
+### [pandas-ml-utils-torch](pandas-ml-utils-torch/Readme.md)
 Extends the pandas-ml-utils library for the use of pytorch models
 
 ### [pandas-ml-utils-keras](pandas-ml-utils-keras/Readme.md)

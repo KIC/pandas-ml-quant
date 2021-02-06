@@ -1,6 +1,6 @@
 # Pandas ML Quant
 
-The Pandas Machine Learning Quant module is not only a pure python reimplementation of the famous 
+The Pandas Machine Learning Quant module is not only a pure python re-implementation of the famous 
 [TA-Lib][e1]. There are also useful tools to plot data as well as to 
 train neural networks while you never need to leave the world of pandas. 
 

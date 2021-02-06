@@ -4,10 +4,10 @@ Adds a `PytorchModel` to the pandas ml utils suite. While a regular class extend
 there is also a special class `PytorchNN` which can be extended as well. Using this class has the following 
 advantages:
 
- * allows to use L1, L2 regularisation -> [example][ghl2] 
- * allows different forward path for training and prediction (useful i.e. for re-parametrisation trick) -> [example][ghl3]
+ * allows to use L1, L2 regularization -> [example][ghl2] 
+ * allows different forward path for training and prediction (useful i.e. for reparameterization trick) -> [example][ghl3]
  * allows to implement auto-encoders easily by just providing the encode/decode functions
- * added loss functions like SoftDTW (fit Timeseries) loss or HeteroscedasticityLoss (fit Normal Distribution) -> [example][ghl3]
+ * added loss functions like `SoftDTW` (fit time series) loss or `HeteroscedasticityLoss` (fit Normal Distribution) -> [example][ghl3]
 
 <br><br>
 
