@@ -58,7 +58,7 @@ might look like:
 
 
 [e1]: https://scikit-learn.org/stable/
-[ghl1]: ./examles/
+[ghl1]: ./exapmles/
 [ghl2]: ../pandas-ml-1ntegration-test
 [ghi1]: ../.readme/images/classification.png
 
