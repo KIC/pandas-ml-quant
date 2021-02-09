@@ -35,45 +35,44 @@ class _AbstractPytorchModel(Model):
                  callbacks: Dict[str, List[Callable]] = {},
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
-        self.module_provider = module_provider
+        # self.module_provider = module_provider
         self.merge_cross_folds = merge_cross_folds
         self.callbacks = callbacks
 
         self.log_once = LogOnce().log
-        self._current_model: PytochBaseModel = module_provider()
+        self._current_model: PytochBaseModel = PytochBaseModel(module_provider, criterion_provider, optimizer_provider, restore_best_weights, False)
         self._cuda = False
 
-        self.models: Dict[int, PytochBaseModel] = defaultdict(
-            lambda: PytochBaseModel(lambda: deepcopy(self._current_model), criterion_provider, optimizer_provider, restore_best_weights, self._cuda))
+        self._models: Dict[int, PytochBaseModel] = defaultdict(lambda: deepcopy(self._current_model))
 
     def init_fit(self, **kwargs):
         self._cuda = kwargs.get("cuda", False)
 
     def init_fold(self, epoch: int, fold: int):
-        self._current_model = self.models[fold]
+        self._current_model = self._models[fold]
 
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, weight: pd.DataFrame, fold: int, **kwargs):
         self._current_model.fit_epoch(from_pandas(x, self._cuda), from_pandas(y, self._cuda), from_pandas(weight, self._cuda))
 
     def calculate_loss(self, fold, x, y_true, weight):
         # return self._current_model.calculate_loss(
-        return self.models[fold].calculate_loss(
+        return self._models[fold].calculate_loss(
             from_pandas(x, self._cuda),
             from_pandas(y_true, self._cuda),
             from_pandas(weight, self._cuda),
         )
 
     def merge_folds(self, epoch: int):
-        if len(self.models) > 1:
+        if len(self._models) > 1:
             if self.merge_cross_folds is not None:
-                self._current_model = self.merge_cross_folds(self.models)
-                self.models.clear()
+                self._current_model = self.merge_cross_folds(self._models)
+                self._models.clear()
             else:
                 self.log_once("merge_folds", _log.warning,
-                              f"no merge folds function suplied, keep training {len(self.models)} independent")
+                              f"no merge folds function suplied, keep training {len(self._models)} independent")
 
     def finish_learning(self):
-        self.models.clear()
+        self._models.clear()
 
     def _predict(self, features: pd.DataFrame, col_names, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
         if cuda:
