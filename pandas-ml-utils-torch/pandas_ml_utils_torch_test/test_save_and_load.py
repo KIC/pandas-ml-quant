@@ -13,15 +13,16 @@ class TestSaveAndLoad(TestCase):
     def test_save_load_nb_model(self):
         notebooks_path = os.path.join(PWD, '..', 'examples')
         notebook_file = os.path.join(notebooks_path, 'regression_with_regularization.ipynb')
-        _, err = run_notebook(notebook_file, notebooks_path)
+        out, err = run_notebook(notebook_file, notebooks_path)
         self.assertEqual(err, [])
 
         df = pd.read_csv(os.path.join(notebooks_path, 'SPY.csv'))
         model = Model.load('/tmp/regression_with_regularization.model')
-        prediction = df.model.predict(model, tail=1)
+        prediction = df.model.predict(model, tail=1)["prediction", "Close"].item()
 
         print(prediction)
-        self.assertEqual(len(prediction), 1)
+        self.assertEqual(float(out["cells"][-1]["outputs"][-1]["data"]["text/plain"]), prediction)
+
 
     @unittest.skip("debuging")
     def test_make_model(self):
