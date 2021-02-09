@@ -13,7 +13,8 @@ class TestSaveAndLoad(TestCase):
     def test_save_load_nb_model(self):
         notebooks_path = os.path.join(PWD, '..', 'examples')
         notebook_file = os.path.join(notebooks_path, 'regression_with_regularization.ipynb')
-        run_notebook(notebook_file, notebooks_path)
+        _, err = run_notebook(notebook_file, notebooks_path)
+        self.assertEqual(err, [])
 
         df = pd.read_csv(os.path.join(notebooks_path, 'SPY.csv'))
         model = Model.load('/tmp/regression_with_regularization.model')

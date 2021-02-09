@@ -35,15 +35,13 @@ class _AbstractPytorchModel(Model):
                  callbacks: Dict[str, List[Callable]] = {},
                  **kwargs):
         super().__init__(features_and_labels, summary_provider, **kwargs)
-        # self.module_provider = module_provider
         self.merge_cross_folds = merge_cross_folds
         self.callbacks = callbacks
 
         self.log_once = LogOnce().log
         self._current_model: PytochBaseModel = PytochBaseModel(module_provider, criterion_provider, optimizer_provider, restore_best_weights, False)
+        self._models: Dict[int, PytochBaseModel] = defaultdict(self._current_model.shadow_copy)
         self._cuda = False
-
-        self._models: Dict[int, PytochBaseModel] = defaultdict(lambda: deepcopy(self._current_model))
 
     def init_fit(self, **kwargs):
         self._cuda = kwargs.get("cuda", False)
@@ -69,9 +67,16 @@ class _AbstractPytorchModel(Model):
                 self._models.clear()
             else:
                 self.log_once("merge_folds", _log.warning,
-                              f"no merge folds function suplied, keep training {len(self._models)} independent")
+                              f"no merge folds function supplied, keep training {len(self._models)} independent folds")
+        else:
+            self._current_model = deepcopy(self._models[0])
 
     def finish_learning(self):
+        if len(self._models) > 1 and self.merge_cross_folds is not None:
+            # this is bad as our current_model never got updated and is just a randomly initialized model
+            # we want at least warn the user about this
+            _log.warning("cross foling was used whithout a merging strategy, the main model stayes untrained!!!")
+
         self._models.clear()
 
     def _predict(self, features: pd.DataFrame, col_names, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:

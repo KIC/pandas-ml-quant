@@ -66,6 +66,7 @@ class PytochBaseModel(object):
         self.net_provider = net_provider
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
+        self._cuda = cuda
 
         self.net = to_device(net_provider(), cuda)
         self.criterion = to_device(call_callable_dynamic_args(criterion_provider, module=self.net, params=self.net.named_parameters()), cuda)
@@ -182,6 +183,15 @@ class PytochBaseModel(object):
     def eval(self):
         self.net.eval()
         return self
+
+    def shadow_copy(self):
+        return PytochBaseModel(
+            lambda: deepcopy(self.net),
+            self.criterion_provider,
+            self.optimizer_provider,
+            self.record_best_weights,
+            self._cuda
+        )
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.
