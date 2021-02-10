@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 import os
 import re
