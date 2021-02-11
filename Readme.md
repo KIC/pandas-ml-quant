@@ -132,7 +132,7 @@ Charting library
  
 ### [pandas-ml-quant-data-provider](pandas-quant-data-provider/Readme.md) 
 This is mainly a wrapper around data providing libraries [yfinance](https://github.com/ranaroussi/yfinance) 
-or [investing](https://github.com/alvarobartt/investpy)
+or [investpy](https://github.com/alvarobartt/investpy)
 
 ### Testing and experiments
 There are some more not published libraries used for testing and experiments.
