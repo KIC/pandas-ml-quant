@@ -1,8 +1,10 @@
 import numpy as _np
 import pandas as _pd
-
+import logging
 from pandas_ml_common import get_pandas_object as _get_pandas_object
 from pandas_ta_quant._decorators import *
+
+_log = logging.getLogger(__name__)
 
 
 @for_each_top_level_row
@@ -32,13 +34,22 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
     oc = _pd.concat([o, c], axis=1)
     c_1 = c.shift(1)
 
-    # calculate close, upper_shadow, lower_shadow, body
-    res = _pd.DataFrame({
-        "close": (c / c_1 - 1) if relative_close else c,
-        "upper": (h / oc.max(axis=1) - 1),
-        "lower": (oc.min(axis=1) / l - 1),
-        "body": (c / o - 1)
-    }, index=df.index)
+    if not c.empty:
+        # calculate close, upper_shadow, lower_shadow, body
+        res = _pd.DataFrame({
+            "close": (c / c_1 - 1) if relative_close else c,
+            "upper": (h / oc.max(axis=1) - 1),
+            "lower": (oc.min(axis=1) / l - 1),
+            "body": (c / o - 1)
+        }, index=df.index)
+    else:
+        _log.warning("empty DataFrame!")
+        res = _pd.DataFrame({
+            "close": [],
+            "upper": [],
+            "lower": [],
+            "body": []
+        })
 
     if volume is not None:
         rel_vol = df[volume].pct_change()

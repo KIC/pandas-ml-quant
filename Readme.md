@@ -142,7 +142,8 @@ Currently, all libraries are somewhat entangled and will hike parallel the relea
 as we reach more stable release. 
 
 ```bash
-pip install pandas-ml-common pandas-ml-utils pandas-ta-quant pandas-ml-quant \
-pandas-quant-data-provider pandas-ta-quant-plot
+pip install pandas-ml-common pandas-ml-utils pandas-ml-utils-torch\
+ pandas-ta-quant pandas-ml-quant\
+ pandas-quant-data-provider pandas-ta-quant-plot
 ```
 

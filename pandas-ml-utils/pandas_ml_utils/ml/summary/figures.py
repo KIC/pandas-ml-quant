@@ -186,7 +186,7 @@ def df_regression_scores(df, model, **kwargs):
                 score = call_callable_dynamic_args(rm.__dict__[scorer], y_true, y_pred, sample_weight=sample_weights)
                 scores[scorer].append(score)
             except Exception as e:
-                _log.warning(f"{scorer} failed: {e}")
+                _log.warning(f"{scorer} failed: {str(e):[:160]}")
                 scores[scorer].append(np.nan)
 
         return pd.DataFrame(scores)
@@ -263,7 +263,7 @@ def df_classification_scores(df, model, **kwargs):
 
                 scores[scorer].append(score)
             except Exception as e:
-                _log.warning(f"{scorer} failed: {e}")
+                _log.warning(f"{scorer} failed: {str(e)[:160]}")
                 scores[scorer].append(np.nan)
 
         for scorer in losses.keys():
@@ -271,7 +271,7 @@ def df_classification_scores(df, model, **kwargs):
                 score = call_callable_dynamic_args(metrics.__dict__[scorer], y_true_class, y_pred, sample_weight=sample_weights)
                 scores[scorer].append(score)
             except Exception as e:
-                _log.warning(f"{scorer} failed: {e}")
+                _log.warning(f"{scorer} failed: {str(e)[:160]}")
                 scores[scorer].append(np.nan)
 
         return pd.DataFrame(scores)

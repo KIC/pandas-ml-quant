@@ -185,13 +185,16 @@ class PytochBaseModel(object):
         return self
 
     def shadow_copy(self):
-        return PytochBaseModel(
+        pbm = PytochBaseModel(
             lambda: deepcopy(self.net),
             self.criterion_provider,
             self.optimizer_provider,
             self.record_best_weights,
             self._cuda
         )
+
+        pbm.log_once = self.log_once
+        return pbm
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.
