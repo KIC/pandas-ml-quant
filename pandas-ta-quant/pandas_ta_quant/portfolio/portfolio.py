@@ -110,7 +110,7 @@ class TargetWeight(Quantity):
 class Portfolio(object):
 
     @staticmethod
-    def from_tradelog_file(file: Union[str, List[str]], *args, strategy_mapper: Callable[[TrxKey], str], **kwargs):
+    def from_tradelog_file(file: Union[str, List[str]], *args, strategy_mapper: Callable[[TrxKey], str] = None, **kwargs):
         trandelog_files = [file] if not isinstance(file, (list, tuple)) else file
         content = defaultdict(list)
 
@@ -148,12 +148,12 @@ class Portfolio(object):
                 else:
                     ot = trx[6].split(';') + [None]
 
-                order = Order(trx[1], *ot[:2], trx[9], trx[10], trx[13], trx[14])
                 strategy = None if strategy_mapper is None else strategy_mapper(trx_key)
+                order = Order(trx[1], ot[0], ot[1], trx[9], trx[10], trx[13], trx[14], strategy)
 
                 pf.trade(trx_key.underlying, trx_key.instrument, trx_key.timestamp,
                          order.order_type, order.order_subtype, order.quantity, order.nav, fee=order.fee,
-                         strategy=strategy)
+                         strategy=order.strategy)
 
         return pf
 
