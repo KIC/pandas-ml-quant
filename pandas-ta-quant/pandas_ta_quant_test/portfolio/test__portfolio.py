@@ -37,22 +37,22 @@ class TestPortfolio(TestCase):
 
         numpy.testing.assert_array_almost_equal(
             pf.loc["WPG"].sum().values,
-            np.array([198., 465., -2.973]),
+            np.array([198., 465., -2.973, -np.inf]),
             decimal=3
         )
         numpy.testing.assert_array_almost_equal(
             pf.loc["SPY"].sum().values,
-            np.array([0., -20., -0.025]),
+            np.array([0., -20., -0.025, -np.inf]),
             decimal=3
         )
         numpy.testing.assert_array_almost_equal(
             pf.loc["VXX"].sum().values,
-            np.array([0., 39., -0.001]),
+            np.array([0., 39., -0.001, -np.inf]),
             decimal=3
         )
         numpy.testing.assert_array_almost_equal(
             pf.loc["USD"].sum().values,
-            np.array([-484.0 -2.999, -484.0 -2.999, 0]),
+            np.array([-484.0 -2.999, -484.0 -2.999, 0, -484.0 -2.999]),
             decimal=3
         )
 
@@ -66,12 +66,12 @@ class TestPortfolio(TestCase):
 
         numpy.testing.assert_array_almost_equal(
             pf.loc['USD'].sum().values,
-            np.array([-25 +10 -2, -25 +10 -2, 0]),
+            np.array([-25 +10 -2, -25 +10 -2, 0, -25 +10 -2]),
             decimal=3
         )
         numpy.testing.assert_array_almost_equal(
             pf.loc["MSFT"].sum().values,
-            np.array([5, 15, -2]),
+            np.array([5, 15, -2, -np.inf]),
             decimal=3
         )
 
@@ -85,12 +85,12 @@ class TestPortfolio(TestCase):
 
         numpy.testing.assert_array_almost_equal(
             pf.loc['USD'].sum().values,
-            np.array([-25 + 10 - 2, -25 + 10 - 2, 0]),
+            np.array([-25 + 10 - 2, -25 + 10 - 2, 0, -25 + 10 - 2]),
             decimal=3
         )
         numpy.testing.assert_array_almost_equal(
             pf.loc["MSFT"].sum().values,
-            np.array([5, 15, -2]),
+            np.array([5, 15, -2, -np.inf]),
             decimal=3
         )
 
@@ -122,11 +122,12 @@ class TestPortfolio(TestCase):
         p.trade('MSFT', 'MSFT', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.3), fee=0)
         p.trade('MSFT', 'MSFT', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.6), fee=0)
         pf = p.get_current_portfolio()
-        # print(pf)
+        print(pf)
 
         numpy.testing.assert_array_almost_equal(
-            pf["nav"].values,
-            np.array([59.982, 40.018]),
+            pf[["nav", "liquidation_value"]].values.T,
+            np.array([[60.012, 39.988],
+                      [59.951988, 39.988000]]),
             decimal=3
         )
 
@@ -140,15 +141,26 @@ class TestPortfolio(TestCase):
         p.price.push_quote('MSFT', '2021-01-03 00:00:00', bid=2, ask=2.5)
         p.trade('MSFT', 'MSFT', '2021-01-03 00:00:01', 'B', None, TargetQuantity(5), fee=-1)
         pf = p.get_current_portfolio()
-        #print(pf)
+        # print(pf)
 
         numpy.testing.assert_array_almost_equal(
             pf.loc['USD'].sum().values,
-            np.array([-25 + 10 - 2, -25 + 10 - 2, 0]),
+            np.array([-25 + 10 - 2, -25 + 10 - 2, 0, -25 + 10 - 2]),
             decimal=3
         )
         numpy.testing.assert_array_almost_equal(
             pf.loc["MSFT"].sum().values,
-            np.array([5, 15, -2]),
+            np.array([5, 15, -2, 10]),
             decimal=3
         )
+
+    def test_lala(self):
+        p = Portfolio()
+
+        #  price = 2.5
+        p.price.push_quote('MSFT', '2021-01-02 00:00:00', bid=2, ask=2.5)
+        p.trade('MSFT', 'MSFT', '2021-01-02 00:00:01', 'B', None, 10, fee=-1)
+
+        #print(orders[['quantity', 'nav', 'fee']].groupby(level=[0, 1]).apply(lala))
+        #print(orders.groupby(level=[0, 1]).apply(lala))
+        print(p.get_current_portfolio())

@@ -4,6 +4,8 @@ from collections import namedtuple, defaultdict
 from io import StringIO
 from typing import Tuple, Union, Callable, List
 import logging
+
+import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils.time_utils import parse_timestamp, min_timestamp
@@ -78,23 +80,18 @@ class TargetWeight(Quantity):
                 _log.warning("we can't handle fees properly using TargetWeight. Your PriceTimeseries should use bid/ask or spread!")
                 self.warned_fee = True
 
-        def evaluate(pos: pd.Series):
-            if pos.empty:
-                return 0
-
-            return prices.get_price(pos.name[1], tst, currency)[1][0] * pos.item()
-
         current_portfolio = lazy_current_portfolio(None, None)
         try:
             current_cash_position = current_portfolio.loc[currency]["nav"].sum()
         except KeyError:
             raise ValueError('Portfolio needs to be funded `Portfolio(capital=100)`')
 
-        current_positions = current_portfolio.drop([currency])[["quantity"]].apply(evaluate, raw=False, axis=1).sum()
+        current_positions = current_portfolio.drop([currency])[["liquidation_value"]].sum().item()
         target_nav = (current_cash_position + current_positions) * self.v
 
         idx = (underlying, instrument)
-        current_nav = current_portfolio.loc[idx]["nav"].sum().item() if idx in current_portfolio.index else 0
+
+        current_nav = current_portfolio.loc[idx]["liquidation_value"].sum().item() if idx in current_portfolio.index else 0
 
         if price is not None:
             qty = (target_nav - current_nav) / price
@@ -254,15 +251,38 @@ class Portfolio(object):
 
     def get_current_position(self, underlying, instrument=None):
         index = (underlying, ) if instrument is None else (underlying, instrument)
-        df_trades = self.get_order_sequence().drop(['order_type', 'order_subtype', 'currency', 'strategy'], axis=1)
+        df_trades = self.get_order_sequence().drop(['order_type', 'order_subtype', 'strategy'], axis=1)
 
-        # TODO add valuation by most recent price
+        # FIXME currency and strategy are group critereas as well
+
+        def evaluate_liquidation_value(pos: pd.Series):
+            res = pos[['quantity', 'nav', 'fee']].sum()
+            try:
+                tst = pos.index.to_list()[-1]
+                if isinstance(tst, tuple):
+                    tst = tst[-1]
+
+                inst = pos.name[1] if instrument is None else instrument
+                val = res['nav'] if inst == self.currency else \
+                        self.prices.get_price(inst, tst, pos["currency"].values[-1])[1][0] * res["quantity"].item()
+                res["liquidation_value"] = val
+            except KeyError:
+                res["liquidation_value"] = -np.inf
+                _log.error(f"Failed to get price for {instrument} @ {tst}")
+
+            if pos["currency"].values[-1] != self.currency:
+                # we need to get an FX rate as well
+                raise NotImplementedError("Multiple currencies not supported at the moment")
+
+            return res
 
         if underlying is None and instrument is None:
-            return df_trades.groupby(level=[0, 1]).sum()
+            return df_trades.groupby(level=[0, 1]).apply(evaluate_liquidation_value)
         else:
             try:
-                return df_trades.loc[index].groupby(level=range(df_trades.index.nlevels - len(index))).sum()
+                return df_trades.loc[index]\
+                    .groupby(level=range(df_trades.index.nlevels - len(index)))\
+                    .apply(evaluate_liquidation_value)
             except KeyError:
                 return pd.DataFrame({}, df_trades.columns)
 
