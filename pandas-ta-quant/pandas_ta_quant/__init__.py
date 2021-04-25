@@ -6,6 +6,7 @@ from pandas.core.base import PandasObject
 
 from pandas_ml_common import pd, np
 from pandas_ta_quant.pandas_patch import TechnicalAnalysis as _TA
+from pandas_ta_quant.portfolio import Portfolio
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")

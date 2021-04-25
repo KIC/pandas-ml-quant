@@ -4,8 +4,8 @@ from unittest import TestCase
 import numpy
 import numpy as np
 
-from pandas_ml_quant.portfolio import Portfolio, TargetQuantity, TargetWeight
-from pandas_ml_quant_test.config import CSV_TRADES
+from pandas_ta_quant.portfolio import Portfolio, TargetQuantity, TargetWeight
+from pandas_ta_quant_test.config import CSV_TRADES
 
 
 class TestPortfolio(TestCase):

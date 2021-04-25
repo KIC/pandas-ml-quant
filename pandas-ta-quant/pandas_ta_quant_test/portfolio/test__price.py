@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_quant.portfolio.price import PriceTimeSeries
+from pandas_ta_quant.portfolio.price import PriceTimeSeries
 
 
 class TestPriceTimeSeries(TestCase):

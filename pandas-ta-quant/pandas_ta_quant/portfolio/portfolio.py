@@ -7,7 +7,7 @@ import logging
 import pandas as pd
 
 from pandas_ml_common.utils.time_utils import parse_timestamp, min_timestamp
-from pandas_ml_quant.portfolio.price import PriceTimeSeries
+from .price import PriceTimeSeries
 
 TrxKey = namedtuple('TrxKey', ['underlying', 'instrument', 'timestamp'])
 Order = namedtuple('Order', ['ID', 'order_type', 'order_subtype', 'currency', 'quantity', 'nav', 'fee', 'strategy'])
