@@ -92,6 +92,8 @@ class TargetWeight(Quantity):
         idx = (underlying, instrument)
 
         current_nav = current_portfolio.loc[idx]["liquidation_value"].sum().item() if idx in current_portfolio.index else 0
+        if current_nav <= -np.inf:
+            raise ValueError(f"TargetWeight needs prices! Missing price for {idx}")
 
         if price is not None:
             qty = (target_nav - current_nav) / price
@@ -257,18 +259,19 @@ class Portfolio(object):
 
         def evaluate_liquidation_value(pos: pd.Series):
             res = pos[['quantity', 'nav', 'fee']].sum()
-            try:
-                tst = pos.index.to_list()[-1]
-                if isinstance(tst, tuple):
-                    tst = tst[-1]
+            tst = pos.index.to_list()[-1]
+            if isinstance(tst, tuple):
+                tst = tst[-1]
 
-                inst = pos.name[1] if instrument is None else instrument
+            inst = pos.name[1] if instrument is None else instrument
+
+            try:
                 val = res['nav'] if inst == self.currency else \
                         self.prices.get_price(inst, tst, pos["currency"].values[-1])[1][0] * res["quantity"].item()
                 res["liquidation_value"] = val
             except KeyError:
                 res["liquidation_value"] = -np.inf
-                _log.error(f"Failed to get price for {instrument} @ {tst}")
+                # _log.error(f"Failed to get price for {inst} @ {tst}")
 
             if pos["currency"].values[-1] != self.currency:
                 # we need to get an FX rate as well
