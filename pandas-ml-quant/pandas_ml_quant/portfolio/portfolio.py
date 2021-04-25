@@ -61,6 +61,7 @@ class TargetWeight(Quantity):
     def __init__(self, v: float):
         assert -1 <= v <= 1, 'Weighs need to be between -1 and 1'
         super().__init__(v)
+        self.warned_fee = False
 
     def value(self,
               lazy_current_portfolio: Callable[[str, str], pd.DataFrame],
@@ -72,6 +73,11 @@ class TargetWeight(Quantity):
               price: float = None,
               fee: float = 0,
              ):
+        if fee != 0:
+            if not self.warned_fee:
+                _log.warning("we can't handle fees properly using TargetWeight. Your PriceTimeseries should use bid/ask or spread!")
+                self.warned_fee = True
+
         def evaluate(pos: pd.Series):
             if pos.empty:
                 return 0
