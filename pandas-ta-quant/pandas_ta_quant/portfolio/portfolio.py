@@ -101,7 +101,6 @@ class TargetWeight(Quantity):
         else:
             _, (bid, ask) = prices.get_price(instrument, tst, currency)
             price = bid if target_nav < current_nav else ask
-            print(price)
             qty = (target_nav - current_nav) / price
 
         return qty
@@ -241,6 +240,7 @@ class Portfolio(object):
         if instrument != currency:
             # now also make a cash trade
             #  TODO later when we support multiple currencies also make an FX-Trade the very same way
+            #   Note that we can not aggregate over different currencies anymore
             cash_ot = 'P' if nav > 0 else 'R'
             cash_id = f'{id}_{currency}'
             self.trade(currency, currency, timestamp, cash_ot, 'T', nav=-nav+fee, price=1, currency=currency, strategy=strategy, id=cash_id)

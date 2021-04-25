@@ -140,7 +140,7 @@ class TestPortfolio(TestCase):
         p.price.push_quote('MSFT', '2021-01-03 00:00:00', bid=2, ask=2.5)
         p.trade('MSFT', 'MSFT', '2021-01-03 00:00:01', 'B', None, TargetQuantity(5), fee=-1)
         pf = p.get_current_portfolio()
-        print(pf)
+        #print(pf)
 
         numpy.testing.assert_array_almost_equal(
             pf.loc['USD'].sum().values,
