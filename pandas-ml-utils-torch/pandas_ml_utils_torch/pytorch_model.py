@@ -79,6 +79,10 @@ class _AbstractPytorchModel(Model):
 
         self._models.clear()
 
+    @property
+    def module(self):
+        return self._current_model if self._current_model is None else self._current_model.net
+
     def _predict(self, features: pd.DataFrame, col_names, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
         if cuda:
             self._current_model = self._current_model.cuda()

@@ -1,0 +1,129 @@
+from csv import reader
+from unittest import TestCase
+
+import numpy
+import numpy as np
+
+from pandas_ml_quant.portfolio import Portfolio, TargetQuantity, TargetWeight
+from pandas_ml_quant_test.config import CSV_TRADES
+
+
+class TestPortfolio(TestCase):
+
+    def get_trades(self):
+        with open(CSV_TRADES) as csv:
+            csv_reader = reader(csv)
+            header = next(csv_reader)
+
+            for trade in csv_reader:
+                if trade[0] == 'VXX':
+                    strategy = 'intraday'
+                elif trade[0] == 'SPY':
+                    strategy = 'slow'
+                elif trade[0] == 'WPG':
+                    strategy = 'options'
+                else:
+                    strategy = None
+
+                yield trade[0], trade[1], trade[2], trade[4], trade[5], float(trade[7]), float(trade[8]), None, trade[6], strategy, trade[3], float(trade[-1])
+
+    def test_orders_with_nav(self):
+        p = Portfolio()
+
+        for trade in self.get_trades():
+            p.trade(*trade)
+
+        pf = p.get_current_portfolio()
+
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["WPG"].sum().values,
+            np.array([198., 465., -2.973]),
+            decimal=3
+        )
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["SPY"].sum().values,
+            np.array([0., -20., -0.025]),
+            decimal=3
+        )
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["VXX"].sum().values,
+            np.array([0., 39., -0.001]),
+            decimal=3
+        )
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["USD"].sum().values,
+            np.array([-484.0 -2.999, -484.0 -2.999, 0]),
+            decimal=3
+        )
+
+    def test_orders_with_price_and_quantity(self):
+        p = Portfolio()
+
+        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, 10, price=2.5, fee=-1)
+        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, -5, price=2, fee=-1)
+        pf = p.get_current_portfolio()
+        # print(pf)
+
+        numpy.testing.assert_array_almost_equal(
+            pf.loc['USD'].sum().values,
+            np.array([-25 +10 -2, -25 +10 -2, 0]),
+            decimal=3
+        )
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["MSFT"].sum().values,
+            np.array([5, 15, -2]),
+            decimal=3
+        )
+
+    def test_orders_with_price_and_target_quantity(self):
+        p = Portfolio()
+
+        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, TargetQuantity(10), price=2.5, fee=-1)
+        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, TargetQuantity(5), price=2, fee=-1)
+        pf = p.get_current_portfolio()
+        #print(pf)
+
+        numpy.testing.assert_array_almost_equal(
+            pf.loc['USD'].sum().values,
+            np.array([-25 + 10 - 2, -25 + 10 - 2, 0]),
+            decimal=3
+        )
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["MSFT"].sum().values,
+            np.array([5, 15, -2]),
+            decimal=3
+        )
+
+    def test_orders_with_price_and_target_weight(self):
+        p = Portfolio()
+
+        # TODO test long and short
+        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, TargetWeight(10), price=2.5, fee=-1)
+        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, TargetWeight(5), price=2, fee=-1)
+        pf = p.get_current_portfolio()
+        print(pf)
+
+        pass
+
+    def test_with_quantity_no_price(self):
+        p = Portfolio()
+
+        #  price = 2.5
+        p.price.push_quote('MSFT', '2021-01-02 00:00:00', bid=2, ask=2.5)
+        p.trade('MSFT', 'MSFT', '2021-01-02 00:00:01', 'B', None, 10, fee=-1)
+
+        p.price.push_quote('MSFT', '2021-01-03 00:00:00', bid=2, ask=2.5)
+        p.trade('MSFT', 'MSFT', '2021-01-03 00:00:01', 'B', None, TargetQuantity(5), fee=-1)
+        pf = p.get_current_portfolio()
+        print(pf)
+
+        numpy.testing.assert_array_almost_equal(
+            pf.loc['USD'].sum().values,
+            np.array([-25 + 10 - 2, -25 + 10 - 2, 0]),
+            decimal=3
+        )
+        numpy.testing.assert_array_almost_equal(
+            pf.loc["MSFT"].sum().values,
+            np.array([5, 15, -2]),
+            decimal=3
+        )
