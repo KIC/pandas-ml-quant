@@ -6,7 +6,7 @@ from typing import Tuple, Union, Callable, List
 import logging
 import pandas as pd
 
-from pandas_ml_common.utils.time_utils import parse_timestamp
+from pandas_ml_common.utils.time_utils import parse_timestamp, min_timestamp
 from pandas_ml_quant.portfolio.price import PriceTimeSeries
 
 TrxKey = namedtuple('TrxKey', ['underlying', 'instrument', 'timestamp'])
@@ -19,7 +19,16 @@ class Quantity(object):
     def __init__(self, v: float):
         self.v = v
 
-    def value(self, lazy_current_portfolio: Callable[[str, str], pd.DataFrame], underlying, instrument):
+    def value(self,
+              lazy_current_portfolio: Callable[[str, str], pd.DataFrame],
+              underlying: str,
+              instrument: str,
+              currency: str,
+              prices: PriceTimeSeries,
+              tst: pd.Timestamp,
+              price: float = None,
+              fee: float = 0,
+             ):
         return self.v
 
 
@@ -28,7 +37,16 @@ class TargetQuantity(Quantity):
     def __init__(self, v: float):
         super().__init__(v)
 
-    def value(self, lazy_current_portfolio: Callable[[str, str], pd.DataFrame], underlying, instrument):
+    def value(self,
+              lazy_current_portfolio: Callable[[str, str], pd.DataFrame],
+              underlying: str,
+              instrument: str,
+              currency: str,
+              prices: PriceTimeSeries,
+              tst: pd.Timestamp,
+              price: float = None,
+              fee: float = 0,
+             ):
         current_position = lazy_current_portfolio(underlying, instrument)
         if current_position.empty:
             return self.v
@@ -41,17 +59,46 @@ class TargetQuantity(Quantity):
 class TargetWeight(Quantity):
 
     def __init__(self, v: float):
-        assert 0 <= v <= 1, 'Weighs need to be between -1 and 1'
+        assert -1 <= v <= 1, 'Weighs need to be between -1 and 1'
         super().__init__(v)
 
-    def value(self, lazy_current_portfolio: Callable[[str, str], pd.DataFrame], underlying, instrument):
-        current_portfolio = lazy_current_portfolio(None, None)["nav"].sum()  # TODO test with long and short !
-        current_cash_positions = None # FIXME we also need the current cash position
-        nav = current_portfolio + current_cash_positions
-        # get weight of current position
-        # calculate needed quantity for target weight
-        # return current_quantity - needed quantity
-        raise NotImplementedError("target weight is not yet implemented")
+    def value(self,
+              lazy_current_portfolio: Callable[[str, str], pd.DataFrame],
+              underlying: str,
+              instrument: str,
+              currency: str,
+              prices: PriceTimeSeries,
+              tst: pd.Timestamp,
+              price: float = None,
+              fee: float = 0,
+             ):
+        def evaluate(pos: pd.Series):
+            if pos.empty:
+                return 0
+
+            return prices.get_price(pos.name[1], tst, currency)[1][0] * pos.item()
+
+        current_portfolio = lazy_current_portfolio(None, None)
+        try:
+            current_cash_position = current_portfolio.loc[currency]["nav"].sum()
+        except KeyError:
+            raise ValueError('Portfolio needs to be funded `Portfolio(capital=100)`')
+
+        current_positions = current_portfolio.drop([currency])[["quantity"]].apply(evaluate, raw=False, axis=1).sum()
+        target_nav = (current_cash_position + current_positions) * self.v
+
+        idx = (underlying, instrument)
+        current_nav = current_portfolio.loc[idx]["nav"].sum().item() if idx in current_portfolio.index else 0
+
+        if price is not None:
+            qty = (target_nav - current_nav) / price
+        else:
+            _, (bid, ask) = prices.get_price(instrument, tst, currency)
+            price = bid if target_nav < current_nav else ask
+            print(price)
+            qty = (target_nav - current_nav) / price
+
+        return qty
 
 
 class Portfolio(object):
@@ -104,10 +151,13 @@ class Portfolio(object):
 
         return pf
 
-    def __init__(self, prices: PriceTimeSeries = None, capital: float = 1, currency: str = 'USD'):
+    def __init__(self, prices: PriceTimeSeries = None, capital: float = None, currency: str = 'USD'):
         self.prices = PriceTimeSeries() if prices is None else prices
         self.currency = currency
         self.orders = []
+
+        if capital is not None:
+            self.trade(currency, currency, min_timestamp(), 'F', None, nav=capital, price=1, currency=currency, id=str(uuid.uuid4()))
 
     def trade(self,
               underlying: str,
@@ -161,7 +211,8 @@ class Portfolio(object):
             if isinstance(quantity, numbers.Number):
                 quantity = Quantity(quantity)
 
-            quantity = quantity.value(lambda u, i: self.get_current_position(u, i), underlying, instrument)
+            quantity = quantity.value(lambda u, i: self.get_current_position(u, i),
+                                      underlying, instrument, self.currency, self.prices, tst, price, fee)
 
             if price is None:
                 price_tst, (bid, ask) = self.prices.get_price(instrument, tst, currency)

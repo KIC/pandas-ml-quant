@@ -17,5 +17,5 @@ def is_timezone_aware(tst: pd.Timestamp):
     return tst.tzinfo is not None and tst.tzinfo.utcoffset(tst) is not None
 
 
-def min_time():
+def min_timestamp():
     return pd.Timestamp.min.tz_localize('UTC')

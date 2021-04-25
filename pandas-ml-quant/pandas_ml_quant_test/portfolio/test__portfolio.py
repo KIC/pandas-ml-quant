@@ -95,15 +95,40 @@ class TestPortfolio(TestCase):
         )
 
     def test_orders_with_price_and_target_weight(self):
-        p = Portfolio()
+        p = Portfolio(capital=100)
+        p.price.push_quote('MSFT', '2021-01-01 00:00:00', bid=10, ask=10)
+        p.price.push_quote('AAPL', '2021-01-01 00:00:00', bid=0.1, ask=0.1)
+        p.price.push_quote('VXX', '2021-01-01 00:00:00', bid=0.1, ask=0.1)
+        p.price.push_quote('VXY', '2021-01-01 00:00:00', bid=0.1, ask=0.1)
 
-        # TODO test long and short
-        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, TargetWeight(10), price=2.5, fee=-1)
-        p.trade('MSFT', 'MSFT', '2021-01-01 00:00:00', 'B', None, TargetWeight(5), price=2, fee=-1)
+        p.trade('MSFT', 'MSFT', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.3), fee=0)
+        p.trade('AAPL', 'AAPL', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.7), fee=0)
+        p.trade('VXX', 'VXX', '2021-01-02 00:00:00', 'B', None, TargetWeight(-0.2), fee=0)
+        p.trade('VXY', 'VXY', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.2), fee=0)
+
         pf = p.get_current_portfolio()
-        print(pf)
+        #print(pf)
 
-        pass
+        numpy.testing.assert_array_almost_equal(
+            pf["nav"].values,
+            np.array([70, 30, 0, -20, 20]),
+            decimal=3
+        )
+
+    def test_orders_with_price_and_target_weight_rebalance(self):
+        # test bid/ask
+        p = Portfolio(capital=100)
+        p.price.push_quote('MSFT', '2021-01-01 00:00:00', bid=9.99, ask=10)
+        p.trade('MSFT', 'MSFT', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.3), fee=0)
+        p.trade('MSFT', 'MSFT', '2021-01-02 00:00:00', 'B', None, TargetWeight(0.6), fee=0)
+        pf = p.get_current_portfolio()
+        # print(pf)
+
+        numpy.testing.assert_array_almost_equal(
+            pf["nav"].values,
+            np.array([59.982, 40.018]),
+            decimal=3
+        )
 
     def test_with_quantity_no_price(self):
         p = Portfolio()
