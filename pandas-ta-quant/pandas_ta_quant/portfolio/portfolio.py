@@ -11,6 +11,8 @@ import pandas as pd
 from pandas_ml_common.utils.time_utils import parse_timestamp, min_timestamp
 from .price import PriceTimeSeries
 
+_VAL_BASE_CURR = 'liquidation_value'
+_POS_AVG_PRICE = 'nav'
 TrxKey = namedtuple('TrxKey', ['underlying', 'instrument', 'timestamp'])
 Order = namedtuple('Order', ['ID', 'order_type', 'order_subtype', 'currency', 'quantity', 'nav', 'fee', 'strategy'])
 _log = logging.getLogger(__name__)
@@ -49,10 +51,11 @@ class TargetQuantity(Quantity):
               price: float = None,
               fee: float = 0,
              ):
-        current_position = lazy_current_portfolio(underlying, instrument)
+        current_position = lazy_current_portfolio(underlying, instrument, currency)
         if current_position.empty:
             return self.v
         else:
+            assert current_position.ndim <= 1, f'Expected Series, got DataFrame\n{current_position}'
             current_quantity = current_position['quantity'].item()
             quantity = self.v - current_quantity
             return quantity
@@ -77,21 +80,22 @@ class TargetWeight(Quantity):
              ):
         if fee != 0:
             if not self.warned_fee:
-                _log.warning("we can't handle fees properly using TargetWeight. Your PriceTimeseries should use bid/ask or spread!")
+                _log.warning("we can't handle fees properly using TargetWeight. "
+                             "Your PriceTimeSeries should use bid/ask or spread!")
                 self.warned_fee = True
 
-        current_portfolio = lazy_current_portfolio(None, None)
+        current_portfolio = lazy_current_portfolio(None, None, None)
         try:
-            current_cash_position = current_portfolio.loc[currency, currency]["nav"].sum()
+            current_cash_position = current_portfolio.loc[currency, currency][_POS_AVG_PRICE].sum()
         except KeyError:
             raise ValueError('Portfolio needs to be funded `Portfolio(capital=100)`')
 
-        current_positions = current_portfolio.drop([currency, currency])[["liquidation_value"]].sum().item()
+        current_positions = current_portfolio.drop([currency, currency])[[_VAL_BASE_CURR]].sum().item()
         target_nav = (current_cash_position + current_positions) * self.v
 
         idx = (underlying, instrument)
 
-        current_nav = current_portfolio.loc[idx]["liquidation_value"].sum().item() if idx in current_portfolio.index else 0
+        current_nav = current_portfolio.loc[idx][_VAL_BASE_CURR].sum().item() if idx in current_portfolio.index else 0
         if current_nav <= -np.inf:
             raise ValueError(f"TargetWeight needs prices! Missing price for {idx}")
 
@@ -215,7 +219,7 @@ class Portfolio(object):
             if isinstance(quantity, numbers.Number):
                 quantity = Quantity(quantity)
 
-            quantity = quantity.value(lambda u, i: self.get_current_position(u, i),
+            quantity = quantity.value(lambda u, i, c: self.get_current_position(u, i, c),
                                       underlying, instrument, self.currency, self.prices, tst, price, fee)
 
             if price is None:
@@ -251,23 +255,22 @@ class Portfolio(object):
     def get_current_portfolio(self, strategy=None):
         return self.get_current_position(None, None, strategy)
 
-    def get_current_position(self, underlying, instrument=None, strategy=None):
-        index = (underlying, ) if instrument is None else (underlying, instrument)
+    def get_current_position(self, underlying, instrument=None, currency=None, strategy=None):
         df_trades = self.get_order_sequence().drop(['order_type', 'order_subtype', 'strategy'], axis=1)
+        agg = get_position_aggregator(self.prices, instrument, self.currency)
 
         if strategy is not None:
             df_trades = df_trades[df_trades["strategy"] == strategy]
 
-        agg = get_position_aggregator(self.prices, instrument, self.currency)
-        if underlying is None and instrument is None:
-            return df_trades.groupby(level=[0, 1]).apply(agg)
-        else:
-            try:
-                return df_trades.loc[index]\
-                    .groupby(level=range(df_trades.index.nlevels - len(index)))\
-                    .apply(agg)
-            except KeyError:
-                return pd.DataFrame({}, df_trades.columns)
+        if underlying is None:
+            underlying = slice(None)
+        if instrument is None:
+            instrument = slice(None)
+        if currency is None:
+            currency = self.currency
+
+        res = df_trades.groupby(level=[0, 1]).apply(agg)
+        return res if res.empty else res.loc[(underlying, instrument, currency)]
 
     def get_portfolio_timeseries(self):
         df_trades = self.get_order_sequence()
@@ -303,14 +306,14 @@ def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_curre
                 val = -np.inf
                 # _log.error(f"Failed to get price for {inst} @ {tst}")
 
-            # look if we need a different currency
             if pos.name != base_currency:
                 # we need to get an FX rate as well
                 raise NotImplementedError("Multiple currencies not supported at the moment")
 
             return val
 
-        res["liquidation_value"] = res.apply(mark_to_market, axis=1)
+        res[_VAL_BASE_CURR] = res.apply(mark_to_market, axis=1)
+        res = res.rename(columns={"nav": _POS_AVG_PRICE}) if res.ndim > 1 else res.rename(index={"nav": _POS_AVG_PRICE})
         return res
 
     return aggregator
@@ -330,15 +333,16 @@ def get_position_timeseries_aggregator(prices: PriceTimeSeries, base_currency: s
                 val = -np.inf
                 # _log.error(f"Failed to get price for {inst} @ {tst}")
 
-            # look if we need a different currency
             if pos.name[0] != base_currency:
                 # we need to get an FX rate as well
                 raise NotImplementedError("Multiple currencies not supported at the moment")
 
             return val
 
-        res["liquidation_value"] = res.apply(mark_to_market, axis=1)
+        res[_VAL_BASE_CURR] = res.apply(mark_to_market, axis=1)
         res.index = pd.MultiIndex.from_arrays([res.index.get_level_values(-1), res.index.get_level_values(0)])
+        res.rename(columns={"nav": _POS_AVG_PRICE})
+
         return res
 
     return aggregator

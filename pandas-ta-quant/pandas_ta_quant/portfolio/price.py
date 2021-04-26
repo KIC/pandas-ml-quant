@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 import pandas as pd
 from bintrees import BinaryTree
@@ -27,6 +27,36 @@ class PriceTimeSeries(object):
     idealerweise bauen wir ein library das Signale in trades übersetzt damit wir die für den user etwas einfacher
     abstrahieren können.
     """
+
+    @staticmethod
+    def from_dataframe(df: pd.DataFrame,
+                       instrument: str,
+                       ohlc: List[str] = None, bid_ask: List[str] = None, price: str = None,
+                       currency: str = 'USD',
+                       **kwargs):
+        assert ohlc is not None or bid_ask is not None or price is not None, \
+               "You need to pass one of ohlc, bid_ask oder price column name(s)"
+
+        prices = PriceTimeSeries()
+
+        def load_ohlc(row):
+            prices.push_bar(instrument, row.name, *row[ohlc], currency=currency, **kwargs)
+
+        def load_quote(row):
+            prices.push_quote(instrument, row.name, *row[bid_ask], currency=currency)
+
+        def load_price(row):
+            prices.push_price(instrument, row.name, row[price], currency=currency, **kwargs)
+
+        if ohlc is not None:
+            func = load_ohlc
+        elif bid_ask is not None:
+            func = load_quote
+        else:
+            func = load_price
+
+        df.apply(func, axis=1)
+        return prices
 
     def __init__(self):
         self.timeseries = defaultdict(BinaryTree)
