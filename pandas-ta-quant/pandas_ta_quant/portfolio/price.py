@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from collections import defaultdict
 from datetime import timedelta
 from typing import Union, Tuple, List
@@ -8,7 +9,14 @@ from bintrees import BinaryTree
 from pandas_ml_common.utils.time_utils import parse_timestamp
 
 
-class PriceTimeSeries(object):
+class AbstractPriceTimeSeries():
+
+    @abstractmethod
+    def get_price(self, instrument: str, timestamp: Union[pd.Timestamp, str, Tuple[str, str]], currency: str = 'USD', convert_to: str = None):
+        pass
+
+
+class PriceTimeSeries(AbstractPriceTimeSeries):
     """
     entweder senden wir einen timestamp zusammen mit bid/ask, oder einer Quote mit spread (default 0).
     man kann auch einen bar (aka candle) senden mit open und close timestamps. default wird ein bar aber so übersetzt:
@@ -108,6 +116,10 @@ class PriceTimeSeries(object):
         tst = parse_timestamp(timestamp)
         self.timeseries[(instrument, currency)][tst] = bid, ask
 
-    def get_price(self, instrument: str, timestamp: Union[pd.Timestamp, str, Tuple[str, str]], currency: str = 'USD'):
+    def get_price(self, instrument: str, timestamp: Union[pd.Timestamp, str, Tuple[str, str]], currency: str = 'USD', convert_to: str = None):
+        if convert_to is not None and convert_to != currency:
+            # TODO later we want to do a recurse lookup for an fx rate
+            raise NotImplementedError("Multiple currencies not supported at the moment")
+
         tst = parse_timestamp(timestamp)
         return self.timeseries[(instrument, currency)].floor_item(tst)

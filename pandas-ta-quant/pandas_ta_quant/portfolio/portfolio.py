@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils.time_utils import parse_timestamp, min_timestamp
-from .price import PriceTimeSeries
+from .price import PriceTimeSeries, AbstractPriceTimeSeries
 
 _VAL_BASE_CURR = 'liquidation_value'
 _POS_AVG_PRICE = 'nav'
@@ -28,7 +28,7 @@ class Quantity(object):
               underlying: str,
               instrument: str,
               currency: str,
-              prices: PriceTimeSeries,
+              prices: AbstractPriceTimeSeries,
               tst: pd.Timestamp,
               price: float = None,
               fee: float = 0,
@@ -46,7 +46,7 @@ class TargetQuantity(Quantity):
               underlying: str,
               instrument: str,
               currency: str,
-              prices: PriceTimeSeries,
+              prices: AbstractPriceTimeSeries,
               tst: pd.Timestamp,
               price: float = None,
               fee: float = 0,
@@ -73,7 +73,7 @@ class TargetWeight(Quantity):
               underlying: str,
               instrument: str,
               currency: str,
-              prices: PriceTimeSeries,
+              prices: AbstractPriceTimeSeries,
               tst: pd.Timestamp,
               price: float = None,
               fee: float = 0,
@@ -159,7 +159,7 @@ class Portfolio(object):
 
         return pf
 
-    def __init__(self, prices: PriceTimeSeries = None, capital: float = None, currency: str = 'USD'):
+    def __init__(self, prices: AbstractPriceTimeSeries = None, capital: float = None, currency: str = 'USD'):
         self.prices = PriceTimeSeries() if prices is None else prices
         self.currency = currency
         self.orders = []
@@ -290,7 +290,7 @@ class Portfolio(object):
             return df_trades.groupby(level=[0, 1]).apply(get_position_aggregator(self.prices, None, self.currency))
 
 
-def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_currency: str):
+def get_position_aggregator(prices: AbstractPriceTimeSeries, instrument: str, base_currency: str):
     def aggregator(pos: pd.Series):
         res = pos[['quantity', 'nav', 'fee', 'currency']].groupby('currency')
         res = res.sum()
@@ -301,14 +301,10 @@ def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_curre
         def mark_to_market(pos):
             try:
                 val = res['nav'] if inst == base_currency else \
-                    prices.get_price(inst, tst, pos.name)[1][0] * pos["quantity"].item()
+                    prices.get_price(inst, tst, pos.name, base_currency)[1][0] * pos["quantity"].item()
             except KeyError:
                 val = -np.inf
                 # _log.error(f"Failed to get price for {inst} @ {tst}")
-
-            if pos.name != base_currency:
-                # we need to get an FX rate as well
-                raise NotImplementedError("Multiple currencies not supported at the moment")
 
             return val
 
@@ -319,7 +315,7 @@ def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_curre
     return aggregator
 
 
-def get_position_timeseries_aggregator(prices: PriceTimeSeries, base_currency: str):
+def get_position_timeseries_aggregator(prices: AbstractPriceTimeSeries, base_currency: str):
     def aggregator(pos: pd.Series):
         grp = pos[['quantity', 'nav', 'fee', 'currency']].groupby('currency')
         grp = {g: f.drop('currency', axis=1).cumsum() for g, f in grp}
@@ -328,14 +324,10 @@ def get_position_timeseries_aggregator(prices: PriceTimeSeries, base_currency: s
         def mark_to_market(pos):
             try:
                 val = pos['nav'] if pos.name[1] == base_currency else \
-                    prices.get_price(pos.name[1], pos.name[-1], pos["currency"].item())[1][0] * pos["quantity"].item()
+                    prices.get_price(pos.name[1], pos.name[-1], pos["currency"].item(), base_currency)[1][0] * pos["quantity"].item()
             except KeyError:
                 val = -np.inf
                 # _log.error(f"Failed to get price for {inst} @ {tst}")
-
-            if pos.name[0] != base_currency:
-                # we need to get an FX rate as well
-                raise NotImplementedError("Multiple currencies not supported at the moment")
 
             return val
 
