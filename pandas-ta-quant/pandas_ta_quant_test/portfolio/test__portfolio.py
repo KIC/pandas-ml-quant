@@ -171,4 +171,4 @@ class TestPortfolio(TestCase):
         pf3 = p.foo(True)
         print(pf3)
 
-        numpy.testing.assert_array_almost_equal(p.get_portfolio_timeseries().values, pf3.values[:,:3])
+        numpy.testing.assert_array_almost_equal(p.get_portfolio_timeseries().values[:,:3], pf3.values[:,:3])

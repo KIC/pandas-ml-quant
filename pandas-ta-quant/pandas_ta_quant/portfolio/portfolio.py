@@ -82,11 +82,11 @@ class TargetWeight(Quantity):
 
         current_portfolio = lazy_current_portfolio(None, None)
         try:
-            current_cash_position = current_portfolio.loc[currency]["nav"].sum()
+            current_cash_position = current_portfolio.loc[currency, currency]["nav"].sum()
         except KeyError:
             raise ValueError('Portfolio needs to be funded `Portfolio(capital=100)`')
 
-        current_positions = current_portfolio.drop([currency])[["liquidation_value"]].sum().item()
+        current_positions = current_portfolio.drop([currency, currency])[["liquidation_value"]].sum().item()
         target_nav = (current_cash_position + current_positions) * self.v
 
         idx = (underlying, instrument)
@@ -258,46 +258,20 @@ class Portfolio(object):
         if strategy is not None:
             df_trades = df_trades[df_trades["strategy"] == strategy]
 
-        def evaluate_liquidation_value(pos: pd.Series):
-            # TODO move this function outside such that anyone can call it
-            #   allow passing an aggregat function such that we can sum or cumsum
-            #   further group the positions inside this function among currencies
-            #   create constants for nav and liquidation value such taht we can easily rename them later
-            res = pos[['quantity', 'nav', 'fee']].sum()
-            tst = pos.index.to_list()[-1]
-            if isinstance(tst, tuple):
-                tst = tst[-1]
-
-            inst = pos.name[1] if instrument is None else instrument
-
-            try:
-                val = res['nav'] if inst == self.currency else \
-                        self.prices.get_price(inst, tst, pos["currency"].values[-1])[1][0] * res["quantity"].item()
-                res["liquidation_value"] = val
-            except KeyError:
-                res["liquidation_value"] = -np.inf
-                # _log.error(f"Failed to get price for {inst} @ {tst}")
-
-            if pos["currency"].values[-1] != self.currency:
-                # we need to get an FX rate as well
-                raise NotImplementedError("Multiple currencies not supported at the moment")
-
-            return res
-
+        agg = get_position_aggregator(self.prices, instrument, self.currency)
         if underlying is None and instrument is None:
-            return df_trades.groupby(level=[0, 1]).apply(evaluate_liquidation_value)
+            return df_trades.groupby(level=[0, 1]).apply(agg)
         else:
             try:
                 return df_trades.loc[index]\
                     .groupby(level=range(df_trades.index.nlevels - len(index)))\
-                    .apply(evaluate_liquidation_value)
+                    .apply(agg)
             except KeyError:
                 return pd.DataFrame({}, df_trades.columns)
 
     def get_portfolio_timeseries(self):
         df_trades = self.get_order_sequence()
-        # TODO we need a similr function like the `evaluate_liquidation_value` but with a cumsum like approach
-        return df_trades[['quantity', 'nav', 'fee']].groupby(level=[0, 1]).transform(pd.DataFrame.cumsum)
+        return df_trades.groupby(level=[0, 1]).apply(get_position_timeseries_aggregator(self.prices, self.currency))
 
     def get_order_sequence(self) -> pd.DataFrame:
         df_trades = pd.DataFrame(self.orders, columns=Order._fields)
@@ -308,7 +282,7 @@ class Portfolio(object):
     def foo(self, ts):
         df_trades = self.get_order_sequence()
         if ts:
-            return df_trades.groupby(level=[0, 1]).apply(get_position_timeseries_aggregator(self.prices, None, self.currency))
+            return df_trades.groupby(level=[0, 1]).apply(get_position_timeseries_aggregator(self.prices, self.currency))
         else:
             return df_trades.groupby(level=[0, 1]).apply(get_position_aggregator(self.prices, None, self.currency))
 
@@ -324,7 +298,7 @@ def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_curre
         def mark_to_market(pos):
             try:
                 val = res['nav'] if inst == base_currency else \
-                    prices.get_price(inst, tst, pos["currency"].item())[1][0] * pos["quantity"].item()
+                    prices.get_price(inst, tst, pos.name)[1][0] * pos["quantity"].item()
             except KeyError:
                 val = -np.inf
                 # _log.error(f"Failed to get price for {inst} @ {tst}")
@@ -342,7 +316,7 @@ def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_curre
     return aggregator
 
 
-def get_position_timeseries_aggregator(prices: PriceTimeSeries, instrument: str, base_currency: str):
+def get_position_timeseries_aggregator(prices: PriceTimeSeries, base_currency: str):
     def aggregator(pos: pd.Series):
         grp = pos[['quantity', 'nav', 'fee', 'currency']].groupby('currency')
         grp = {g: f.drop('currency', axis=1).cumsum() for g, f in grp}
