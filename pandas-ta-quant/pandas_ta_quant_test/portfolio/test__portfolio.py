@@ -3,6 +3,7 @@ from unittest import TestCase
 
 import numpy
 import numpy as np
+import pandas as pd
 
 from pandas_ta_quant.portfolio import Portfolio, TargetQuantity, TargetWeight
 from pandas_ta_quant_test.config import CSV_TRADES
@@ -157,10 +158,17 @@ class TestPortfolio(TestCase):
     def test_lala(self):
         p = Portfolio()
 
-        #  price = 2.5
-        p.price.push_quote('MSFT', '2021-01-02 00:00:00', bid=2, ask=2.5)
-        p.trade('MSFT', 'MSFT', '2021-01-02 00:00:01', 'B', None, 10, fee=-1)
+        for trade in self.get_trades():
+            p.trade(*trade)
 
-        #print(orders[['quantity', 'nav', 'fee']].groupby(level=[0, 1]).apply(lala))
-        #print(orders.groupby(level=[0, 1]).apply(lala))
-        print(p.get_current_portfolio())
+        pf = p.get_current_portfolio()
+        print(pf)
+
+        pf2 = p.foo(False)
+        print(pf2)
+        numpy.testing.assert_array_almost_equal(pf.values, pf2.values)
+
+        pf3 = p.foo(True)
+        print(pf3)
+
+        numpy.testing.assert_array_almost_equal(p.get_portfolio_timeseries().values, pf3.values[:,:3])

@@ -248,16 +248,21 @@ class Portfolio(object):
     def price(self):
         return self.prices
 
-    def get_current_portfolio(self):
-        return self.get_current_position(None, None)
+    def get_current_portfolio(self, strategy=None):
+        return self.get_current_position(None, None, strategy)
 
-    def get_current_position(self, underlying, instrument=None):
+    def get_current_position(self, underlying, instrument=None, strategy=None):
         index = (underlying, ) if instrument is None else (underlying, instrument)
         df_trades = self.get_order_sequence().drop(['order_type', 'order_subtype', 'strategy'], axis=1)
 
-        # FIXME currency and strategy are group critereas as well
+        if strategy is not None:
+            df_trades = df_trades[df_trades["strategy"] == strategy]
 
         def evaluate_liquidation_value(pos: pd.Series):
+            # TODO move this function outside such that anyone can call it
+            #   allow passing an aggregat function such that we can sum or cumsum
+            #   further group the positions inside this function among currencies
+            #   create constants for nav and liquidation value such taht we can easily rename them later
             res = pos[['quantity', 'nav', 'fee']].sum()
             tst = pos.index.to_list()[-1]
             if isinstance(tst, tuple):
@@ -291,6 +296,7 @@ class Portfolio(object):
 
     def get_portfolio_timeseries(self):
         df_trades = self.get_order_sequence()
+        # TODO we need a similr function like the `evaluate_liquidation_value` but with a cumsum like approach
         return df_trades[['quantity', 'nav', 'fee']].groupby(level=[0, 1]).transform(pd.DataFrame.cumsum)
 
     def get_order_sequence(self) -> pd.DataFrame:
@@ -299,4 +305,66 @@ class Portfolio(object):
         df_trades = df_trades.drop(['ID'], axis=1).sort_index()
         return df_trades
 
+    def foo(self, ts):
+        df_trades = self.get_order_sequence()
+        if ts:
+            return df_trades.groupby(level=[0, 1]).apply(get_position_timeseries_aggregator(self.prices, None, self.currency))
+        else:
+            return df_trades.groupby(level=[0, 1]).apply(get_position_aggregator(self.prices, None, self.currency))
 
+
+def get_position_aggregator(prices: PriceTimeSeries, instrument: str, base_currency: str):
+    def aggregator(pos: pd.Series):
+        res = pos[['quantity', 'nav', 'fee', 'currency']].groupby('currency')
+        res = res.sum()
+
+        tst = pos.index.get_level_values(-1).max()
+        inst = pos.name[1] if instrument is None else instrument
+
+        def mark_to_market(pos):
+            try:
+                val = res['nav'] if inst == base_currency else \
+                    prices.get_price(inst, tst, pos["currency"].item())[1][0] * pos["quantity"].item()
+            except KeyError:
+                val = -np.inf
+                # _log.error(f"Failed to get price for {inst} @ {tst}")
+
+            # look if we need a different currency
+            if pos.name != base_currency:
+                # we need to get an FX rate as well
+                raise NotImplementedError("Multiple currencies not supported at the moment")
+
+            return val
+
+        res["liquidation_value"] = res.apply(mark_to_market, axis=1)
+        return res
+
+    return aggregator
+
+
+def get_position_timeseries_aggregator(prices: PriceTimeSeries, instrument: str, base_currency: str):
+    def aggregator(pos: pd.Series):
+        grp = pos[['quantity', 'nav', 'fee', 'currency']].groupby('currency')
+        grp = {g: f.drop('currency', axis=1).cumsum() for g, f in grp}
+        res = pd.concat(grp.values(), axis=0, keys=grp.keys())
+
+        def mark_to_market(pos):
+            try:
+                val = pos['nav'] if pos.name[1] == base_currency else \
+                    prices.get_price(pos.name[1], pos.name[-1], pos["currency"].item())[1][0] * pos["quantity"].item()
+            except KeyError:
+                val = -np.inf
+                # _log.error(f"Failed to get price for {inst} @ {tst}")
+
+            # look if we need a different currency
+            if pos.name[0] != base_currency:
+                # we need to get an FX rate as well
+                raise NotImplementedError("Multiple currencies not supported at the moment")
+
+            return val
+
+        res["liquidation_value"] = res.apply(mark_to_market, axis=1)
+        res.index = pd.MultiIndex.from_arrays([res.index.get_level_values(-1), res.index.get_level_values(0)])
+        return res
+
+    return aggregator
