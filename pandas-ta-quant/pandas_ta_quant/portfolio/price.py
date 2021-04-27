@@ -117,9 +117,12 @@ class PriceTimeSeries(AbstractPriceTimeSeries):
         self.timeseries[(instrument, currency)][tst] = bid, ask
 
     def get_price(self, instrument: str, timestamp: Union[pd.Timestamp, str, Tuple[str, str]], currency: str = 'USD', convert_to: str = None):
+        tst = parse_timestamp(timestamp)
+        price = self.timeseries[(instrument, currency)].floor_item(tst)
+
         if convert_to is not None and convert_to != currency:
-            # TODO later we want to do a recurse lookup for an fx rate
+            fxrate = 1 # TODO later we want to do a recurse lookup for an fx rate: self.get_price(convert_to, price[0], currency)
+            price = (price[0], (price[1][0] * fxrate, price[1][1] * fxrate))
             raise NotImplementedError("Multiple currencies not supported at the moment")
 
-        tst = parse_timestamp(timestamp)
-        return self.timeseries[(instrument, currency)].floor_item(tst)
+        return price

@@ -1,6 +1,6 @@
 ipykernel
 lxml
-markdown
+Markdown
 nbconvert
 nbformat
 requests

@@ -62,3 +62,6 @@ jobs:
     - name: execute nox tests on INTEGRATION
       working-directory: pandas-ml-1ntegration-test
       run: nox
+    - name: add frozen versions
+      run: |
+        git add */*frozen.txt
