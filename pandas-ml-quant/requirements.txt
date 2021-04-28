@@ -6,7 +6,7 @@ cvxopt
 cvxpy
 ipywidgets
 matplotlib
-minisom
+MiniSom
 #mgarch
 mgarch-setup-fix
 mlxtend
@@ -15,7 +15,7 @@ numba
 numpy
 pandas
 pyts
-pywavelets
+PyWavelets
 qpsolvers
 seaborn
 sortedcontainers

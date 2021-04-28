@@ -1,8 +1,8 @@
+Markdown
 drawilleplot
 ipykernel
-jupyter_client
+jupyter-client
 lxml
-markdown
 matplotlib
 nbconvert
 requests

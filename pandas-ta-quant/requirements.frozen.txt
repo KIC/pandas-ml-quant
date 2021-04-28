@@ -1,0 +1,7 @@
+arch==4.14
+bintrees==2.2.0
+mgarch-setup-fix==0.2.0
+pyts==0.11.0
+scikit-learn==0.23.1
+scipy==1.4.1
+statsmodels==0.11.1

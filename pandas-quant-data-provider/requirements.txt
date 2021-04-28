@@ -6,6 +6,6 @@ pandas
 pangres
 simple-plugin-loader
 sortedcontainers
-sqlalchemy
+SQLAlchemy
 yfinance
 cachier

@@ -45,3 +45,6 @@ def tests(session):
 
     # make link check
     session.run("python", "pandas_ta_quant_plot_test/check_links.py", dist_file)
+
+    # freeze versions
+    session.run("python", "../freeze_versions.py", "requirements.txt", "dev-requirements.txt")

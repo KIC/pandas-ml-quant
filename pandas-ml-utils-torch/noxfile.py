@@ -48,3 +48,6 @@ def tests(session):
 
     # make link check
     session.run("python", "pandas_ml_utils_torch_test/check_links.py", dist_file)
+
+    # freeze versions
+    session.run("python", "../freeze_versions.py", "requirements.txt", "dev-requirements.txt")

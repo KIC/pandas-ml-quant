@@ -1,6 +1,7 @@
+bintrees
 scipy==1.4.1  # https://github.com/srivastavaprashant/mgarch/issues/4
 arch
-mgarch_setup_fix  # https://github.com/srivastavaprashant/mgarch/issues/3
+mgarch-setup-fix  # https://github.com/srivastavaprashant/mgarch/issues/3
 pyts
 scikit-learn
 statsmodels
