@@ -10,9 +10,9 @@ jobs:
   spelling:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.7
     - name: Install dependencies
@@ -22,7 +22,8 @@ jobs:
         # Install any additional libraries required: additional plugins, documentation building libraries, etc.
     - name: Install Aspell
       run: |
-        sudo apt-get install aspell aspell-en
+        apt-get update
+        apt-get install aspell aspell-en
     #- name: Build documents
     #  run:  ... Perform any documentation building that might be required ..
     - name: Spell check

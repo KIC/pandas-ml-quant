@@ -11,6 +11,7 @@ on:
 
 jobs:
   build:
+    name: noxtest
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -35,7 +36,9 @@ jobs:
         ./configure --prefix=/tmp
         make
         make install
-        pip install TA-Lib
+        pip install numpy TA-Lib
+        python -c 'import talib'
+        rm -rf ta-lib*
     - name: Install nox
       run: pip install -U nox pytest
     - name: execute nox tests on COMMON
@@ -63,5 +66,13 @@ jobs:
       working-directory: pandas-ml-1ntegration-test
       run: nox
     - name: add frozen versions
-      run: |
-        git add */*frozen.txt
+      #
+      #   commit changes
+      #
+    - uses: EndBug/add-and-commit@v7
+      name: commit frozen versions
+      with:
+        add: '*/*frozen.txt'
+        author_name: action
+        author_email: action@github.com
+        # push: false
