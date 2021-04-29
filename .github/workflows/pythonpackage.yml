@@ -68,7 +68,7 @@ jobs:
       #   commit changes
       #
     - name: commit frozen versions
-    - uses: EndBug/add-and-commit@v7
+      uses: EndBug/add-and-commit@v7
       with:
         add: '*/*frozen.txt'
         author_name: action
