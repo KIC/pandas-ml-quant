@@ -35,22 +35,25 @@ jobs:
         ./configure --prefix=/tmp
         make
         make install
-        pip install numpy TA-Lib
-        python -c 'import talib'
         rm -rf ta-lib*
+        pip install pandas
+        pip install numpy>=1.20.2
+        pip install TA-Lib
+        python -c 'import talib; print(talib.EMA)'
+        python -c'import numpy as np; print(np.__version__)'
     - name: Install nox
       run: pip install -U nox pytest
     - name: execute nox tests on COMMON
       working-directory: pandas-ml-common
+      run: nox
+    - name: execute nox tests on TA_QUANT
+      working-directory: pandas-ta-quant
       run: nox
     - name: execute nox tests on ML_UTILS
       working-directory: pandas-ml-utils
       run: nox
     - name: execute nox tests on ML_UTILS_TORCH
       working-directory: pandas-ml-utils-torch
-      run: nox
-    - name: execute nox tests on TA_QUANT
-      working-directory: pandas-ta-quant
       run: nox
     - name: execute nox tests on TA_QUANT_PLOT
       working-directory: pandas-ta-quant-plot

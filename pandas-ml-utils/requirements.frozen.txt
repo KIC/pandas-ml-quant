@@ -1,9 +1,9 @@
-dill==0.3.1.1
+dill==0.3.3
 Mako==1.1.4
 matplotlib==3.4.1
 mlxtend==0.18.0
-numpy==1.18.4
-pandas==1.1.3
-scikit-learn==0.23.1
-sortedcontainers==2.1.0
+numpy==1.20.2
+pandas==1.2.4
+scikit-learn==0.24.2
+sortedcontainers==2.3.0
 statsmodels==0.12.2

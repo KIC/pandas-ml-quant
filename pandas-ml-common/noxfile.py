@@ -14,9 +14,10 @@ def tests(session):
     dist_file = f"/tmp/pandas-ml-common-{__version__}.zip"
 
     # create distribution and install
+    session.install("-r", "requirements.txt")
     session.install("-r", "dev-requirements.txt")
     session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
-    session.install(dist_file)
+    session.install(dist_file, "--no-deps")
 
     # create notebook kernels
     kernel = "ml_commons"
@@ -41,5 +42,6 @@ def tests(session):
     # make link check
     session.run("python", "pandas_ml_common_test/check_links.py", dist_file)
 
-    # freeze versions
+    # freeze versions and rebuild with frozen versions
     session.run("python", "../freeze_versions.py", "requirements.txt", "dev-requirements.txt")
+    session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})
