@@ -97,18 +97,19 @@ class RegressionSummary(Summary):
 
 class ClassificationSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', **kwargs):
+    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', include_feature_importance=True, **kwargs):
         super().__init__(
             df,
             model,
-            plot_confusion_matrix,
-            plot_receiver_operating_characteristic,
-            df_classification_scores,
-            plot_feature_importance,
-            df_tail,
-            layout=[[2, 0, 0, 1, 1],
-                    [3, 3, 3, 3, 3],
-                    [4, 4, 4, 4, 4]],
+            plot_confusion_matrix,                          # 0
+            plot_receiver_operating_characteristic,         # 1
+            df_classification_scores,                       # 2
+            plot_feature_importance,                        # 3
+            df_tail,                                        # 4
+            layout=([[2, 0, 0, 1, 1],
+                     [3, 3, 3, 3, 3],
+                     [4, 4, 4, 4, 4]] if include_feature_importance else [[2, 0, 0, 1, 1],
+                                                                          [4, 4, 4, 4, 4]]),
             **kwargs
         )
 

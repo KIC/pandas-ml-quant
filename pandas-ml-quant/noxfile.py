@@ -1,4 +1,4 @@
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 import os
 import shutil
@@ -46,3 +46,7 @@ def tests(session):
 
     # make link check
     session.run("python", "pandas_ml_quant_test/check_links.py", dist_file)
+
+    # freeze versions and rebuild with frozen versions
+    session.run("python", "../freeze_versions.py", "requirements.txt", "dev-requirements.txt")
+    session.run("python", "setup.py", "sdist",  "-d", "/tmp/", "--formats=zip", env={})

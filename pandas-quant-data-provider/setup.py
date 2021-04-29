@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods to fetch time series data for quant finance"""
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 import os
 import re
 
@@ -48,9 +48,9 @@ setup(
     long_description=open('Readme.md').read(),
     long_description_content_type='text/markdown',
     #install_requires=["pandas-ml-common", *open("requirements.txt").read().splitlines()],
-    install_requires=[*open("requirements.txt").read().splitlines()],
+    install_requires=[*open("requirements.frozen.txt").read().splitlines()],
     extras_require={
-       "dev": open("dev-requirements.txt").read().splitlines(),
+       "dev": open("dev-requirements.frozen.txt").read().splitlines(),
     },
     include_package_data=True,
     classifiers=[

@@ -1,6 +1,6 @@
+Markdown
 doltpy
 ipykernel
-jupyter_client
+jupyter-client
 lxml
-markdown
 requests

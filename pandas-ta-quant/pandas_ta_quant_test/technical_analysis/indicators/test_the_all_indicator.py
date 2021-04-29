@@ -1,8 +1,9 @@
 from unittest import TestCase
 
+import pandas as pd
+
 from pandas_ta_quant import _TA
-from pandas_ta_quant_test.config import DF_TEST_MULTI, DF_TEST_MULTI_ROW, DF_TEST_MULTI_ROW_MULTI_COLUMN
-import numpy as np
+from pandas_ta_quant_test.config import DF_TEST_MULTI, DF_TEST_MULTI_ROW_MULTI_COLUMN
 
 
 class TestTheAllIndicator(TestCase):
@@ -31,5 +32,6 @@ class TestTheAllIndicator(TestCase):
         self.assertEqual(3, res.columns.nlevels)
         self.assertEqual(2, res.index.nlevels)
         self.assertEqual(3835 * 2, len(res))
-        np.testing.assert_array_almost_equal(res.loc["A"].values, res.loc["B"], 5)
+
+        pd.testing.assert_frame_equal(res.loc["A"], res.loc["B"])
 

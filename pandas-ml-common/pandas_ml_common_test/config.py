@@ -1,5 +1,10 @@
 import os
+
+import numpy as np
+
 from pandas_ml_common import pd
+
+print('NUMPY VERSION', np.__version__)
 
 
 def _with_multi_index(df, header):

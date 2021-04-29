@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 import os
 import re
@@ -48,10 +48,10 @@ setup(
     description=__doc__,
     long_description=open('Readme.md').read(),
     long_description_content_type='text/markdown',
-    install_requires=open("requirements.txt").read().splitlines(),
+    install_requires=open("requirements.frozen.txt").read().splitlines(),
     extras_require={
         "cross_validation": ["scikit-learn"],
-        "dev": open("dev-requirements.txt").read().splitlines(),
+        "dev": open("dev-requirements.frozen.txt").read().splitlines(),
     },
     include_package_data=True,
     classifiers=[

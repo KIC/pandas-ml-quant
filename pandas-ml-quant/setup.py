@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for quant analysis"""
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 import os
 import re
 
@@ -47,10 +47,10 @@ setup(
     description=__doc__,
     long_description=open('Readme.md').read(),
     long_description_content_type='text/markdown',
-    install_requires=open("requirements.txt").read().splitlines() +
+    install_requires=open("requirements.frozen.txt").read().splitlines() +
                      [f"pandas-ml-common=={__version__}", f"pandas-ml-utils=={__version__}", f"pandas-ta-quant=={__version__}"],
     extras_require={
-       "dev": open("dev-requirements.txt").read().splitlines(),
+       "dev": open("dev-requirements.frozen.txt").read().splitlines(),
     },
     include_package_data=True,
     classifiers=[

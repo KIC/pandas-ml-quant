@@ -1,8 +1,8 @@
+Markdown
 TA-Lib
 ipykernel
-jupyter_client
+jupyter-client
 lxml
-markdown
 matplotlib
 nbconvert
 requests

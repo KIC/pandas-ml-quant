@@ -31,4 +31,4 @@ def ta_sinusoidal_week(po: _t.PatchedPandas):
     else:
         df = po
 
-    return _np.sin(2 * _np.pi * (df.index.week / 52.0)).to_series(index=po.index, name="week")
+    return _np.sin(2 * _np.pi * (df.index.isocalendar().week / 52.0)).rename("week")

@@ -1,2 +1,2 @@
 ipykernel
-jupyter_client
+jupyter-client

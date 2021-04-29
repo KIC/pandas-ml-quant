@@ -21,3 +21,7 @@ def from_pandas(df: pd.DataFrame, cuda: bool = False, default: t.Tensor = None) 
 def to_device(var, cuda):
     return var.cuda() if cuda else var.cpu()
 
+
+def copy_weights(source_network, target_network):
+    target_network.load_state_dict(source_network.state_dict())
+    return target_network.train(source_network.training)

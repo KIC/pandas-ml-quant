@@ -1,6 +1,7 @@
 from typing import Dict
 from unittest import TestCase
 
+import torch as T
 import torch.nn as nn
 from torch.optim import Adam
 
@@ -149,3 +150,15 @@ class TestLoss(TestCase):
                 FittingParameter(batch_size=128, epochs=10, splitter=duplicate_data())
             )
 
+    def test_heteroscedasticity_loss_3d(self):
+        from pandas_ml_utils_torch.loss import HeteroscedasticityLoss
+
+        y_true = T.ones((10, 1, 3))
+        y_pred = T.randn((10, 2, 3))
+        critereon = HeteroscedasticityLoss(multi_nominal_reduction=None)
+
+        t3d = critereon(y_pred, y_true)
+        t2d = critereon(y_pred[:, :, 0], y_true[:, :, 0])
+
+        print(t3d, '\n', t2d)
+        np.testing.assert_array_equal(t2d.numpy(), t3d[:, 0].numpy())
