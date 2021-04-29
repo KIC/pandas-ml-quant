@@ -64,12 +64,11 @@ jobs:
     - name: execute nox tests on INTEGRATION
       working-directory: pandas-ml-1ntegration-test
       run: nox
-    - name: add frozen versions
       #
       #   commit changes
       #
+    - name: commit frozen versions
     - uses: EndBug/add-and-commit@v7
-      name: commit frozen versions
       with:
         add: '*/*frozen.txt'
         author_name: action
