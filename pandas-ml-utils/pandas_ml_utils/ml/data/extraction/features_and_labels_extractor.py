@@ -42,12 +42,9 @@ def extract_feature_labels_weights(
         features_and_labels,
         **kwargs) -> FeaturesWithLabels:
     features, targets, latent = extract_features(df, features_and_labels, **kwargs)
-    labels = get_pandas_object(df, features_and_labels.labels, **kwargs).dropna()
+    labels = extract_labels(df, features_and_labels, **kwargs)
     sample_weights = call_if_not_none(get_pandas_object(df, features_and_labels.sample_weights, **kwargs), 'dropna')
     gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
-
-    if features_and_labels.label_type is not None:
-        labels = labels.astype(features_and_labels.label_type)
 
     # do some sanity check for any non numeric values in any of the data frames
     for frame in [features, labels, targets, sample_weights, gross_loss]:
@@ -98,3 +95,12 @@ def extract_features(df: pd.DataFrame, features_and_labels, **kwargs) -> Feature
         loc_if_not_none(targets, common_index),
         loc_if_not_none(latent, common_index)
     )
+
+
+def extract_labels(df: pd.DataFrame, features_and_labels, **kwargs) -> pd.DataFrame:
+    labels = get_pandas_object(df, features_and_labels.labels, **kwargs).dropna()
+
+    if features_and_labels.label_type is not None:
+        labels = labels.astype(features_and_labels.label_type)
+
+    return labels

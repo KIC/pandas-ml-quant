@@ -60,7 +60,8 @@ class PytochBaseModel(object):
                  criterion_provider: Union[Type[nn.modules.loss._Loss], Callable[[], nn.modules.loss._Loss]],
                  optimizer_provider: Union[Type[t.optim.Optimizer], Callable[[Iterable], t.optim.Optimizer]],
                  record_best_weights: bool = False,
-                 cuda: bool = False
+                 cuda: bool = False,
+                 **kwargs
                  ):
 
         self.net_provider = net_provider
@@ -68,7 +69,7 @@ class PytochBaseModel(object):
         self.optimizer_provider = optimizer_provider
         self._cuda = cuda
 
-        self.net = to_device(net_provider(), cuda)
+        self.net = to_device(net_provider(**kwargs), cuda)
         self.criterion = to_device(call_callable_dynamic_args(criterion_provider, module=self.net, params=self.net.named_parameters()), cuda)
         self.optimizer = optimizer_provider(self.net.parameters())
         self.log_once = LogOnce().log
