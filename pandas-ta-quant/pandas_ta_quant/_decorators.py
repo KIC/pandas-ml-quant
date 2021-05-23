@@ -58,3 +58,11 @@ def for_each_top_level_row(func):
             return func(df, *args, **kwargs)
 
     return exec_on_each_tl_row
+
+
+def is_time_consuming(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    wrapper._is_timeconsuming = True
+    return wrapper

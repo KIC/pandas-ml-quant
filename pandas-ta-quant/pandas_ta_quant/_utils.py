@@ -102,3 +102,14 @@ def index_of_bucket(value, data):
 
     return len(data)
 
+
+def has_decorator(function, decorator):
+    # If we have no func_closure, it means we are not wrapping any other functions.
+    if not function.func_closure:
+        return False
+
+    for closure in function.func_closure:
+        if has_decorator(closure.cell_contents):
+            return True
+
+    return [function]
