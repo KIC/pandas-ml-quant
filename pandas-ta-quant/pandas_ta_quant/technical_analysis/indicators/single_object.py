@@ -234,3 +234,5 @@ def ta_bbands_indicator(df: _PANDAS, period=12, stddev=2.0, ddof=1) -> _PANDAS:
 def ta_slope(df: _PANDAS, period=12):
     x = _np.arange(period)
     return _wcs(f"slope_{period}", df.rolling(period).apply(lambda y: linregress(x, y).slope))
+
+

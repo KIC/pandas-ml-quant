@@ -2,6 +2,7 @@ from typing import Union as _Union
 
 # create convenient type hint
 import numpy as _np
+import numpy as np
 import pandas as _pd
 
 import pandas_ta_quant.technical_analysis.filters as _f
@@ -129,3 +130,25 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
 @for_each_top_level_column
 def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
     return (df[open] / df[close].shift(1) - 1).rename("gap")
+
+
+@for_each_top_level_row
+@for_each_top_level_column
+def ta_gkyz_volatility(df: _pd.DataFrame, period=12, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
+    # sqrt (sum of (  ln(o[i] / c[i-1] )^2 + 1/2 * (ln(h[i] / l[i]))^2 - (2 * ln(2) - 1) * (ln(c[i] / o[i]))^2   ) / N)
+    vdf = df[[open, high, low, close]].copy()
+    vdf.columns = ["o", "h", "l", "c"]
+    vdf["c_1"] = df[close].shift(1)
+    ln = np.log
+
+    def one(r):
+        return ln(r["o"] / r["c_1"])**2 + 0.5*(ln(r["h"] / r["l"]))**2 - (2 * ln(2) - 1)*(ln(r["c"] / r["o"]))**2
+
+    v = np.sqrt(vdf.apply(one, axis=1).rolling(period).mean())
+    return v.rename(f"gkyz_vol_{period}")
+
+
+@for_each_top_level_row
+@for_each_top_level_column
+def ta_cc_volatility(df: _PANDAS, period=12, close="Close") -> _PANDAS:
+    return np.sqrt((np.log(df[close] / df[close].shift(1))**2).rolling(period).mean()).rename(f"cc_vol_{period}")
