@@ -134,6 +134,7 @@ def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
 
 @for_each_top_level_row
 @for_each_top_level_column
+@is_time_consuming
 def ta_vola_hurst(df: _PANDAS, period=255, lags=30, open="Open", high="High", low="Low", close="Close", qVec=(.5, 1, 1.5, 2)) -> _PANDAS:
     x = np.arange(1, lags)
     v = np.log(ta_gkyz_volatility(df, period=1, open=open, high=high, low=low, close=close)).rename("log_sqrt")
@@ -151,7 +152,6 @@ def ta_vola_hurst(df: _PANDAS, period=255, lags=30, open="Open", high="High", lo
 
 @for_each_top_level_row
 @for_each_top_level_column
-@is_time_consuming
 def ta_gkyz_volatility(df: _pd.DataFrame, period=12, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
     # sqrt (sum of (  ln(o[i] / c[i-1] )^2 + 1/2 * (ln(h[i] / l[i]))^2 - (2 * ln(2) - 1) * (ln(c[i] / o[i]))^2   ) / N)
     vdf = df[[open, high, low, close]].copy()
