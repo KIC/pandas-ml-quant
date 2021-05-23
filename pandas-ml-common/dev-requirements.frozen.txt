@@ -1,4 +1,4 @@
-ipykernel==5.5.3
+ipykernel==5.5.5
 lxml==4.6.3
 Markdown==3.3.4
 nbconvert==6.0.7

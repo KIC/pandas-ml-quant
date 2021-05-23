@@ -1,8 +1,8 @@
-ipykernel==5.5.3
+ipykernel==5.5.5
 jupyter-client==6.1.12
 lxml==4.6.3
 Markdown==3.3.4
 nbconvert==6.0.7
 requests==2.25.1
-tox==3.23.0
+tox==3.23.1
 twine==3.4.1
