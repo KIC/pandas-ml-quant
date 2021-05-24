@@ -1,11 +1,11 @@
-ipykernel==5.5.3
+ipykernel==5.5.5
 jupyter-client==6.1.12
 lxml==4.6.3
 Markdown==3.3.4
-matplotlib==3.4.1
+matplotlib==3.4.2
 mplfinance==0.12.7a17
 nbconvert==6.0.7
 requests==2.25.1
-TA-Lib==0.4.19
-tox==3.23.0
+TA-Lib==0.4.20
+tox==3.23.1
 twine==3.4.1
