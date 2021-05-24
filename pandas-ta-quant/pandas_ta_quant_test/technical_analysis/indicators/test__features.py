@@ -193,5 +193,10 @@ class TestIndicator(TestCase):
             6
         )
 
+    def test_hurst(self):
+        h = ta_vola_hurst(DF_TEST[-255*2:])
 
-
+        np.testing.assert_array_almost_equal(
+            [0.147095, 0.473749],
+            h.iloc[-1].values
+        )

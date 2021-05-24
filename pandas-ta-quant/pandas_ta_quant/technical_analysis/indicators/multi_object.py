@@ -4,6 +4,7 @@ from typing import Union as _Union
 import numpy as _np
 import numpy as np
 import pandas as _pd
+import pandas as pd
 
 import pandas_ta_quant.technical_analysis.filters as _f
 from pandas_ml_common import get_pandas_object as _get_pandas_object
@@ -135,19 +136,27 @@ def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
 @for_each_top_level_row
 @for_each_top_level_column
 @is_time_consuming
-def ta_vola_hurst(df: _PANDAS, period=255*2, lags=30, open="Open", high="High", low="Low", close="Close", qVec=(.5, 1, 1.5, 2)) -> _PANDAS:
+def ta_vola_hurst(df: _PANDAS, period=255*2, lags=30, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
     x = np.arange(1, lags)
     v = np.log(ta_gkyz_volatility(df, period=1, open=open, high=high, low=low, close=close)).rename("log_sqrt")
 
-    def hurst(s):
-        def del_Raw(s, q, x):
-            return [np.mean(np.abs(s - s.shift(lag)) ** q) for lag in x]
+    def hurst(sig):
+        # def del_Raw(s, q, x):
+        #    return [np.mean(np.abs(s - s.shift(lag)) ** q) for lag in x]
+        #
+        # zeta_q = [np.polyfit(np.log(x), np.log(del_Raw(s, q, x)), 1)[0] for q in qVec]
+        # h_est = np.polyfit(qVec, zeta_q, 1)[0]
 
-        zeta_q = [np.polyfit(np.log(x), np.log(del_Raw(s, q, x)), 1)[0] for q in qVec]
-        h_est = np.polyfit(qVec, zeta_q, 1)[0]
-        return h_est
+        def dlsig2(sig, x):
+            return [np.mean((sig - sig.shift(lag)) ** 2) for lag in x]
 
-    return v.rolling(period).apply(hurst).rename(f"H_{period}/{lags}")
+        model = np.polyfit(np.log(x), np.log(dlsig2(sig, x)), 1)
+        return np.array([model[0] / 2., np.sqrt(np.exp(model[1]))])
+
+    e_hurst = np.array([hurst(v.iloc[i-period+1:i]) for i in range(period - 1, len(df))])
+
+    return df[[]].join(
+        pd.DataFrame(e_hurst, columns=[f"H_{period}/{lags}", f"nu_{period}/{lags}"], index=df.index[period-1:]))
 
 
 @for_each_top_level_row
