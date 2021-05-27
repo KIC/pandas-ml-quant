@@ -200,3 +200,12 @@ class TestIndicator(TestCase):
             [0.147095, 0.473749],
             h.iloc[-1].values
         )
+
+    def test_potential_turning_point(self):
+        tps3 = ta_potential_turning_point(DF_TEST["Close"], 120, edge_detector='poly', edge_period=3)
+        tps1 = ta_potential_turning_point(DF_TEST["Close"], 120, edge_detector='naive', edge_period=3)
+        tps2 = ta_potential_turning_point(DF_TEST["Close"], 120, edge_detector='mean', edge_period=3)
+
+        print(tps1.sum())
+        print(tps2.sum())
+        print(tps3.sum())

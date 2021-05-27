@@ -2,7 +2,6 @@ from typing import Tuple
 
 import numpy as np
 from sortedcontainers import SortedKeyList
-
 from pandas_ta_quant._decorators import *
 from pandas_ml_common import Typing
 
@@ -55,35 +54,21 @@ def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
 
 
 @for_each_top_level_row
-def ta_edge_detect(df: Typing.PatchedSeries, period=3):
-    assert df.ndim == 1 or len(df.columns) == 1, "Trend lines can only be calculated on a series"
-    assert period > 2, "minimum period is 3"
-
-    def edge(col):
-        mean = col.mean()
-        if col[0] > mean and col[-1] > mean:
-            return 1
-        elif col[0] < mean and col[-1] < mean:
-            return -1
-        else:
-            return 0
-
-    return df.rolling(period, center=True).apply(edge, raw=True)
-
-
-@for_each_top_level_row
 def ta_trend_lines(df: Typing.PatchedSeries,
                    edge_periods=3,
                    rescale_digits=4,
                    degrees=(-90, 90),
                    angles=30,
-                   rho_digits=2
+                   rho_digits=2,
+                   edge_detect='mean',
+                   **kwargs
                    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    from pandas_ta_quant.technical_analysis.edge_detect import EDGE_DETECTOR
     assert df.ndim == 1 or len(df.columns) == 1, "Trend lines can only be calculated on a series"
 
     # edge detection
     rescaled = df.ta.rescale((0, 1), digits=rescale_digits)
-    edge_or_not = ta_edge_detect(rescaled, period=edge_periods)
+    edge_or_not = EDGE_DETECTOR[edge_detect](rescaled, period=edge_periods, **kwargs)
 
     # set up spaces
     x = np.linspace(0, 1, len(rescaled))
@@ -128,6 +113,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
         s[rhos] = counts
         return s
 
+    # generate a data frame of counts with shape [angels, rhos]
     accumulated = hough_space.apply(accumulator, axis=1)
 
     # build lookups for filtering

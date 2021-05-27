@@ -78,3 +78,4 @@ def ta_multi_ma(df: _t.PatchedDataFrame, average_function='sma', period=12, fact
 
     return res
 
+

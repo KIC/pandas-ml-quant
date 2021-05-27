@@ -2,7 +2,9 @@ from typing import Union as _Union
 
 # create convenient type hint
 import numpy as _np
+import numpy as np
 import pandas as _pd
+import pandas as pd
 from scipy.stats import zscore
 
 import pandas_ta_quant.technical_analysis.bands as _bands
@@ -10,7 +12,7 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import cumcount
 from pandas_ta_quant._decorators import *
 from pandas_ta_quant.technical_analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
-from pandas_ta_quant._utils import with_column_suffix as _wcs
+from pandas_ta_quant._utils import with_column_suffix as _wcs, rolling_apply
 from scipy.stats import linregress
 
 _PANDAS = _Union[_pd.DataFrame, _pd.Series]
@@ -234,5 +236,52 @@ def ta_bbands_indicator(df: _PANDAS, period=12, stddev=2.0, ddof=1) -> _PANDAS:
 def ta_slope(df: _PANDAS, period=12):
     x = _np.arange(period)
     return _wcs(f"slope_{period}", df.rolling(period).apply(lambda y: linregress(x, y).slope))
+
+
+@for_each_top_level_row
+@for_each_column
+def ta_potential_turning_point(
+        df: _PANDAS,
+        period=120,
+        point_threshold=2,
+        degrees=(-90, 90),
+        angles=30,
+        realtive=True,
+        rho_digits=2,
+        rescale_digits=4,
+        edge_detector='naive',
+        **kwargs):
+    from pandas_ta_quant.technical_analysis.edge_detect import EDGE_DETECTOR
+    from pandas_ta_quant.technical_analysis.normalizer import ta_rescale
+    kwargs = {k.replace("edge_", ""): v for k, v in kwargs.items()}
+    edge_or_not = EDGE_DETECTOR[edge_detector](df, **kwargs)
+
+    def calc_edge_count(df_edge_or_not):
+        df = df_edge_or_not.iloc[:, 0]
+        edge_or_not = df_edge_or_not.iloc[:, 1].values
+
+        # set up spaces
+        x = _np.linspace(0, 1, len(df))
+        y = ta_rescale(df, (0, 1), digits=rescale_digits)
+
+        # select only edge points pus the last point as we want to do like this last point is an edge point
+        mask = edge_or_not != 0
+        if mask.sum() <= 3: return 0
+        mask[-1] = True
+
+        edge_x, edge_y = x[mask], y[mask]
+        thetas = _np.deg2rad(_np.linspace(*degrees, len(edge_x) if angles is None else angles))
+
+        # pre compute angeles, calculate rho's -> 2d Matrix [angles, edge_points]
+        cos_theta, sin_theta = _np.cos(thetas), _np.sin(thetas)
+        rhos = _np.around(_np.outer(cos_theta, edge_x) + _np.outer(sin_theta, edge_y), rho_digits)
+
+        # get the counts of all unique rhos of the last index and return the count
+        rhos_of_interest = _np.unique(rhos[:, -1])
+        counts = {roi: (rhos[:, :-1] == roi).sum() for roi in rhos_of_interest}
+
+        return sum([v for v in counts.values() if v > point_threshold]) / ((period * len(thetas)) if realtive else 1)
+
+    return rolling_apply(pd.concat([df, edge_or_not], axis=1), period, calc_edge_count, names=f"PPL_{period}")
 
 
