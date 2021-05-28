@@ -1,11 +1,10 @@
-cachetools
+cachetools>=4.2.2
 fredapi
 investpy
-numpy
-pandas
+numpy>=1.20.2
+pandas>=1.2.4
 pangres
-simple-plugin-loader
 sortedcontainers
 SQLAlchemy
-yfinance
+yfinance>=0.1.59
 cachier

@@ -39,7 +39,7 @@ class _AbstractPytorchModel(Model):
         self.callbacks = callbacks
 
         self.log_once = LogOnce().log
-        self._current_model: PytochBaseModel = PytochBaseModel(module_provider, criterion_provider, optimizer_provider, restore_best_weights, False)
+        self._current_model: PytochBaseModel = PytochBaseModel(module_provider, criterion_provider, optimizer_provider, restore_best_weights, False, **kwargs)
         self._models: Dict[int, PytochBaseModel] = defaultdict(self._current_model.shadow_copy)
         self._cuda = False
 

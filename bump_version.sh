@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 
+if [ $# -ne 2 ]
+  then
+    echo "pass old_version new_version"
+    exit -1
+fi
+
+OLD_VERSION=$1
+NEW_VERSION=$2
+
 set -e
-ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# replace "-{0.2.0}.zip" in all tox.ini files
-TOX_FILES=$(find "$ABSOLUTE_PATH" -name tox.ini)
-echo "$TOX_FILES"
-
-# replace __version__ = '0.2.3' in all setup.py files
-SETUP_FILES=$(find "$ABSOLUTE_PATH" -regex ".*/pandas-ml-[a-z\-]+/setup\.py")
-echo "$SETUP_FILES"
-
-# replace __version__ = '0.2.3' in all pandas_ml_*/__init__.py files
-INIT_FILES=$(find "$ABSOLUTE_PATH" -regex ".*/pandas-ml-[a-z\-]+/pandas_ml_[a-z_]+/__init__\.py")
-echo "$INIT_FILES"
-
+for f in `fgrep $OLD_VERSION */* -d skip | sed -e's/\s*=\s*/:/g'`
+do
+  array=(${f//:/ })
+  echo "sed -i -E \"s/(__version__)(\s*=\s*)(${array[2]})/\1\2'$NEW_VERSION'/\" ${array[0]}"
+  sed -i -E "s/(__version__)(\s*=\s*)(${array[2]})/\1\2'$NEW_VERSION'/" ${array[0]}
+done

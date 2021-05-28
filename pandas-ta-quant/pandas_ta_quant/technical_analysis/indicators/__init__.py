@@ -26,6 +26,9 @@ def ta_all(df: _pd.DataFrame,
         if indicator_function.startswith("ta_"):
             func = getattr(single_object, indicator_function)
 
+            if hasattr(func, '_is_timeconsuming'):
+                continue
+
             if df_res is None:
                 df_res = func(df[close]).to_frame().add_multi_index(indicator_function[3:])
             else:
@@ -34,6 +37,10 @@ def ta_all(df: _pd.DataFrame,
     for indicator_function in dir(time):
         if indicator_function.startswith("ta_"):
             func = getattr(time, indicator_function)
+
+            if hasattr(func, '_is_timeconsuming'):
+                continue
+
             df_res = df_res.inner_join(func(df), prefix=indicator_function[3:], force_multi_index=True)
 
     if close_only:
@@ -42,6 +49,10 @@ def ta_all(df: _pd.DataFrame,
     for indicator_function in dir(multi_object):
         if indicator_function.startswith("ta_"):
             func = getattr(multi_object, indicator_function)
+
+            if hasattr(func, '_is_timeconsuming'):
+                continue
+
             _df = func(df, **_select_kwargs(func, open=open, high=high, low=low, close=close, volume=volume,
                                             open_interest=open_interest))
             df_res = df_res.inner_join(_df, prefix=indicator_function[3:], force_multi_index=True)

@@ -102,3 +102,35 @@ def index_of_bucket(value, data):
 
     return len(data)
 
+
+def has_decorator(function, decorator):
+    # If we have no func_closure, it means we are not wrapping any other functions.
+    if not function.func_closure:
+        return False
+
+    for closure in function.func_closure:
+        if has_decorator(closure.cell_contents):
+            return True
+
+    return [function]
+
+
+def rolling_apply(df, period, func, names, center=False, **kwargs):
+    assert center is False or period % 2 > 0, "only odd periods are allowed"
+    margin = (period - 1) // 2 if center else 0
+    index = df.index[period - margin - 1: len(df) - margin]
+
+    def fi(i):
+        return i - period + margin
+
+    def ti(i):
+        return i + margin
+
+    # if period is 3 dann [0:3]
+    data = np.array([func(df.iloc[fi(i):ti(i)], **kwargs) for i in range(period-margin, len(df)+1-margin)])
+    s = pd.Series(data, index=index, name=names) if data.ndim < 2 else pd.DataFrame(data, index=index, columns=names)
+
+    if df.ndim < 2:
+        df = df.to_frame()
+
+    return df[[]].join(s)

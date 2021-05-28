@@ -1,6 +1,5 @@
 arch
 bintrees
-cachetools
 colorama>= 0.3.9
 cvxopt
 cvxpy

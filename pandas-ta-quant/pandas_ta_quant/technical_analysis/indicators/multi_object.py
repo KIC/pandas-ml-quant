@@ -2,7 +2,9 @@ from typing import Union as _Union
 
 # create convenient type hint
 import numpy as _np
+import numpy as np
 import pandas as _pd
+import pandas as pd
 
 import pandas_ta_quant.technical_analysis.filters as _f
 from pandas_ml_common import get_pandas_object as _get_pandas_object
@@ -129,3 +131,55 @@ def ta_cci(df: _pd.DataFrame, period=14, high="High", low="Low", close="Close", 
 @for_each_top_level_column
 def ta_gap(df: _pd.DataFrame, open="Open", close="Close") -> _PANDAS:
     return (df[open] / df[close].shift(1) - 1).rename("gap")
+
+
+@for_each_top_level_row
+@for_each_top_level_column
+@is_time_consuming
+def ta_vola_hurst(df: _PANDAS, period=255*2, lags=30, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
+    x = np.arange(1, lags)
+    v = np.log(ta_gkyz_volatility(df, period=1, open=open, high=high, low=low, close=close)).rename("log_sqrt")
+
+    def hurst(sig):
+        # def del_Raw(s, q, x):
+        #    return [np.mean(np.abs(s - s.shift(lag)) ** q) for lag in x]
+        #
+        # zeta_q = [np.polyfit(np.log(x), np.log(del_Raw(s, q, x)), 1)[0] for q in qVec]
+        # h_est = np.polyfit(qVec, zeta_q, 1)[0]
+
+        def dlsig2(sig, x):
+            return [np.mean((sig - sig.shift(lag)) ** 2) for lag in x]
+
+        model = np.polyfit(np.log(x), np.log(dlsig2(sig, x)), 1)
+        return np.array([model[0] / 2., np.sqrt(np.exp(model[1]))])
+
+    e_hurst = np.array([hurst(v.iloc[i-period+1:i]) for i in range(period - 1, len(df))])
+
+    return df[[]].join(
+        pd.DataFrame(e_hurst, columns=[f"H_{period}/{lags}", f"nu_{period}/{lags}"], index=df.index[period-1:]))
+
+
+@for_each_top_level_row
+@for_each_top_level_column
+def ta_gkyz_volatility(df: _pd.DataFrame, period=12, open="Open", high="High", low="Low", close="Close") -> _PANDAS:
+    # sqrt (sum of (  ln(o[i] / c[i-1] )^2 + 1/2 * (ln(h[i] / l[i]))^2 - (2 * ln(2) - 1) * (ln(c[i] / o[i]))^2   ) / N)
+    vdf = df[[open, high, low, close]].copy()
+    vdf.columns = ["o", "h", "l", "c"]
+    vdf["c_1"] = df[close].shift(1)
+    ln = np.log
+
+    def one(r):
+        return ln(r["o"] / r["c_1"])**2 + 0.5*(ln(r["h"] / r["l"]))**2 - (2 * ln(2) - 1)*(ln(r["c"] / r["o"]))**2
+
+    v = np.sqrt(vdf.apply(one, axis=1).rolling(period).mean())
+    return v.rename(f"gkyz_vol_{period}")
+
+
+@for_each_top_level_row
+@for_each_top_level_column
+def ta_cc_volatility(df: _PANDAS, period=12, close="Close") -> _PANDAS:
+    return np.sqrt((np.log(df[close] / df[close].shift(1))**2).rolling(period).mean()).rename(f"cc_vol_{period}")
+
+
+
+
