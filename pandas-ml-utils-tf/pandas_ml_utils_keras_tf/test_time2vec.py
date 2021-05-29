@@ -9,7 +9,7 @@ import pandas_ml_utils as pmu
 import pandas_ml_quant as pmq
 import tensorflow as tf
 
-from pandas_ml_utils_keras.layers import Time2Vec, tf_Time2Vec
+from pandas_ml_utils_tf.layers import Time2Vec, tf_Time2Vec
 from pandas_ml_quant_test.config import DF_TEST
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
