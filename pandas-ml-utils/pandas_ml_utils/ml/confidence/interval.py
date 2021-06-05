@@ -2,7 +2,9 @@ from typing import Union, Tuple
 
 import numpy as np
 import scipy.stats as st
+
 from pandas_ml_common import Typing
+
 
 class NormalConfidence(object):
 

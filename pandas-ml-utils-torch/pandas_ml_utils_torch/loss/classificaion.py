@@ -2,6 +2,7 @@ import torch as t
 import torch.nn as nn
 
 from pandas_ml_utils_torch.loss import CrossEntropyLoss
+from ._loss_utils import reduce
 
 
 class DifferentiableArgmax(nn.Module):
@@ -55,10 +56,4 @@ class TailedCategoricalCrossentropyLoss(nn.Module):
         loss = self.categorical_crossentropy(y_pred, y_true)
         loss = penalty + loss
 
-        if self.reduction == 'sum':
-            return t.sum(loss)
-        elif self.reduction == 'mean':
-            return t.mean(loss)
-        else:
-            return loss.view(y_pred.shape[0])
-
+        return reduce(loss, self.reduction, y_pred.shape[0])

@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Dict, Type, Callable, Union, Iterable
+from typing import Dict, Type, Callable, Union, Iterable, Tuple
 from wcmatch import glob
 
 import numpy as np
@@ -49,6 +49,35 @@ class PytorchNN(nn.Module):
 
     def L2(self) -> Dict[str, float]:
         return {}
+
+
+class PytorchNNFactory(PytorchNN):
+
+    @staticmethod
+    def create(
+            net: nn.Module,
+            predictor: Callable[[nn.Module, t.Tensor], t.Tensor] = None,
+            trainer: Callable[[nn.Module, t.Tensor], t.Tensor] = None) -> Callable[[], PytorchNN]:
+
+        if predictor is None:
+            predictor = lambda net, i: net(i)
+
+        def factory(**kwargs):
+            return PytorchNNFactory(net, predictor, predictor if trainer is None else trainer, **kwargs)
+
+        return factory
+
+    def __init__(self, net, predictor, trainer, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = net
+        self.predictor = predictor
+        self.trainer = trainer
+
+    def forward_training(self, *input) -> t.Tensor:
+        return self.trainer(self.net, *input)
+
+    def forward_predict(self, *input) -> t.Tensor:
+        return self.predictor(self.net, *input)
 
 
 class PytochBaseModel(object):

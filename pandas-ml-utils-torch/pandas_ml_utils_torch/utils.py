@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Iterable
 
 from pandas_ml_common import pd
 import torch as t
@@ -25,3 +25,18 @@ def to_device(var, cuda):
 def copy_weights(source_network, target_network):
     target_network.load_state_dict(source_network.state_dict())
     return target_network.train(source_network.training)
+
+
+def wrap_applyable(func, return_numpy=True):
+    def wrapped(cell):
+        if hasattr(cell, 'item') and sum(cell.shape) <= 1:
+            x = t.Tensor(unpack_nested_arrays(cell.item()) if cell.dtype == 'object' else [cell.item()])
+        elif hasattr(cell, 'values'):
+            x = t.Tensor(unpack_nested_arrays(cell.values) if cell.dtype == 'object' else cell.values)
+        else:
+            x = t.Tensor(cell if isinstance(cell, Iterable) else [cell])
+
+        x = func(x)
+        return x.numpy() if return_numpy else x
+
+    return wrapped
