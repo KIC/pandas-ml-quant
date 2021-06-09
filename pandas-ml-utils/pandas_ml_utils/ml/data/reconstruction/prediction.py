@@ -24,6 +24,10 @@ def assemble_prediction_frame(frames: Dict[str, pd.DataFrame]):
 
     # convert into MultiIndex column headers
     for head, frame in valid_frames.items():
+        if isinstance(frame, pd.Series):
+            frame = frame.to_frame()
+            valid_frames[head] = frame
+
         frame.columns = pd.MultiIndex.from_product([[head], frame.columns.to_list()])
 
     # join all frames and keep the order of the passed dictionary

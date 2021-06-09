@@ -37,7 +37,10 @@ class TestCallBack(TestCase):
     def test_confidence(self):
         """given a confidence interval test callback"""
         df = pd.DataFrame({"a": np.random.normal(0, 0.3, 1500), "b": np.random.normal(0, 0.5, 1500)})
-        cb = TestConfidenceInterval(CdfConfidenceInterval(lambda row: partial(norm.cdf, loc=0, scale=row), 0.8))
+        cb = TestConfidenceInterval(
+            CdfConfidenceInterval(lambda row: partial(norm.cdf, loc=0, scale=row), 0.8),
+            lambda row: row
+        )
 
         """when training"""
         with df.model() as m:
@@ -52,4 +55,4 @@ class TestCallBack(TestCase):
 
         """then cb was executed"""
         self.assertGreaterEqual(cb.call_counter, 0)
-
+        self.assertGreaterEqual(len(cb.history), 1)

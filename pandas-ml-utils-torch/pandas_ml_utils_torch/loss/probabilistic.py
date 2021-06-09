@@ -13,13 +13,16 @@ _log = logging.getLogger(__name__)
 
 class DistributionNLL(t.nn.Module):
 
-    def __init__(self, distribution_provider: Callable[[Any], Distribution], reduction='sum'):
+    def __init__(self, distribution_provider: Callable[[Any], Distribution], reduction: str = 'sum', penalize_toal_variance_lambda: float = None):
         super().__init__()
         self.distribution_provider = distribution_provider
+        self.penalize_toal_variance = penalize_toal_variance_lambda
         self.reduction = reduction
 
     def forward(self, y_pred, y_true):
-        return reduce(-self.distribution_provider(y_pred).log_prob(y_true), self.reduction)
+        dist = self.distribution_provider(y_pred)
+        penalty = 0 if self.penalize_toal_variance is None else dist.variance * self.penalize_toal_variance
+        return reduce(-dist.log_prob(y_true) + penalty, self.reduction)
 
 
 class HeteroscedasticityLoss(t.nn.Module):

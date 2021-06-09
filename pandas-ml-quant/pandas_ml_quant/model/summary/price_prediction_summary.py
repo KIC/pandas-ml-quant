@@ -1,4 +1,5 @@
-from typing import Callable, Tuple, Union
+import traceback
+from typing import Callable, Tuple, Union, Any
 
 import numpy as np
 import pandas as pd
@@ -6,6 +7,7 @@ from scipy.stats import pearsonr
 from sklearn.metrics import r2_score, mean_squared_error
 
 from pandas_ml_common import Typing
+from pandas_ml_quant.empirical import ECDF
 from pandas_ml_utils import Summary, Model, call_callable_dynamic_args
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.confidence import NormalConfidence
@@ -32,7 +34,6 @@ class PricePredictionSummary(Summary):
             **{**kwargs, **kwargs2}
         )
 
-
     def __init__(
             self,
             df: Typing.PatchedDataFrame,
@@ -58,7 +59,7 @@ class PricePredictionSummary(Summary):
         self.label_returns = call_callable_dynamic_args(label_returns, y=df[LABEL_COLUMN_NAME], df=df)
         self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df)
         self.predicted_returns = call_callable_dynamic_args(predicted_returns, y_hat=df[PREDICTION_COLUMN_NAME], df=df)
-        self.prediction_reconstruction = call_callable_dynamic_args(predicted_reconstruction, y_hat=self.predicted_returns, df=df)
+        self.prediction_reconstruction = call_callable_dynamic_args(predicted_reconstruction, y_hat=self.predicted_returns, df=df, y=self.label_reconstruction)
 
         # confidence intervals
         self.expected_confidence = np.sum(confidence)
@@ -84,13 +85,13 @@ class PricePredictionSummary(Summary):
             self.label_reconstruction.dropna().plot(ax=ax[0])
             self.prediction_reconstruction.dropna().plot(ax=ax[0], color='orange')
             ax[0].fill_between(comp_lower.index, comp_lower.values.squeeze(), comp_upper.values.squeeze(), color='orange', alpha=.25)
-            ax[0].legend(['Label', 'Prediction'])
+            ax[0].legend(['Label', 'Prediction'], loc='upper left')
 
             # returns
             self.label_returns.plot(ax=ax[1])
             self.predicted_returns.plot(ax=ax[1])
             ax[1].fill_between(self.predicted_returns.index, self.lower, self.upper, color='orange', alpha=.25)
-            ax[1].legend(['Label', 'Prediction'])
+            ax[1].legend(['Label', 'Prediction'], loc='upper left')
         except Exception as e:
             print(e)
 
@@ -133,3 +134,141 @@ class PricePredictionSummary(Summary):
             f"left cvar": left_cvar,
             f"right cvar": right_cvar,
         }).T
+
+
+class PriceSampledSummary(Summary):
+
+    @staticmethod
+    def with_reconstructor(
+            label_returns: Callable[[pd.DataFrame], pd.DataFrame] = lambda y: y,
+            label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame] = lambda y: y.ta.cumret(),
+            sampler: Callable[[pd.Series], float] = lambda params, samples: np.random.normal(*params.values, samples),
+            **kwargs):
+        return lambda df, model, **kwargs2: PriceSampledSummary(
+            df,
+            model,
+            label_returns,
+            label_reconstruction,
+            sampler,
+            **{**kwargs, **kwargs2}
+        )
+
+    def __init__(
+            self,
+            df: Typing.PatchedDataFrame,
+            model: Model,
+            label_returns: Callable[[pd.DataFrame], pd.DataFrame],
+            label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
+            sampler: Callable[[pd.Series], float] = lambda params, samples: np.random.normal(*params.values, samples),
+            confidence: Union[float, Tuple[float, float]] = 0.95,
+            forecast_period: int = 1,
+            samples: int = 1000,
+            bins='sqrt',
+            figsize=(16, 16),
+            **kwargs):
+        super().__init__(
+            df.sort_index(),
+            model,
+            self.plot_prediction,
+            self.calc_scores,
+            layout=[[0],
+                    [1]],
+            **kwargs
+        )
+        self.label_returns = call_callable_dynamic_args(label_returns, y=df[LABEL_COLUMN_NAME], df=df)
+        self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df)
+
+        self.sampler = sampler
+        self.confidence = confidence
+        self.figsize = figsize
+        self.forecast_period = forecast_period
+        self.nr_samples = samples
+        self.bins = bins
+
+        self.cdf = self._estimate_ecdf()
+
+    def _estimate_ecdf(self):
+        params = self.df[PREDICTION_COLUMN_NAME].copy()
+        params["samples"] = self.nr_samples
+
+        return params.apply(lambda r: ECDF(self.sampler(r)), axis=1, result_type='expand')
+
+    def plot_prediction(self, *args, **kwargs):
+        import matplotlib.pyplot as plt
+        from matplotlib import cm
+        from pandas_ml_quant.model.summary._utils import pandas_matplot_dates
+        fig, ax = plt.subplots(2, 1, figsize=self.figsize, sharex=True)
+
+        def confidence_band_price(cdf_last_price):
+            cdf, last_price = cdf_last_price.values.tolist()
+            min_max, alphas = cdf.heat_bar(self.bins)
+            band = cdf.confidence_interval(0.1, 0.9)
+            return (min_max + 1) * last_price, alphas, (np.array(band) + 1) * last_price
+
+        def confidence_band_return(cdf):
+            cdf = cdf.item()
+            min_max, alphas = cdf.heat_bar(self.bins)
+            band = cdf.confidence_interval(0.1, 0.9)
+            return min_max, alphas, band
+
+        def plot(ax, x, label, band, bar_edges, bar_colors, cmap=cm.BuPu_r, alpha=1):
+            # plot label
+            label.plot(ax=ax)
+
+            # plot confidence
+            ax.plot(x, band[:, 0], color='orange')
+            ax.plot(x, band[:, 1], color='orange')
+            ax.legend(['Label', 'Prediction'], loc='upper left')
+
+            # plot distribution (with invisible bars)
+            bars = ax.bar(x, bottom=bar_edges[:, 0], height=bar_edges[:, 1] - bar_edges[:, 0], width=1.0, color=None)
+            lim = ax.get_xlim() + ax.get_ylim()
+
+            # fill bars with heat like color
+            for i, bar in enumerate(bars):
+                bar.set_zorder(1)
+                bar.set_facecolor("none")
+                x, y = bar.get_xy()
+                w, h = bar.get_width(), bar.get_height()
+                c = np.flip(np.atleast_2d(bar_colors[i]).T)
+                ax.imshow(c, extent=[x, x + w, y, y + h], aspect="auto", zorder=0, cmap=cmap, alpha=alpha)
+
+            # reset axis
+            ax.axis(lim)
+            # ax.colorbar(cm.ScalarMappable(cmap=cmap))
+        try:
+            # plot price chart
+            price_data = pd.concat([self.cdf, self.label_reconstruction.shift(self.forecast_period)], axis=1)\
+                .dropna()\
+                .apply(confidence_band_price, axis=1, result_type='expand')\
+                .join(self.label_reconstruction)
+
+            x = pandas_matplot_dates(price_data)
+            price_label = price_data.iloc[:, -1]
+            price_band = price_data.iloc[:, -2]._.values
+            bar_edges = price_data.iloc[:, 0]._.values
+            bar_colors = price_data.iloc[:, 1]._.values
+
+            plot(ax[0], x, price_label, price_band, bar_edges, bar_colors, cmap=cm.YlOrRd, alpha=0.4)
+
+            # plot return chart
+            return_data = self.cdf.to_frame()\
+                .dropna() \
+                .apply(confidence_band_return, axis=1, result_type='expand') \
+                .join(self.label_returns)
+
+            x = pandas_matplot_dates(return_data)
+            return_label = return_data.iloc[:, -1]
+            return_band = return_data.iloc[:, -2]._.values
+            bar_edges = return_data.iloc[:, 0]._.values
+            bar_colors = return_data.iloc[:, 1]._.values
+
+            plot(ax[1], x, return_label, return_band, bar_edges, bar_colors, cmap=cm.YlOrRd, alpha=0.4)
+        except Exception as e:
+            traceback.print_exc()
+
+        return fig
+
+    def calc_scores(self, *args, **kwargs):
+        return pd.DataFrame({})
+

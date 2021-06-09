@@ -23,7 +23,7 @@ class TestConfidence(TestCase):
         std = 0.3
         conf = 0.75
 
-        cdf = CdfConfidenceInterval(lambda row: partial(norm.cdf, loc=0, scale=row.item()), conf)
+        cdf = CdfConfidenceInterval(lambda param, val: norm.cdf(val, loc=0, scale=param), conf, expand_args=True)
         df = pd.DataFrame({"a": np.random.normal(0, std, 1500)})
         df["std"] = std
 
