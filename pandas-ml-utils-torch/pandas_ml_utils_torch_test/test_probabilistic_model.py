@@ -11,7 +11,6 @@ from torch.optim import Adam
 from pandas_ml_common import naive_splitter
 from pandas_ml_quant.model.summary.price_prediction_summary import PriceSampledSummary
 from pandas_ml_utils import PostProcessedFeaturesAndLabels, FittingParameter
-from pandas_ml_utils.constants import TARGET_COLUMN_NAME, PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.callback import TestConfidenceInterval
 from pandas_ml_utils_torch import PytorchModel, PytorchNNFactory, LambdaSplitter
 from pandas_ml_utils_torch.loss import DistributionNLL
@@ -100,4 +99,4 @@ class TestProbabilisticModel(TestCase):
             ]
         )
 
-        print(fit.test_summary.plot_prediction())
+        print(fit.test_summary.calc_scores())

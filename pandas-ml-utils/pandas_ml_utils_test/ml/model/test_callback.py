@@ -38,7 +38,7 @@ class TestCallBack(TestCase):
         """given a confidence interval test callback"""
         df = pd.DataFrame({"a": np.random.normal(0, 0.3, 1500), "b": np.random.normal(0, 0.5, 1500)})
         cb = TestConfidenceInterval(
-            CdfConfidenceInterval(lambda row: partial(norm.cdf, loc=0, scale=row), 0.8),
+            CdfConfidenceInterval(lambda param, val: norm.cdf(val, loc=0, scale=param), 0.8, expand_args=True),
             lambda row: row
         )
 

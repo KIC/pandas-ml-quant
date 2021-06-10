@@ -56,4 +56,4 @@ class TailedCategoricalCrossentropyLoss(nn.Module):
         loss = self.categorical_crossentropy(y_pred, y_true)
         loss = penalty + loss
 
-        return reduce(loss, self.reduction, y_pred.shape[0])
+        return reduce(loss, self.reduction, loss.view(y_pred.shape[0]))

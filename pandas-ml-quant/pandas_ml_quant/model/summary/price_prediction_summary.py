@@ -1,5 +1,5 @@
 import traceback
-from typing import Callable, Tuple, Union, Any
+from typing import Callable, Tuple, Union, Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -129,10 +129,12 @@ class PricePredictionSummary(Summary):
             "r^2": [r2],
             "σ": [np.mean(self.predicted_std)],
             f"confidence (exp: {self.expected_confidence:.2f})": 1 - tail_events / len(dfpp),
-            f"left tail events": left_tail_events / len(dfpp),
-            f"right tail events": right_tail_events / len(dfpp),
-            f"left cvar": left_cvar,
-            f"right cvar": right_cvar,
+            "left tail avg. distance %": [np.abs(self.lower.mean())],
+            "right tail avg. distance %": [self.upper.mean()],
+            "left tail events": left_tail_events / len(dfpp),
+            "right tail events": right_tail_events / len(dfpp),
+            "left cvar": left_cvar,
+            "right cvar": right_cvar,
         }).T
 
 
@@ -160,7 +162,7 @@ class PriceSampledSummary(Summary):
             label_returns: Callable[[pd.DataFrame], pd.DataFrame],
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
             sampler: Callable[[pd.Series], float] = lambda params, samples: np.random.normal(*params.values, samples),
-            confidence: Union[float, Tuple[float, float]] = 0.95,
+            confidence: Union[float, Tuple[float, float]] = 0.8,
             forecast_period: int = 1,
             samples: int = 1000,
             bins='sqrt',
@@ -177,13 +179,18 @@ class PriceSampledSummary(Summary):
         )
         self.label_returns = call_callable_dynamic_args(label_returns, y=df[LABEL_COLUMN_NAME], df=df)
         self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df)
+        self.price_at_estimation = df[TARGET_COLUMN_NAME] if TARGET_COLUMN_NAME in df.columns else None
 
         self.sampler = sampler
-        self.confidence = confidence
         self.figsize = figsize
         self.forecast_period = forecast_period
         self.nr_samples = samples
         self.bins = bins
+
+        # 0.8 => 0.1, 0.9
+        self.left_confidence, self.right_confidence = \
+            confidence if isinstance(confidence, Iterable) else ((1. - confidence) / 2, (1. - confidence) / 2 + confidence)
+        self.expected_confidence = self.right_confidence - self.left_confidence
 
         self.cdf = self._estimate_ecdf()
 
@@ -202,13 +209,13 @@ class PriceSampledSummary(Summary):
         def confidence_band_price(cdf_last_price):
             cdf, last_price = cdf_last_price.values.tolist()
             min_max, alphas = cdf.heat_bar(self.bins)
-            band = cdf.confidence_interval(0.1, 0.9)
+            band = cdf.confidence_interval(self.left_confidence, self.right_confidence)
             return (min_max + 1) * last_price, alphas, (np.array(band) + 1) * last_price
 
         def confidence_band_return(cdf):
             cdf = cdf.item()
             min_max, alphas = cdf.heat_bar(self.bins)
-            band = cdf.confidence_interval(0.1, 0.9)
+            band = cdf.confidence_interval(self.left_confidence, self.right_confidence)
             return min_max, alphas, band
 
         def plot(ax, x, label, band, bar_edges, bar_colors, cmap=cm.BuPu_r, alpha=1):
@@ -270,5 +277,37 @@ class PriceSampledSummary(Summary):
         return fig
 
     def calc_scores(self, *args, **kwargs):
-        return pd.DataFrame({})
+        dfcdf = self.cdf.to_frame().dropna()
+        idx = dfcdf.index.intersection(self.label_returns.index)
+        dfl = self.label_returns.loc[idx]
+        nr_events = len(dfcdf)
+
+        tail_events = dfcdf.join(dfl).apply(
+            lambda x: x.iloc[0].is_tail_event(x.iloc[1], self.left_confidence, self.right_confidence),
+            axis=1,
+            result_type='expand')
+
+        cvars = dfcdf.apply(
+            lambda cdf: cdf.iloc[0].cvar(self.left_confidence, self.right_confidence),
+            axis=1,
+            result_type='expand')
+
+        # how many % is the confidence band away from the price at the day of prediction (the smaller the better)
+        distance = dfcdf.apply(
+            lambda cdf: cdf.iloc[0].confidence_interval(self.left_confidence, self.right_confidence),
+            axis=1,
+            result_type='expand').mean()
+
+        return pd.DataFrame({
+            "first date": [dfcdf.index[0]],
+            "last date": [dfcdf.index[-1]],
+            "events": [nr_events],
+            f"confidence (exp: {self.expected_confidence:.2f} %)": [1 - tail_events.values.sum().item() / nr_events],
+            "left tail avg. distance %": [np.abs(distance.iloc[0])],
+            "right tail avg. distance %": [distance.iloc[1]],
+            "left tail events %": [tail_events.iloc[:, 0].sum() / nr_events],
+            "right tail events %": [tail_events.iloc[:, 1].sum() / nr_events],
+            "left cvar %": [cvars.iloc[:, 0].mean()],
+            "right cvar %": [cvars.iloc[:, 1].mean()],
+        }).T
 

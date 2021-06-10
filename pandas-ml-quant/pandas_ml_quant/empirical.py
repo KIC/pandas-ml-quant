@@ -30,3 +30,16 @@ class ECDF(object):
         # return a 2D array [value, mass]
         mass, edges = np.histogram(self.x, bins=bins, density=True)
         return edges[[0, -1]], mass
+
+    def cvar(self, lower: float, upper: float) -> Tuple[float, float]:
+        li = self.probs <= lower
+        ri = self.probs >= upper
+        return np.abs(self.x[li]).mean(), np.abs(self.x[ri]).mean()
+
+    def is_tail_event(self, observerd, lower: float, upper: float) -> Tuple[bool, bool]:
+        left_tail = np.searchsorted(self.x, observerd, side='right')
+        right_tail = np.searchsorted(self.x, observerd, side='left')
+        left_prob = self.probs[min(left_tail, self.nobs - 1)]
+        right_prob = self.probs[min(left_tail, self.nobs - 1)]
+        return left_prob <= lower, right_prob >= upper
+
