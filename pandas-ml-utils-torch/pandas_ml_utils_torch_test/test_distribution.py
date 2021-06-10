@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 import torch as t
-from torch.distributions import Categorical, MixtureSameFamily
 
 from pandas_ml_utils_torch.distribution import Logistic
 

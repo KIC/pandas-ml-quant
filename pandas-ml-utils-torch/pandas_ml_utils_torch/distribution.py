@@ -32,8 +32,6 @@ class Logistic(TransformedDistribution):
             base_dist,
             [SigmoidTransform().inv, AffineTransform(loc, scale)]
         )
-        self._loc = loc
-        self._scale = scale
 
     def expand(self, batch_shape, _instance=None):
         new = self._get_checked_instance(Logistic, _instance)
@@ -41,8 +39,8 @@ class Logistic(TransformedDistribution):
 
     @property
     def loc(self):
-        return self._loc
+        return self.transforms[-1].loc
 
     @property
     def scale(self):
-        return self._scale
+        return self.transforms[-1].scale

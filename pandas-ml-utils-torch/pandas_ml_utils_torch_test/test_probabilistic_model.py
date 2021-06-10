@@ -9,7 +9,6 @@ from torch.distributions import MixtureSameFamily, Categorical, Normal
 from torch.optim import Adam
 
 from pandas_ml_common import naive_splitter
-from pandas_ml_quant.model.summary.price_prediction_summary import PriceSampledSummary
 from pandas_ml_utils import PostProcessedFeaturesAndLabels, FittingParameter
 from pandas_ml_utils.ml.callback import TestConfidenceInterval
 from pandas_ml_utils_torch import PytorchModel, PytorchNNFactory, LambdaSplitter
@@ -23,6 +22,7 @@ class TestProbabilisticModel(TestCase):
         try:
             pandas_ml_quant_data_provider = importlib.import_module("pandas_ml_quant")
             from pandas_ml_quant import PricePredictionSummary
+            from pandas_ml_quant.model.summary.price_prediction_summary import PriceSampledSummary
         except:
             print("pandas_ml_quant not found, skipping!")
             return
