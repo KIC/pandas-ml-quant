@@ -15,7 +15,7 @@ def tests(session):
 
     # install testing requirements and local dependencies
     session.install("-r", "dev-requirements.txt")
-    session.install("-r", "requirements.txt")
+    session.install("-r", "requirements.txt", "-U")
     session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
 
     # create distribution and install
