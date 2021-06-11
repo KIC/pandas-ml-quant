@@ -9,7 +9,7 @@ from torch import nn
 from torch.optim import Adam
 
 from pandas_ml_common import serialize, deserialize
-from pandas_ml_utils_torch.pytorch_base import PytochBaseModel, PytorchNN
+from pandas_ml_utils_torch.pytorch_base import PytochBaseModel, PytorchNN, PytorchNNFactory
 
 
 class ANet(PytorchNN):
@@ -30,7 +30,10 @@ class TestPytorchBaseModel(TestCase):
         y = t.from_numpy((np.linspace(0, 1, 300) + np.random.normal(0, 0.05, 300)).reshape(-1, 1)).float()
 
         m = PytochBaseModel(
-            lambda: ANet("ANet prints: haha"),
+            PytorchNNFactory.create(
+                nn.Sequential(nn.Linear(1, 1, False)),
+                lambda net, x: net(x)
+            ),
             nn.MSELoss,
             Adam
         )

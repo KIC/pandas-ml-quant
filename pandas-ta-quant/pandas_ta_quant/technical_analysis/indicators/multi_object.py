@@ -178,7 +178,8 @@ def ta_gkyz_volatility(df: _pd.DataFrame, period=12, open="Open", high="High", l
 @for_each_top_level_row
 @for_each_top_level_column
 def ta_cc_volatility(df: _PANDAS, period=12, close="Close") -> _PANDAS:
-    return np.sqrt((np.log(df[close] / df[close].shift(1))**2).rolling(period).mean()).rename(f"cc_vol_{period}")
+    col = df if isinstance(df, pd.Series) else df[close]
+    return np.sqrt((np.log(col / col.shift(1))**2).rolling(period).mean()).rename(f"cc_vol_{period}")
 
 
 

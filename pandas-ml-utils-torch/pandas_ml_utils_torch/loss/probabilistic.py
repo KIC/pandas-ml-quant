@@ -1,8 +1,28 @@
+from typing import Callable, Any
+
 import torch as t
 import logging
 
+from torch.distributions import Distribution
+
+from ._loss_utils import reduce
+
 PI = t.acos(t.zeros(1)) * 2
 _log = logging.getLogger(__name__)
+
+
+class DistributionNLL(t.nn.Module):
+
+    def __init__(self, distribution_provider: Callable[[Any], Distribution], reduction: str = 'sum', penalize_toal_variance_lambda: float = None):
+        super().__init__()
+        self.distribution_provider = distribution_provider
+        self.penalize_toal_variance = penalize_toal_variance_lambda
+        self.reduction = reduction
+
+    def forward(self, y_pred, y_true):
+        dist = self.distribution_provider(y_pred)
+        penalty = 0 if self.penalize_toal_variance is None else dist.variance * self.penalize_toal_variance
+        return reduce(-dist.log_prob(y_true) + penalty, self.reduction)
 
 
 class HeteroscedasticityLoss(t.nn.Module):
@@ -34,13 +54,5 @@ class HeteroscedasticityLoss(t.nn.Module):
                 if self.reduction is not None:
                     _log.warning(f"Unknown multi nominal reduction {self.multi_nominal_reduction}, need to be one of ('sum', 'mean', a list of weigts as floats)")
 
-        if self.reduction == 'sum':
-            return loss.sum()
-        elif self.reduction == 'mean':
-            return loss.mean()
-        else:
-            if self.reduction is not None:
-                _log.warning(f"Unknown reduction {self.reduction}, don't reduce")
-
-            return loss
+        return reduce(loss, self.reduction)
 

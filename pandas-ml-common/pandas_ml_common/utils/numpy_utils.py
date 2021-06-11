@@ -77,6 +77,10 @@ def get_buckets(arr, open=True, at_index=None):
     return WrappedTuple(tuples if at_index is None else tuples[at_index])
 
 
+def mean(values):
+    return np.array(values).mean()
+
+
 class WrappedTuple(object):
 
     def __init__(self, tpl):

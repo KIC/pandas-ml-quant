@@ -1,1 +1,2 @@
-from .normal import NormalConfidence
+from .interval import NormalConfidence
+from .quanlity import CdfConfidenceInterval

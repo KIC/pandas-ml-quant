@@ -52,7 +52,7 @@ class _AbstractPytorchModel(Model):
     def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, weight: pd.DataFrame, fold: int, **kwargs):
         self._current_model.fit_epoch(from_pandas(x, self._cuda), from_pandas(y, self._cuda), from_pandas(weight, self._cuda))
 
-    def calculate_loss(self, fold, x, y_true, weight):
+    def calculate_loss(self, fold, x, y_true, weight) -> float:
         # return self._current_model.calculate_loss(
         return self._models[fold].calculate_loss(
             from_pandas(x, self._cuda),

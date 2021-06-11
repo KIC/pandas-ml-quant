@@ -113,7 +113,7 @@ Check this demo from the [examples](./pandas-ml-utils/examles/):
 ### [pandas-ml-utils-torch](pandas-ml-utils-torch/Readme.md)
 Extends the pandas-ml-utils library for the use of pytorch models
 
-### [pandas-ml-utils-keras](pandas-ml-utils-keras/Readme.md)
+### [pandas-ml-utils-keras](pandas-ml-utils-tf/Readme.md)
 Extends the pandas-ml-utils library for the use of keras tensorflow 1.x models. 
 
 NOTE! This module is currently stalled as I mainly use pytorch at the moment.  

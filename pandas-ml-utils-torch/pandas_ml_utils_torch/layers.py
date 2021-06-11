@@ -1,8 +1,18 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, Callable
 
 import torch as t
 import torch.nn as nn
 from torch.nn import init
+
+
+class LambdaSplitter(nn.Module):
+
+    def __init__(self,  *funcs: Callable[[t.Tensor], t.Tensor]) -> None:
+        super().__init__()
+        self.funcs = funcs
+
+    def forward(self, input, *args):
+        return tuple([c(input) for c in self.funcs])
 
 
 class Flatten(nn.Module):
