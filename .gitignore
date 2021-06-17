@@ -1,6 +1,7 @@
 .venv/
 .idea/
 .tox/
+.nox/
 .ipynb_checkpoints/
 __pycache__/
 .pytest_cache/
