@@ -1,6 +1,6 @@
 import logging
 from time import perf_counter
-from typing import Callable, Tuple, Dict, Union, List
+from typing import Callable, Union, List, Type
 
 from scipy.stats import randint as sp_randint
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -14,9 +14,9 @@ from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import Fe
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting import Fit, FitException, FittingParameter
+from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model import Model as MlModel, SkModel, AutoEncoderModel, SubModelFeature
 from pandas_ml_utils.ml.summary import Summary
-
 from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels, FeaturesWithTargets, \
     extract_features, extract_feature_labels_weights
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
@@ -155,8 +155,19 @@ class DfModelPatch(object):
     def backtest(self,
                  model: MlModel,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = None,
+                 tail: int = None,
                  **kwargs) -> Summary:
+
+        min_required_samples = model.features_and_labels.min_required_samples
         df = self.df
+
+        if tail is not None:
+            if min_required_samples is not None:
+                # just use the tail for feature engineering
+                df = df[-(abs(tail) + (min_required_samples - 1)):]
+            else:
+                _log.warning("could not determine the minimum required data from the model")
+
         kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
         typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs), **self._type_mapping}
         frames: FeaturesWithLabels = model.features_and_labels(
@@ -173,7 +184,8 @@ class DfModelPatch(object):
                 model: MlModel,
                 tail: int = None,
                 samples: int = 1,
-                **kwargs) -> Typing.PatchedDataFrame:
+                forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
+                **kwargs) -> Union[Typing.PatchedDataFrame, Forecast]:
         min_required_samples = model.features_and_labels.min_required_samples
         df = self.df
 
@@ -196,7 +208,10 @@ class DfModelPatch(object):
             **kwargs
         )
 
-        return assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
+        fc_provider = forecast_provider or model.forecast_provider
+        res_df = assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
+
+        return res_df if fc_provider is None else call_callable_dynamic_args(fc_provider, res_df, **kwargs)
 
     def __call__(self, file_name=None):
         from .model_context import ModelContext

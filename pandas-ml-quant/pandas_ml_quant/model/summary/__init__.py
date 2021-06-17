@@ -1,3 +1,3 @@
 from .binary_weighted_classification_summary import BinaryWeightedClassificationSummary, MultipleBinaryWeightedClassificationSummary
 from .weighted_classification_summary import WeightedClassificationSummary
-from .price_prediction_summary import PricePredictionSummary
+from .price_prediction_summary import PricePredictionSummary, PriceSampledSummary

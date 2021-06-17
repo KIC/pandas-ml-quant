@@ -9,7 +9,9 @@ from pandas_ml_utils.df_patching.model_patch import DfModelPatch
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils.ml.fitting import Fit
+from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model import Model
+from pandas_ml_utils.ml.summary import Summary
 
 
 class ModelContext(object):
@@ -39,6 +41,14 @@ class ModelContext(object):
         else:
             kwargs = {**model_or_fnl.kwargs, **kwargs}
             return self.df._.extract(model_or_fnl, **kwargs)
+
+    @wraps(DfModelPatch.predict)
+    def predict(self, *args, **kwargs) -> Union[Typing.PatchedDataFrame, Forecast]:
+        return self.df.model.predict(Model.load(self.file_name), *args, **kwargs)
+
+    @wraps(DfModelPatch.backtest)
+    def backtest(self, *args, **kwargs) -> Summary:
+        return self.df.model.backtest(Model.load(self.file_name), *args, **kwargs)
 
     def __enter__(self):
         return self
