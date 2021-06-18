@@ -85,19 +85,20 @@ class DistributionForecast(Forecast):
             title: str = "Forecast",
             cmap=None,
             alpha = 0.4,
+            price_color='black',
+            confidence_color='orange',
             fig_kwargs={}):
         import matplotlib.pyplot as plt
-        from matplotlib.dates import date2num
         from matplotlib.ticker import MaxNLocator
         from matplotlib import cm
 
         fc = self.forecast(forecast_period, only_weekdays, lower, upper)
 
         # generate plot
-        fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+        fig, ax = plt.subplots(1, 1, figsize=figsize, **fig_kwargs)
         cmap = cm.YlOrRd if cmap is None else cmap
-        fc.iloc[:, 0].plot(ax=ax)
-        fc[["lower", "upper"]].plot(ax=ax, color='orange')
+        fc.iloc[:, 0].plot(ax=ax, label='Price', color=price_color, legend=True)
+        fc[["lower", "upper"]].plot(ax=ax, color=confidence_color, legend=False)
 
         # plot distribution (with invisible bars)
         fc = fc.loc[fc.iloc[:, 0].dropna().index[-1]:]
@@ -119,6 +120,7 @@ class DistributionForecast(Forecast):
         ax.axis(lim)
 
         # xaxis and grid formating
+        ax.set_title(title, y=1.0, pad=-17)
         ax.xaxis.set_major_locator(MaxNLocator(prune='both'))
         ax.xaxis.label.set_visible(False)
         ax.grid()
