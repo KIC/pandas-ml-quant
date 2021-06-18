@@ -1,6 +1,7 @@
 import traceback
 from typing import Callable, Tuple, Union, Any, Iterable
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
@@ -173,8 +174,9 @@ class PriceSampledSummary(Summary):
             model,
             self.plot_prediction,
             self.calc_scores,
-            layout=[[0],
-                    [1]],
+            self.plot_tail_events,
+            layout=[[0, 0],
+                    [1, 2]],
             **kwargs
         )
         self.label_returns = call_callable_dynamic_args(label_returns, y=df[LABEL_COLUMN_NAME], df=df)
@@ -275,6 +277,30 @@ class PriceSampledSummary(Summary):
             traceback.print_exc()
 
         return fig
+
+    def get_tail_events(self, clip=True):
+        dfcdf = self.cdf.to_frame().dropna()
+        idx = dfcdf.index.intersection(self.label_returns.index)
+        dfl = self.label_returns.loc[idx]
+
+        tail_events = dfcdf.join(dfl).apply(
+            lambda x: x.iloc[0].get_tail_distance(x.iloc[1], self.left_confidence, self.right_confidence),
+            axis=1,
+            result_type='expand')
+
+        tail_events.columns = ["left", "right"]
+        return tail_events.clip(upper=0).replace(0, np.nan) if clip else tail_events
+
+    def plot_tail_events(self, *args, **kwargs):
+        import matplotlib.pyplot as plt
+        if "model" in kwargs: del kwargs["model"]
+
+        try:
+            ax = self.get_tail_events().hist(bins='sqrt', sharex=True, sharey=True, **kwargs)
+            return plt.gcf()
+        except Exception as e:
+            traceback.print_exc()
+            return None
 
     def calc_scores(self, *args, **kwargs):
         dfcdf = self.cdf.to_frame().dropna()
