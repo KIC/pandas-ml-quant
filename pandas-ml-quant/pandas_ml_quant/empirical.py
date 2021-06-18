@@ -11,6 +11,9 @@ class ECDF(object):
         self.nobs = len(x)
         self.probs = np.linspace(1. / self.nobs, 1, self.nobs)
 
+    def hist(self, bins='sqrt'):
+        return np.histogram(self.x, bins=bins, density=True)
+
     def confidence_interval(self, lower: float, upper: float) -> Tuple[float, float]:
         # a[i-1] < v <= a[i]
         li = np.searchsorted(self.probs, lower, side='right')

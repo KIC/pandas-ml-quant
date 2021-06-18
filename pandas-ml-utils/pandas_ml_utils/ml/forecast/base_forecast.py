@@ -15,5 +15,3 @@ class Forecast(object):
     def __str__(self):
         return str(self.df.groupby(level=0).tail(1)) if isinstance(self.df.index, pd.MultiIndex) else str(self.df.tail())
 
-    def _repr_html_(self):
-        pass
