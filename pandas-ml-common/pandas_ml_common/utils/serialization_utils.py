@@ -50,12 +50,18 @@ def plot_to_html_img(plotter, **kwargs):
     else:
         fig = plotter
 
+    image = serialize_figure(fig, format="png", bbox_inches='tight')
+    image = base64.encodebytes(image).decode("utf-8")
+    return f'data:image/png;base64, {image}'
+
+
+def serialize_figure(fig, **kwargs):
+    import matplotlib.pyplot as plt
+
     with io.BytesIO() as f:
         try:
-            fig.savefig(f, format="png", bbox_inches='tight')
-            image = base64.encodebytes(f.getvalue()).decode("utf-8")
-
-            return f'data:image/png;base64, {image}'
+            fig.savefig(f, **kwargs)
+            return f.getvalue()
         except TypeError:
             return traceback.print_exc()
         finally:
