@@ -6,6 +6,7 @@ from typing import Tuple
 from pandas_ml_common import pd, np, naive_splitter, random_splitter
 from pandas_ml_utils import FeaturesAndLabels, Model, SubModelFeature, FittingParameter
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
+from pandas_ml_utils.ml.forecast import Forecast
 
 
 class TestAbstractModel(object):
@@ -42,6 +43,13 @@ class TestAbstractModel(object):
         try:
             copy = Model.load(temp)
             pd.testing.assert_frame_equal(df.model.predict(fit.model), df.model.predict(copy), check_less_precise=True)
+
+            # test using context manager and ForecastProvider
+            pd.testing.assert_frame_equal(
+                df.model(temp).predict(forecast_provider=Forecast).df,
+                df.model.predict(copy),
+                check_less_precise=True
+            )
         finally:
             os.remove(temp)
 

@@ -11,6 +11,9 @@ class ECDF(object):
         self.nobs = len(x)
         self.probs = np.linspace(1. / self.nobs, 1, self.nobs)
 
+    def hist(self, bins='sqrt'):
+        return np.histogram(self.x, bins=bins, density=True)
+
     def confidence_interval(self, lower: float, upper: float) -> Tuple[float, float]:
         # a[i-1] < v <= a[i]
         li = np.searchsorted(self.probs, lower, side='right')
@@ -36,10 +39,14 @@ class ECDF(object):
         ri = self.probs >= upper
         return np.abs(self.x[li]).mean(), np.abs(self.x[ri]).mean()
 
-    def is_tail_event(self, observerd, lower: float, upper: float) -> Tuple[bool, bool]:
+    def get_tail_distance(self, observerd, lower: float, upper: float) -> Tuple[bool, bool]:
         left_tail = np.searchsorted(self.x, observerd, side='right')
         right_tail = np.searchsorted(self.x, observerd, side='left')
         left_prob = self.probs[min(left_tail, self.nobs - 1)]
-        right_prob = self.probs[min(left_tail, self.nobs - 1)]
-        return left_prob <= lower, right_prob >= upper
+        right_prob = self.probs[min(right_tail, self.nobs - 1)]
+        return left_prob - lower, upper - right_prob
+
+    def is_tail_event(self, observerd, lower: float, upper: float) -> Tuple[bool, bool]:
+        left_tail_dist, right_tail_dist = self.get_tail_distance(observerd, lower, upper)
+        return left_tail_dist < 0, right_tail_dist < 0
 

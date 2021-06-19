@@ -16,6 +16,7 @@ from pandas_ml_common.utils import merge_kwargs, call_callable_dynamic_args
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
 from pandas_ml_utils.ml.fitting import FittingParameter
+from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.summary import Summary
 
 _log = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ class Model(object):
     def __init__(self,
                  features_and_labels: FeaturesAndLabels,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
                  **kwargs):
         """
         All implementations of `Model` need to pass two arguments to `super().__init()__`.
@@ -63,6 +65,7 @@ class Model(object):
         """
         self._features_and_labels = features_and_labels
         self._summary_provider = summary_provider
+        self._forecast_provider = forecast_provider
         self._history = defaultdict(dict)
         self._labels_columns = None
         self._feature_columns = None
@@ -76,6 +79,10 @@ class Model(object):
     @property
     def summary_provider(self):
         return self._summary_provider
+
+    @property
+    def forecast_provider(self):
+        return self._forecast_provider
 
     def fit(self, x_y_weights: XYWeight, fitting_parameter: FittingParameter, verbose: int = 0, callbacks=None, **kwargs) -> Tuple[Typing.PatchedDataFrame, Typing.PatchedDataFrame]:
         self._fit_meta_data = fitting_parameter
@@ -227,8 +234,9 @@ class AutoEncoderModel(Model):
     def __init__(self,
                  features_and_labels: FeaturesAndLabels,
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
                  **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
+        super().__init__(features_and_labels, summary_provider, forecast_provider, **kwargs)
         self.mode = AutoEncoderModel.AUTOENCODE
 
     def predict(self, features: pd.DataFrame, targets: pd.DataFrame=None, latent: pd.DataFrame=None, samples=1, **kwargs) -> Typing.PatchedDataFrame:

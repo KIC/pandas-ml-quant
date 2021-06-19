@@ -30,7 +30,10 @@ class Squeeze(nn.Module):
         super().__init__()
 
     def forward(self, input, *args):
-        return input.squeeze()
+        squoze = input.squeeze()
+
+        # Note that we need to keep the batch dimension in case it is 1
+        return squoze if input.shape[0] > 1 else squoze.view(1, *squoze.shape)
 
 
 class Reshape(nn.Module):

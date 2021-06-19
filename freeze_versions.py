@@ -13,7 +13,7 @@ def freeze_versions(requirements):
 
     frozen_without_version = [cv.split('==')[0] for cv in current_versions if cv.split('==')[0] in needed_packages]
     frozen_packages = [cv for cv in current_versions if cv.split('==')[0] in needed_packages]
-    # print(frozen_packages)
+    print(frozen_packages)
 
     not_found = [np for np in needed_packages if np not in frozen_without_version]
     assert len(needed_packages) == len(frozen_packages), \

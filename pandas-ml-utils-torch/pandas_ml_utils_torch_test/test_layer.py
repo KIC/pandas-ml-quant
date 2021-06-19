@@ -6,10 +6,18 @@ import torch.nn as nn
 from pandas_ml_common import np
 from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_utils_test.config import DF_TEST
-from pandas_ml_utils_torch.layers import KerasLikeLSTM, Time2Vec
+from pandas_ml_utils_torch.layers import KerasLikeLSTM, Time2Vec, Reshape, Squeeze, Flatten
 
 
 class TestPytorchLayer(TestCase):
+
+    def test_squeeze(self):
+        data1 = t.rand((2, 20, 1, 6))
+        data2 = t.rand((1, 20, 1, 6))
+        net = Squeeze()
+
+        self.assertEqual(net(data1).shape, (2, 20, 6))
+        self.assertEqual(net(data2).shape, (1, 20, 6))
 
     def test_lstm_layer(self):
         data = t.rand((1, 10, 2))

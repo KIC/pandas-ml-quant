@@ -1,0 +1,1 @@
+from .base_forecast import Forecast

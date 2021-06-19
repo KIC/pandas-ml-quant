@@ -1,4 +1,4 @@
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 
 import os
 import shutil
@@ -14,7 +14,7 @@ def tests(session):
     dist_file = f"/tmp/pandas-quant-data-provider-{__version__}.zip"
 
     # create distribution and install
-    session.install("-r", "requirements.txt")
+    session.install("-r", "requirements.txt", "-U")
     session.install("-r", "dev-requirements.txt")
     session.install(f"/tmp/pandas-ml-common-{__version__}.zip")
 

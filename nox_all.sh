@@ -53,3 +53,6 @@ fi
 
 # run spellchecker
 pyspelling
+
+# delete egg infos
+find -name *.egg-info -exec rm -rf {} \;
