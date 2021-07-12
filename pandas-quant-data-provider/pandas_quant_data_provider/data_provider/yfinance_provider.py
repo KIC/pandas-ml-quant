@@ -9,6 +9,8 @@ from pandas_ml_common import pd
 from pandas_quant_data_provider.data_provider.time_utils import time_until_end_of_day
 from pandas_quant_data_provider.symbol import Symbol
 
+print("importing yfinance", yf.__version__)
+
 
 class YahooSymbol(Symbol):
 

@@ -15,6 +15,11 @@ pip install pandas-quant-data-provider
  
 ```
    
+**!! NOTE !!**
+We need to keep data libraries like yfincance up do date alsmost every minute. Whenever there is a change in the api
+the library has to react. This happens more often as we whish, especially with yahoo finance. This is why this library
+gets _pip installed -U_ on every import. This means for server based solutions on every restart. Make sure you use
+all pandas-ml* libraries inside a virtual env.
 
 
  
