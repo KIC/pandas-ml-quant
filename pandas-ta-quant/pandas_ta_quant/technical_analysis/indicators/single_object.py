@@ -285,3 +285,44 @@ def ta_potential_turning_point(
     return rolling_apply(pd.concat([df, edge_or_not], axis=1), period, calc_edge_count, names=f"PPL_{period}")
 
 
+@for_each_column
+def ta_strike(df: _PANDAS, mode: str = None, distance=False) -> _PANDAS:
+    """
+    calculate the distance to the lower/upper option strike follwoing the rules described at cboe
+      -> https://www.cboe.com/exchange_traded_stock/equity_options_spec/
+
+    * 2 1/2 points when the strike price is between $5 and $25
+    * 5 points when the strike price is between $25 and $200
+    * 10 points when the strike price is over $200
+
+    :param df: the dataframe
+    :param mode: None|ceil|floor strike distance
+    :param distance: distance in % or absolute number
+
+    :return: distance to strike
+    """
+    def rround(x, base):
+        r = base * round(x / base)
+        if mode == 'floor':
+            if x - r < 0:
+                r -= base
+        elif mode == 'ceil':
+            if x - r > 0:
+                r += base
+
+        return r
+
+    def strike(nr):
+        if nr < 25:
+            # round 2.5
+            dist = rround(nr, 2.5)
+        elif nr < 200:
+            # round 5 points
+            dist = rround(nr, 5)
+        else:
+            # round 10 points
+            dist = rround(nr, 10)
+
+        return nr / max(dist, 1) - 1 if distance else dist
+
+    return _wcs(f"strike{'_' + mode if mode else ''}{'_dist' if distance else ''}", df.apply(strike))

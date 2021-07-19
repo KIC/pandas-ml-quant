@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import pandas as pd
 import talib
 
 from pandas_ml_common import Constant
@@ -209,3 +210,29 @@ class TestIndicator(TestCase):
         print(tps1.sum())
         print(tps2.sum())
         print(tps3.sum())
+
+    def test_strike_prices(self):
+        df = pd.DataFrame({
+            "a": [1.2,    2.49,   2.51,   5.01],
+            "b": [26.49,  26.51,  24.99,  25.01],
+            "c": [250.49, 260.51,  249,   261],
+        })
+
+        np.testing.assert_array_almost_equal([
+            [0., 2.5, 2.5, 5.],
+            [25., 25., 25., 25.],
+            [250., 260., 250., 260.],
+        ], ta_strike(df).T.values)
+
+        np.testing.assert_array_almost_equal([
+            [2.5, 2.5, 5., 7.5],
+            [30., 30., 25., 30.],
+            [260., 270., 250., 270.],
+        ], ta_strike(df, mode='ceil').T.values)
+
+        np.testing.assert_array_almost_equal([
+            [0., 0., 2.5, 5.],
+            [25., 25., 22.5, 25.],
+            [250., 260., 240., 260.],
+        ], ta_strike(df, mode='floor').T.values)
+
