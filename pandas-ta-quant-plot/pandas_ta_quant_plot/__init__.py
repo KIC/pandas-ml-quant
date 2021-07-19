@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for quant analysis plotting"""
-__version__ = '0.2.0'
+__version__ = '0.2.7'
 
 from collections import namedtuple
 from pandas_ta_quant_plot.plots import *

@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for machine learning"""
-__version__ = '0.2.0'
+__version__ = '0.2.7'
 
 from pandas_ml_utils.ml.summary import *
 from pandas_ml_common import *

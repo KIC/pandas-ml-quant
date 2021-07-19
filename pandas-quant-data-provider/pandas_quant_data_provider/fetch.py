@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common.utils import call_callable_dynamic_args
-from pandas_quant_data_provider.data_provider.yfinance_provider import fetch_yahoo, YahooSymbol
+from pandas_quant_data_provider.data_provider.yf import YahooSymbol
 from pandas_quant_data_provider.symbol import Symbol
 
 _log = logging.getLogger(__name__)
@@ -13,19 +13,24 @@ _log = logging.getLogger(__name__)
 
 class QuantDataFetcher(object):
 
-    def __init__(self, providers: Dict[Type, Callable] = {}):
+    def __init__(self, providers: Dict[Type, Symbol] = {}):
         self.provider_map = {
-            YahooSymbol: fetch_yahoo,
-            str: fetch_yahoo,
+            YahooSymbol: YahooSymbol,
+            str: YahooSymbol,
             **providers,
         }
+
+        # copy string data type mapping for numpy string type, otherwise the user has to provide both all the time :-(
         self.provider_map[np.str_] = self.provider_map[str]
 
-    def fetch(self,
-              *symbols: Union[Union[str, Symbol], List[Union[str, Symbol]]],
-              join: str = 'inner',
-              force_lowercase_header: bool = False,
-              **kwargs):
+    def fetch_option_chain(self, symbol, max_maturities=None):
+        return YahooSymbol(symbol).fetch_option_chain(symbol, max_maturities)
+
+    def fetch_price_history(self,
+                            *symbols: Union[Union[str, Symbol], List[Union[str, Symbol]]],
+                            join: str = 'inner',
+                            force_lowercase_header: bool = False,
+                            **kwargs):
         symbols_array = self._init_shape(*symbols)
         frames = self._load(symbols_array, force_lowercase_header, **kwargs)
         row_frames = [pd.concat(row, join=join, axis=1) for row in frames]
@@ -89,10 +94,5 @@ class QuantDataFetcher(object):
         return frames
 
     def _fetch_time_series(self, symbol, **kwargs) -> pd.DataFrame:
-        args = symbol.get_provider_args() if isinstance(symbol, Symbol) else [symbol]
-
-        if isinstance(args, (tuple, list)):
-            return call_callable_dynamic_args(self.provider_map[type(symbol)], *args, **kwargs)
-        else:
-            return call_callable_dynamic_args(self.provider_map[type(symbol)], **args, **kwargs)
-
+        symbol_implementation = symbol if isinstance(symbol, Symbol) else self.provider_map[type(symbol)](symbol)
+        return call_callable_dynamic_args(symbol_implementation.fetch_price_history, **kwargs)
