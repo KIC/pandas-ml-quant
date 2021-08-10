@@ -29,6 +29,10 @@ class ECDF(object):
 
         return get_val(li, lower), get_val(ri, upper)
 
+    def confidence_band_width(self, lower: float, upper: float) -> float:
+        l, u = self.confidence_interval(lower, upper)
+        return (u - l) / u
+
     def heat_bar(self, bins=21) -> Tuple[np.ndarray, np.ndarray]:
         # return a 2D array [value, mass]
         mass, edges = np.histogram(self.x, bins=bins, density=True)

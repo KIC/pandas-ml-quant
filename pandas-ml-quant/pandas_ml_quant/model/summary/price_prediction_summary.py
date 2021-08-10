@@ -324,11 +324,18 @@ class PriceSampledSummary(Summary):
             axis=1,
             result_type='expand').mean()
 
+        # how wide is the confidence interval, the smaller the better
+        band_width = dfcdf.apply(
+            lambda cdf: cdf.iloc[0].confidence_band_width(self.left_confidence, self.right_confidence),
+            axis=1,
+            result_type='expand').mean()
+
         return pd.DataFrame({
             "first date": [dfcdf.index[0]],
             "last date": [dfcdf.index[-1]],
             "events": [nr_events],
             f"confidence (exp: {self.expected_confidence:.2f} %)": [1 - tail_events.values.sum().item() / nr_events],
+            "conf width": [band_width],
             "left tail avg. distance %": [np.abs(distance.iloc[0])],
             "right tail avg. distance %": [distance.iloc[1]],
             "left tail events %": [tail_events.iloc[:, 0].sum() / nr_events],
