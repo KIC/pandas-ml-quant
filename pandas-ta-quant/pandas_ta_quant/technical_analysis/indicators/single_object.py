@@ -296,11 +296,14 @@ def ta_strike(df: _PANDAS, mode: str = None, distance=False) -> _PANDAS:
     * 10 points when the strike price is over $200
 
     :param df: the dataframe
-    :param mode: None|ceil|floor strike distance
+    :param mode: None|ceil|floor|both strike (distance) where None means the closest strike whether its up or down
     :param distance: distance in % or absolute number
-
     :return: distance to strike
     """
+
+    if mode == 'both':
+        return pd.concat([ta_strike(df, 'floor', distance), ta_strike(df, 'ceil', distance)], axis=1)
+
     def rround(x, base):
         r = base * round(x / base)
         if mode == 'floor':
