@@ -5,7 +5,7 @@ Mako
 dill
 matplotlib
 mlxtend
-numpy
+numpy==1.20.*
 pandas
 scikit-learn
 sortedcontainers

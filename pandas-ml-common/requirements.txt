@@ -1,5 +1,5 @@
 dill
-numpy>=1.20.2
+numpy==1.20.*>=1.20.2
 pandas
 scikit-learn
 sortedcontainers

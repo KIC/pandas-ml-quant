@@ -124,7 +124,7 @@ NOTE! This module is currently stalled as I mainly use pytorch at the moment.
 ### [pandas-ta-quant](pandas-ta-quant/Readme.md) 
 Technical analysis library. 
 
-It is a pure python re-implementation of the famous TA-Lib and some custome indicators on top i.e. GARCH. 
+It is a pure python re-implementation of the famous TA-Lib and some custom indicators on top i.e. GARCH. 
 Use `df.ta.help` to see all possible indicators. 
 ![Ta Plot](./.readme/images/multi_index.png)
 
