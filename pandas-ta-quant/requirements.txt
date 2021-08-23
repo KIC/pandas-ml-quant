@@ -5,4 +5,4 @@ mgarch-setup-fix  # https://github.com/srivastavaprashant/mgarch/issues/3
 pyts
 scikit-learn
 statsmodels
-numpy==1.20.*>=1.20.2
+numpy==1.20.*

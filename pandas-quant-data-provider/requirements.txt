@@ -1,7 +1,7 @@
 cachetools>=4.2.2
 fredapi
 investpy
-numpy==1.20.*>=1.20.2
+numpy==1.20.*
 pandas>=1.2.4
 pangres
 sortedcontainers
