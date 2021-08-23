@@ -1,4 +1,4 @@
-arch==4.19
+arch==5.0.1
 bintrees==2.2.0
 mgarch-setup-fix==0.2.0
 numpy==1.20.3
