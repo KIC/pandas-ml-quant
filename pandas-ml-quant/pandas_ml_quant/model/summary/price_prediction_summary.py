@@ -306,7 +306,15 @@ class PriceSampledSummary(Summary):
         dfcdf = self.cdf.to_frame().dropna()
         idx = dfcdf.index.intersection(self.label_returns.index)
         dfl = self.label_returns.loc[idx]
+        dfpp = self.cdf[idx].apply(lambda cdf: cdf.extreme())
+        mean_std = self.cdf[idx].apply(lambda cdf: cdf.std()).mean()
         nr_events = len(dfcdf)
+
+        direction_correct_ratio = \
+            (((dfl.values.squeeze() > 0) & (dfpp.values.squeeze() > 0)) | ((dfl.values.squeeze() < 0) & (dfpp.values.squeeze() < 0))).sum() / len(dfl)
+
+        corr, _ = pearsonr(dfl.values.flatten(), dfpp.values.flatten())
+        r2 = r2_score(dfl, dfpp)
 
         tail_events = dfcdf.join(dfl).apply(
             lambda x: x.iloc[0].is_tail_event(x.iloc[1], self.left_confidence, self.right_confidence),
@@ -334,6 +342,10 @@ class PriceSampledSummary(Summary):
             "first date": [dfcdf.index[0]],
             "last date": [dfcdf.index[-1]],
             "events": [nr_events],
+            "direction correct ratio of extreme": [direction_correct_ratio],
+            "correlation of extreme": [corr],
+            "r^2 of extreme": [r2],
+            "mean(σ)": [mean_std],
             f"confidence (exp: {self.expected_confidence:.2f} %)": [1 - tail_events.values.sum().item() / nr_events],
             "conf width": [band_width],
             "left tail avg. distance %": [np.abs(distance.iloc[0])],

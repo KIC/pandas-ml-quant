@@ -14,6 +14,7 @@ from pandas_ml_common import Typing
 from pandas_ml_common.utils import to_pandas
 from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
+from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model.base_model import Model, AutoEncoderModel
 from pandas_ml_utils.ml.summary import Summary
 from pandas_ml_utils_torch.pytorch_base import PytorchNN, PytochBaseModel
@@ -30,11 +31,12 @@ class _AbstractPytorchModel(Model):
                  criterion_provider: Type[nn.modules.loss._Loss],
                  optimizer_provider: Type[t.optim.Optimizer],
                  summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
                  restore_best_weights: bool = False,
                  merge_cross_folds: Callable[[Dict[int, PytochBaseModel]], PytochBaseModel] = None,
                  callbacks: Dict[str, List[Callable]] = {},
                  **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
+        super().__init__(features_and_labels, summary_provider, forecast_provider, **kwargs)
         self.merge_cross_folds = merge_cross_folds
         self.callbacks = callbacks
 

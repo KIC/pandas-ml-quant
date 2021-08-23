@@ -14,6 +14,14 @@ class ECDF(object):
     def hist(self, bins='sqrt'):
         return np.histogram(self.x, bins=bins, density=True)
 
+    def extreme(self):
+        hist, edges = self.hist()
+        iext = np.argmax(hist)
+        return (edges[iext] + edges[iext + 1]) / 2
+
+    def std(self):
+        return np.std(self.x)
+
     def confidence_interval(self, lower: float, upper: float) -> Tuple[float, float]:
         # a[i-1] < v <= a[i]
         li = np.searchsorted(self.probs, lower, side='right')
