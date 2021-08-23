@@ -1,5 +1,5 @@
 """Augment pandas DataFrame with methods for quant analysis"""
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 import os
 import re
 

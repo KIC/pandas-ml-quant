@@ -1,4 +1,4 @@
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 
 from .pytorch_model import PytorchModel, PytorchAutoEncoderModel
 from .pytorch_base import PytorchNN, PytorchNNFactory
