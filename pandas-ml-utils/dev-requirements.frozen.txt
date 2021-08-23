@@ -1,8 +1,8 @@
 drawilleplot==0.1.0
-ipykernel==5.5.5
-jupyter-client==6.1.12
+ipykernel==6.2.0
+jupyter-client==7.0.1
 lxml==4.6.3
 Markdown==3.3.4
-matplotlib==3.4.2
-nbconvert==6.0.7
-requests==2.25.1
+matplotlib==3.4.3
+nbconvert==6.1.0
+requests==2.26.0

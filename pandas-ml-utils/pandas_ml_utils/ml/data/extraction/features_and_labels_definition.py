@@ -209,11 +209,10 @@ PostProcessorType = Union[
 
 class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
 
-
     @staticmethod
     def from_features_and_labels(
             features_and_labels: FeaturesAndLabels,
-            feature_post_processor: PostProcessorType = None,
+            feature_post_processor: Union[PostProcessorType, Tuple[PostProcessorType]] = None,
             labels_post_processor: PostProcessorType = None,
             latent_post_processor: PostProcessorType = None,
             sample_weights_post_processor: PostProcessorType = None,
@@ -241,7 +240,7 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
 
     def __init__(self,
                  features: Typing._Selector,
-                 feature_post_processor: PostProcessorType = None,
+                 feature_post_processor: Union[PostProcessorType, Tuple[PostProcessorType]] = None,
                  labels: Typing._Selector = [],
                  labels_post_processor: PostProcessorType = None,
                  latent: Typing._Selector = None,

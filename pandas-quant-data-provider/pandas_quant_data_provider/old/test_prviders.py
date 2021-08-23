@@ -8,7 +8,7 @@ class TestQuantData(TestCase):
     def test_provider_selection(self):
 
         with self.assertLogs(level='WARNING') as cm:
-            df = qd.load("AAPL").tail()
+            df = qd.TestSymbol("AAPL").tail()
             msg = [log for log in cm.output if "Ambiguous symbol has multiple providers" in log]
 
             self.assertGreaterEqual(len(msg), 1)

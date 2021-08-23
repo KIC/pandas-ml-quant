@@ -17,6 +17,8 @@ df._[["Close", df._["Close"].ta.sma(200)]].plot(figsize=(20,10))
 ![Plot][ghi1]
 
 ## Full List of indicators
+To get a full list if indicators as DataFrame use `df.ta.help`. 
+Here is a non-complete ever-growing list:
 
 |                                | module                                                            |
 |:-------------------------------|:------------------------------------------------------------------|

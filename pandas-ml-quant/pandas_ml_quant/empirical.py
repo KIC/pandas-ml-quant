@@ -14,6 +14,14 @@ class ECDF(object):
     def hist(self, bins='sqrt'):
         return np.histogram(self.x, bins=bins, density=True)
 
+    def extreme(self):
+        hist, edges = self.hist()
+        iext = np.argmax(hist)
+        return (edges[iext] + edges[iext + 1]) / 2
+
+    def std(self):
+        return np.std(self.x)
+
     def confidence_interval(self, lower: float, upper: float) -> Tuple[float, float]:
         # a[i-1] < v <= a[i]
         li = np.searchsorted(self.probs, lower, side='right')
@@ -28,6 +36,10 @@ class ECDF(object):
             return (vals * weights).sum() / weights.sum()
 
         return get_val(li, lower), get_val(ri, upper)
+
+    def confidence_band_width(self, lower: float, upper: float) -> float:
+        l, u = self.confidence_interval(lower, upper)
+        return (u - l) / u
 
     def heat_bar(self, bins=21) -> Tuple[np.ndarray, np.ndarray]:
         # return a 2D array [value, mass]

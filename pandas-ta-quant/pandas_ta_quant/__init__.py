@@ -1,5 +1,6 @@
 """Augment pandas DataFrame with methods for technical quant analysis"""
-__version__ = '0.2.0'
+__version__ = '0.2.7'
+
 import logging
 
 from pandas.core.base import PandasObject

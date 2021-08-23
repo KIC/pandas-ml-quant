@@ -4,6 +4,7 @@ import os
 import traceback
 
 import dill as pickle
+import pandas as pd
 
 
 def serialize(obj, filename):
@@ -75,3 +76,15 @@ def dict_to_str(d):
         from sortedcontainers import SortedDict
         return ",".join([f"{k}={v}" for k, v in SortedDict(d).items()])
 
+
+def df_to_nested_dict(df: pd.DataFrame):
+    if isinstance(df.index, pd.MultiIndex) and df.index.nlevels > 1:
+        res = {}
+
+        keys = set(df.index.get_level_values(0))
+        for key in sorted(keys):
+            res[key] = df_to_nested_dict(df.loc[key])
+
+        return res
+    else:
+        return df.to_dict('records')
