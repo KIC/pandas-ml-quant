@@ -7,3 +7,4 @@ from .serialization_utils import serialize, deserialize, serializeb, deserialize
 from .jupyther_utils import register_wirte_and_run_magic, notebook_name
 from .numpy_utils import np_nans
 from .random import normalize_probabilities, temp_seed
+from .df_utils import *

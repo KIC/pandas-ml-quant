@@ -119,7 +119,8 @@ Extends the pandas-ml-utils library for the use of keras tensorflow 1.x models.
 NOTE! This module is currently stalled as I mainly use pytorch at the moment.  
 
 ### [pandas-ml-quant](pandas-ml-quant/Readme.md) 
-...
+Adds functionality for machine learning to the pandas-ta-quant module like encoding, decoding, normalization.
+Adds Summaries and cross validation algorithms to the pandas-ml-utils module. 
 
 ### [pandas-ta-quant](pandas-ta-quant/Readme.md) 
 Technical analysis library. 

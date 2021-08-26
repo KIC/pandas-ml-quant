@@ -1,3 +1,6 @@
+import calendar
+from datetime import date, timedelta
+
 import numpy as np
 import pandas as pd
 from numba import guvectorize, float32, int32, float64, int64
@@ -134,3 +137,9 @@ def rolling_apply(df, period, func, names, center=False, **kwargs):
         df = df.to_frame()
 
     return df[[]].join(s)
+
+
+def opex_date_of_month(year, month) -> date:
+    first_day_of_month = date(year, month, 1)
+    first_friday = first_day_of_month + timedelta(days=((4 - calendar.monthrange(year, month)[0]) + 7) % 7)
+    return first_friday + timedelta(days=14)

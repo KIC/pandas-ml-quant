@@ -12,7 +12,7 @@ from pandas_ml_utils_torch import PytorchModel, PytorchAutoEncoderModel, Pytorch
 
 
 class RegressionModule(nn.Module):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         self.regressor = nn.Sequential(
             nn.Linear(1, 1)
@@ -69,7 +69,7 @@ class ClassificationModule(nn.Module):
         return x
 
 
-class TestPytorchModel(TestAbstractModel, TestCase):
+class TestPytorchModel(TestAbstractModel):
 
     def provide_batch_size_and_epoch(self):
         return None, 500
@@ -86,14 +86,15 @@ class TestPytorchModel(TestAbstractModel, TestCase):
 
         return model
 
-    def provide_regression_model(self, features_and_labels):
+    def provide_regression_model(self, features_and_labels, **kwargs):
         t.manual_seed(12)
 
         model = PytorchModel(
             RegressionModule,
             features_and_labels,
             nn.MSELoss,
-            lambda params: SGD(params, lr=0.01, momentum=0.0)
+            lambda params: SGD(params, lr=0.01, momentum=0.0),
+            **kwargs
         )
 
         return model

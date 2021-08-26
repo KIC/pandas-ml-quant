@@ -1,13 +1,16 @@
 import logging
-from typing import NamedTuple, List, Tuple
+from typing import NamedTuple, List, Tuple, Dict, Type
 
 import numpy as np
 import pandas as pd
 
 from pandas_ml_common import get_pandas_object, Typing
 from pandas_ml_common.decorator import MultiFrameDecorator
-from pandas_ml_common.utils import intersection_of_index, loc_if_not_none, flatten_nested_list
+from pandas_ml_common.sampling import XYWeight
+from pandas_ml_common.utils import intersection_of_index, loc_if_not_none, flatten_nested_list, merge_kwargs
 from pandas_ml_common.utils.callable_utils import call_if_not_none
+from pandas_ml_utils.ml.fitting import FittingParameter
+from .features_and_labels_definition import FeaturesAndLabels
 
 _log = logging.getLogger(__name__)
 
@@ -104,3 +107,62 @@ def extract_labels(df: pd.DataFrame, features_and_labels, **kwargs) -> pd.DataFr
         labels = labels.astype(features_and_labels.label_type)
 
     return labels
+
+
+def extract_frames_for_fit(
+        df: Typing.PatchedDataFrame,
+        features_and_labels: FeaturesAndLabels,
+        type_mapping: Dict[Type, callable] = {},
+        fitting_parameter: FittingParameter = FittingParameter(),
+        verbose: int = 0,
+        **kwargs: Dict) -> FeaturesWithLabels:
+    frames = features_and_labels(
+        df, extract_feature_labels_weights, type_map=type_mapping, fitting_parameter=fitting_parameter,
+        verbose=verbose, **kwargs
+    )
+
+    return frames
+
+
+def extract_frames_for_backtest(
+        df: Typing.PatchedDataFrame,
+        features_and_labels: FeaturesAndLabels,
+        type_mapping: Dict[Type, callable] = {},
+        tail: int = None,
+        **kwargs: Dict) -> FeaturesWithLabels:
+    min_required_samples = features_and_labels.min_required_samples
+
+    if tail is not None:
+        if min_required_samples is not None:
+            # just use the tail for feature engineering
+            df = df[-(abs(tail) + (min_required_samples - 1)):]
+        else:
+            _log.warning("could not determine the minimum required data from the model")
+
+    frames = features_and_labels(
+        df, extract_feature_labels_weights, type_map=type_mapping, **kwargs
+    )
+
+    return frames
+
+
+def extract_frames_for_predict(
+        df: Typing.PatchedDataFrame,
+        features_and_labels: FeaturesAndLabels,
+        type_mapping: Dict[Type, callable] = {},
+        tail: int = None,
+        **kwargs: Dict) -> FeaturesWithTargets:
+    min_required_samples = features_and_labels.min_required_samples
+
+    if tail is not None:
+        if min_required_samples is not None:
+            # just use the tail for feature engineering
+            df = df[-(abs(tail) + (min_required_samples - 1)):]
+        else:
+            _log.warning("could not determine the minimum required data from the model")
+
+    frames = features_and_labels(
+        df, extract_features, type_map=type_mapping, **kwargs
+    )
+
+    return frames

@@ -1,24 +1,22 @@
 import logging
 from time import perf_counter
-from typing import Callable, Union, List, Type
+from typing import Callable, Union, List
 
 from scipy.stats import randint as sp_randint
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
 
-from pandas_ml_common import Typing, naive_splitter, XYWeight
-from pandas_ml_common.utils import get_correlation_pairs, merge_kwargs, call_silent, \
+from pandas_ml_common import Typing, naive_splitter
+from pandas_ml_common.utils import get_correlation_pairs, call_silent, \
     call_callable_dynamic_args
 from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
     PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting import Fit, FitException, FittingParameter
 from pandas_ml_utils.ml.forecast import Forecast
-from pandas_ml_utils.ml.model import Model as MlModel, SkModel, AutoEncoderModel, SubModelFeature
+from pandas_ml_utils.ml.model import Model as MlModel, SkModel, AutoEncoderModel
 from pandas_ml_utils.ml.summary import Summary
-from ..ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels, FeaturesWithTargets, \
-    extract_features, extract_feature_labels_weights
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
 
 _log = logging.getLogger(__name__)
@@ -106,23 +104,14 @@ class DfModelPatch(object):
         df = self.df
         trails = None
         model = model_provider()
-        kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-
-        def fit_submodel(df, model, **kwargs):
-            return model.fit(df, **kwargs)
-
-        typemap_fitting = {SubModelFeature: fit_submodel, **self._type_mapping}
-        frames: FeaturesWithLabels = model.features_and_labels(
-            df, extract_feature_labels_weights, type_map=typemap_fitting, fitting_parameter=fitting_parameter,
-            verbose=verbose, **kwargs
-        )
 
         start_performance_count = perf_counter()
         _log.info("create model")
 
-        df_train_prediction, df_test_prediction = model.fit(
-            XYWeight(frames.features, frames.labels, frames.sample_weights),
+        frames, df_train_prediction, df_test_prediction = model.fit_to_df(
+            df,
             fitting_parameter,
+            self._type_mapping,
             verbose,
             callbacks,
             **kwargs
@@ -158,23 +147,7 @@ class DfModelPatch(object):
                  tail: int = None,
                  **kwargs) -> Summary:
 
-        min_required_samples = model.features_and_labels.min_required_samples
-        df = self.df
-
-        if tail is not None:
-            if min_required_samples is not None:
-                # just use the tail for feature engineering
-                df = df[-(abs(tail) + (min_required_samples - 1)):]
-            else:
-                _log.warning("could not determine the minimum required data from the model")
-
-        kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs), **self._type_mapping}
-        frames: FeaturesWithLabels = model.features_and_labels(
-            df, extract_feature_labels_weights, type_map=typemap_pred, **kwargs
-        )
-
-        predictions = model.predict(frames.features, **kwargs)
+        frames, predictions = model.predict_of_df(self.df, self._type_mapping, tail, include_labels=True, **kwargs)
         df_backtest = assemble_result_frame(predictions, frames.targets, frames.labels, frames.gross_loss,
                                             frames.sample_weights, frames.features)
 
@@ -186,28 +159,7 @@ class DfModelPatch(object):
                 samples: int = 1,
                 forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
                 **kwargs) -> Union[Typing.PatchedDataFrame, Forecast]:
-        min_required_samples = model.features_and_labels.min_required_samples
-        df = self.df
-
-        if tail is not None:
-            if min_required_samples is not None:
-                # just use the tail for feature engineering
-                df = df[-(abs(tail) + (min_required_samples - 1)):]
-            else:
-                _log.warning("could not determine the minimum required data from the model")
-
-        kwargs = merge_kwargs(model.features_and_labels.kwargs, model.kwargs, kwargs)
-        typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs), **self._type_mapping}
-        frames: FeaturesWithTargets = model.features_and_labels(
-            df, extract_features, type_map=typemap_pred, **kwargs
-        )
-
-        predictions = call_callable_dynamic_args(
-            model.predict,
-            features=frames.features, targets=frames.targets, latent=frames.latent, samples=samples, df=df,
-            **kwargs
-        )
-
+        frames, predictions = model.predict_of_df(self.df, self._type_mapping, tail, samples, **kwargs)
         fc_provider = forecast_provider or model.forecast_provider
         res_df = assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
 

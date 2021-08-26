@@ -10,7 +10,7 @@ from pandas_ml_utils import SkModel, SkAutoEncoderModel, FeaturesAndLabels, Clas
 from pandas_ml_utils_test.config import DF_NOTES
 
 
-class TestSkModel(TestAbstractModel, TestCase):
+class TestSkModel(TestAbstractModel):
 
     def test_linear_model(self):
         df = DF_NOTES.copy()
@@ -69,6 +69,9 @@ class TestSkModel(TestAbstractModel, TestCase):
 
         self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 
+        self.assertEqual(len(fit_partial.model._statistics._history[('train',)]), 10)
+        self.assertEqual(len(fit_partial.model._statistics._history[('test', 0)]), 10)
+
     def test_partial_fit_classification(self):
         data = make_classification(100, 2, 1, 0, n_clusters_per_class=1)
         df = pd.DataFrame(data[0])
@@ -108,11 +111,12 @@ class TestSkModel(TestAbstractModel, TestCase):
 
         return model
 
-    def provide_regression_model(self, features_and_labels):
+    def provide_regression_model(self, features_and_labels, **kwargs):
         model = SkModel(
             MLPRegressor(1, learning_rate_init=0.01, solver='sgd', activation='identity', momentum=0, max_iter=1500, n_iter_no_change=500, nesterovs_momentum=False, shuffle=False, validation_fraction=0.0, random_state=42),
             features_and_labels,
-            summary_provider=RegressionSummary
+            summary_provider=RegressionSummary,
+            **kwargs
         )
 
         return model

@@ -1,9 +1,10 @@
+from datetime import date
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 
-from pandas_ta_quant._utils import index_of_bucket, rolling_apply
+from pandas_ta_quant._utils import index_of_bucket, rolling_apply, opex_date_of_month
 
 
 class TestUtils(TestCase):
@@ -37,3 +38,9 @@ class TestUtils(TestCase):
 
         m3 = rolling_apply(s, 5, lambda x: x.mean(), "baz", center=True)
         np.testing.assert_array_almost_equal(m3.values.reshape(len(s)), [np.nan, np.nan, 3, np.nan, np.nan])
+
+    def test_opex_date(self):
+        self.assertEqual(opex_date_of_month(2021, 8), date(2021, 8, 20))
+        self.assertEqual(opex_date_of_month(1973, 2), date(1973, 2, 16))
+        self.assertEqual(opex_date_of_month(2012, 9), date(2012, 9, 21))
+        self.assertEqual(opex_date_of_month(2008, 8), date(2008, 8, 15))

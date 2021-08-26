@@ -16,6 +16,9 @@ _log = logging.getLogger(__name__)
 
 
 class LambdaModel(Model):
+    """
+    The Lambda Model provides a constant output of a given function, hence it can not be trained
+    """
 
     def __init__(self,
                  model: Callable[[pd.DataFrame], Union[np.ndarray, pd.DataFrame]],
