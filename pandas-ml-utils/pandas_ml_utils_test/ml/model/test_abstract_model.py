@@ -328,7 +328,7 @@ class TestAbstractModel(TestCase):
             kwargs_list=[{'period': x} for x in range(4)],
             features_and_labels=FeaturesAndLabels(
                 features=["a"],
-                labels=[lambda df, period: df["b"].shift(period).rename(f'b_{period}')]
+                labels=[lambda df, period: (df["b"].shift(period) - df["a"]).rename(f'b_{period}')]
             )
         )
 
@@ -338,8 +338,14 @@ class TestAbstractModel(TestCase):
             fit = m.fit(model)
 
         bt = df.model.backtest(fit.model)
-        print(bt.df[LABEL_COLUMN_NAME])
-        print(bt.df[PREDICTION_COLUMN_NAME])
+        #print(bt.df[LABEL_COLUMN_NAME])
+        #print(bt.df[PREDICTION_COLUMN_NAME])
+
+        for i in range(1, 3):
+            self.assertLessEqual(
+                (bt.df[PREDICTION_COLUMN_NAME].iloc[:, i] >= bt.df[PREDICTION_COLUMN_NAME].iloc[:, i - 1]).sum(),
+                0
+            )
 
         prediction1 = df.model.predict(fit.model)
         prediction2 = df.model.predict(Model.load(temp))

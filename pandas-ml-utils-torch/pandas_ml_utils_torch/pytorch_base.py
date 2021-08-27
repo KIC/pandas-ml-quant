@@ -97,8 +97,9 @@ class PytochBaseModel(object):
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
         self._cuda = cuda
+        self._kwargs = kwargs
 
-        self.net = to_device(net_provider(**kwargs), cuda)
+        self.net = to_device(call_callable_dynamic_args(net_provider, **kwargs), cuda)
         self.criterion = to_device(call_callable_dynamic_args(criterion_provider, module=self.net, params=self.net.named_parameters()), cuda)
         self.optimizer = optimizer_provider(self.net.parameters())
         self.log_once = LogOnce().log
@@ -248,7 +249,7 @@ class PytochBaseModel(object):
 
         # Restore instance attributes
         self.__dict__.update(state)
-        self.net = self.net_provider()
+        self.net = call_callable_dynamic_args(self.net_provider, **self._kwargs)
 
         # restore special state dict
         if module_state_dict is not None:
