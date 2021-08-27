@@ -2,13 +2,14 @@ from datetime import date
 
 import numpy as _np
 import pandas as _pd
-
-# create convenient type hint
 import pandas as pd
-
+from dateutil.relativedelta import relativedelta
 from pandas_ml_common import Typing as _t
 from pandas_ta_quant._decorators import *
-from pandas_ta_quant._utils import opex_date_of_month
+from pandas_ta_quant._utils import opex_date_of_month, opex_date_of_date
+
+
+# create convenient type hint
 
 
 @for_each_top_level_row
@@ -40,24 +41,24 @@ def ta_sinusoidal_week(po: _t.PatchedPandas):
 
 
 @for_each_top_level_row
-# FIXME
-def _ta_dist_opex(po: _t.PatchedPandas):
+def ta_dist_opex(po: _t.PatchedPandas):
     if not isinstance(po.index, _pd.DatetimeIndex):
         df = po.copy()
         df.index = _pd.to_datetime(df.index)
     else:
         df = po
 
-    def dist_next_opex(dte: date):
-        year, month, day = dte.year, dte.month, dte.day
+    def dist_next_opex(ts: pd.Timestamp):
+        d = ts.date()
+        opex = opex_date_of_date(d)
+        if opex.day < d.day:
+            next_opex = opex_date_of_date(d + relativedelta(months=1))
+        else:
+            next_opex = opex
+            opex = opex_date_of_date(d - relativedelta(months=1))
 
-        opex = opex_date_of_month(year, month)
-        if opex.day < day:
-            opex = opex_date_of_month(year + (0 if month < 12 else 1), month + (1 if month < 12 else -11))
+        dist = (next_opex - d).days / (next_opex - opex).days
+        return dist
 
-        # (opex - dte).days / (7 * 4)
+    return df.index.to_series().apply(dist_next_opex).rename("dist_2_opex")
 
-    df.index.dt.apply .isocalendar().apply(dist_next_opex, axis=1)
-
-    # FIXME calculate distance to every next 3rd friday of the month
-    pass
