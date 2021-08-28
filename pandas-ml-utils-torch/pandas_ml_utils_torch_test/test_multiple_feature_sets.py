@@ -8,7 +8,7 @@ from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_utils import pd
 from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils_torch import PytorchModel, PytorchNN
-from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.constants import FEATURE_COLUMN_NAME
 import torch as t
 import numpy as np
@@ -66,3 +66,28 @@ class TestMultiFeatureSet(TestCase):
 
         self.assertIn(FEATURE_COLUMN_NAME, fit.test_summary.df)
         np.testing.assert_almost_equal(np.array([0, 0, 1]), fit.test_summary.df["label"].values.squeeze())
+
+    def test_postprocessed_multiple_featue_sets(self):
+        df = pd.DataFrame({
+            "a": [1, 0, 1, 0, 1, 0, 1, 0, ],
+            "b": [0, 1, 0, 1, 0, 1, 0, 1, ],
+            "c": [1, 0, 0, 1, 1, 0, 0, 1, ]
+        })
+
+        with df.model() as m:
+            ext = m.extract(
+                PostProcessedFeaturesAndLabels(
+                    features=(
+                        ["a", "b"],
+                        ["b", "a"]
+                    ),
+                    feature_post_processor=(
+                        [lambda df: df + 1],
+                        [lambda df: df + 2],
+                    ),
+                    labels=["c"]
+                )
+            )
+
+        self.assertEqual(ext.features.frames()[0].sum(axis=1).sum(), 24)
+        self.assertEqual(ext.features.frames()[1].sum(axis=1).sum(), 40)

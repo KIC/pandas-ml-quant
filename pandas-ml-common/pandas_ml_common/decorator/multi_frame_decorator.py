@@ -80,6 +80,10 @@ class MultiFrameDecorator(object):
         return MultiFrameLocDecorator(self._frames)
 
     @property
+    def shape(self):
+        return tuple([f.shape for f in self._frames])
+
+    @property
     def _(self):
         return MultiFrameExtDecorator(self._frames)
 
