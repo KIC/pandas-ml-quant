@@ -36,12 +36,15 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
 
     if not c.empty:
         relative = kwargs.get("relative_close", relative)
+        is_log = False
         if relative == 'log+gap':
             gap = _np.log(o / c_1)
+            is_log = True
         elif relative == 'gap':
             gap = o / c_1 - 1
         elif relative == 'log':
             gap = _np.log(c / c_1)
+            is_log = True
         elif relative is True:
             gap = c / c_1 - 1
         else:
@@ -52,9 +55,9 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
         # calculate close, upper_shadow, lower_shadow, body
         res = _pd.DataFrame({
             "close": gap,
-            "upper": _np.log(h / oc.max(axis=1)) if 'log' in relative else (h / oc.max(axis=1) - 1),
-            "lower": _np.log(oc.min(axis=1) / l ) if 'log' in relative else (oc.min(axis=1) / l - 1),
-            "body": _np.log(c / o) if 'log' in relative else (c / o - 1)
+            "upper": _np.log(h / oc.max(axis=1)) if is_log else (h / oc.max(axis=1) - 1),
+            "lower": _np.log(oc.min(axis=1) / l ) if is_log else (oc.min(axis=1) / l - 1),
+            "body": _np.log(c / o) if is_log else (c / o - 1)
         }, index=df.index)
     else:
         _log.warning("empty DataFrame!")
@@ -66,7 +69,7 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
         })
 
     if volume is not None:
-        rel_vol = _np.log(df[volume] / df[volume].shift(1)) if 'log' in relative else [volume].pct_change()
+        rel_vol = _np.log(df[volume] / df[volume].shift(1)) if is_log else df[volume].pct_change()
         if not drop_nan_volume or not rel_vol.isnull().all():
             res[volume] = rel_vol
 
