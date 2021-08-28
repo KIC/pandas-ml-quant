@@ -26,7 +26,7 @@ def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low",
 
 @for_each_top_level_row
 @for_each_top_level_column
-def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative_close=False, drop_nan_volume=True):
+def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative=False, drop_nan_volume=True, **kwargs):
     o = _get_pandas_object(df, open)
     c = _get_pandas_object(df, close)
     h = _get_pandas_object(df, high)
@@ -35,12 +35,26 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
     c_1 = c.shift(1)
 
     if not c.empty:
+        relative = kwargs.get("relative_close", relative)
+        if relative == 'log+gap':
+            gap = _np.log(o / c_1)
+        elif relative == 'gap':
+            gap = o / c_1 - 1
+        elif relative == 'log':
+            gap = _np.log(c / c_1)
+        elif relative is True:
+            gap = c / c_1 - 1
+        else:
+            if not isinstance(relative, bool):
+                _log.warning(f"unknown relative={relative}")
+            gap = c
+
         # calculate close, upper_shadow, lower_shadow, body
         res = _pd.DataFrame({
-            "close": (c / c_1 - 1) if relative_close else c,
-            "upper": (h / oc.max(axis=1) - 1),
-            "lower": (oc.min(axis=1) / l - 1),
-            "body": (c / o - 1)
+            "close": gap,
+            "upper": _np.log(h / oc.max(axis=1)) if 'log' in relative else (h / oc.max(axis=1) - 1),
+            "lower": _np.log(oc.min(axis=1) / l ) if 'log' in relative else (oc.min(axis=1) / l - 1),
+            "body": _np.log(c / o) if 'log' in relative else (c / o - 1)
         }, index=df.index)
     else:
         _log.warning("empty DataFrame!")
@@ -52,7 +66,7 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
         })
 
     if volume is not None:
-        rel_vol = df[volume].pct_change()
+        rel_vol = _np.log(df[volume] / df[volume].shift(1)) if 'log' in relative else [volume].pct_change()
         if not drop_nan_volume or not rel_vol.isnull().all():
             res[volume] = rel_vol
 
