@@ -50,17 +50,18 @@ def extract_feature_labels_weights(
     gross_loss = call_if_not_none(get_pandas_object(df, features_and_labels.gross_loss, **kwargs), 'dropna')
 
     # do some sanity check for any non numeric values in any of the data frames
-    for frame in [features, labels, targets, sample_weights, gross_loss]:
-        if frame is not None:
-            # we could have nested arrays so we need to use the un-nested values
-            values = flatten_nested_list(frame._.values, np.max)
-            max_value = max([v.max() for v in values])
+    for frames in [features, labels, targets, sample_weights, gross_loss]:
+        for frame in frames.frames() if isinstance(frames, MultiFrameDecorator) else [frames]:
+            if frame is not None:
+                # we could have nested arrays so we need to use the un-nested values
+                values = flatten_nested_list(frame._.values, np.max)
+                max_value = max([v.max() for v in values])
 
-            if np.isscalar(max_value) and np.isinf(max_value):
-                _log.warning(f"features containing infinit number\n"
-                             f"{frame[frame.apply(lambda r: np.isinf(r.values).any(), axis=1)]}")
-                frame.replace([np.inf, -np.inf], np.nan, inplace=True)
-                frame.dropna(inplace=True)
+                if np.isscalar(max_value) and np.isinf(max_value):
+                    _log.warning(f"features containing infinit number\n"
+                                 f"{frame[frame.apply(lambda r: np.isinf(r.values).any(), axis=1)]}")
+                    frame.replace([np.inf, -np.inf], np.nan, inplace=True)
+                    frame.dropna(inplace=True)
 
     # now get the common index and return the filtered data frames
     common_index = intersection_of_index(features, labels, targets, sample_weights, gross_loss)

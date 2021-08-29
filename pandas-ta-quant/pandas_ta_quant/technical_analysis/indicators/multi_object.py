@@ -182,5 +182,17 @@ def ta_cc_volatility(df: _PANDAS, period=12, close="Close") -> _PANDAS:
     return np.sqrt((np.log(col / col.shift(1))**2).rolling(period).mean()).rename(f"cc_vol_{period}")
 
 
+@for_each_top_level_row
+@for_each_top_level_column
+def ta_hf_lf_vola(df: _PANDAS, periods=range(3, 60), open="Open", high="High", low="Low", close="Close") -> _PANDAS:
+    from pandas_ta_quant.technical_analysis import ta_repeat
+
+    def hf_lf_ratio(df, param):
+        return (ta_gkyz_volatility(df, period=param, open=open, high=high, low=low, close=close) / ta_cc_volatility(df[close], period=param) - 1) \
+            .rename(f"{param}")
+
+
+    return ta_repeat(df, hf_lf_ratio, periods, multiindex="HF/RF Vola Ratio")
+
 
 

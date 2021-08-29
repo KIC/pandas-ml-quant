@@ -149,3 +149,36 @@ class TestFeaturePostProcesor(TestCase):
             b.values[-1],
             [0.580079, 0.561797, 0.501477, 0.58181 , 0.716154, 0.789371, 0.762768, 0.74797 , 0.687273, 0.666173]
         )
+
+    def test_multi_fearutes_with_empy_post_processor(self):
+        df = DF_TEST.copy()
+
+        with df.model() as m:
+            from pandas_ml_quant import PostProcessedFeaturesAndLabels
+
+            fnl = m.extract(
+                PostProcessedFeaturesAndLabels(
+                    features=(
+                        [
+                            lambda df: df.ta.dist_opex(),
+                            lambda df: df.ta.rsi(),
+                        ],
+                        [
+                            lambda df: df.ta.hf_lf_vola(periods=range(3, 5))
+                        ]
+                    ),
+                    feature_post_processor=(
+                        [
+                            lambda df: df.ta.rnn(2)
+                        ],
+                        [
+                            # do no post procesing for the vola ratios
+                        ]
+                    ),
+                    labels=[
+                        lambda df: df["Close"].ta.log_returns().shift(-1).rename("future_log_return")
+                    ]
+                )
+            )
+
+        self.assertEqual(((6749, 14), (6749, 2)), fnl.features.shape)
