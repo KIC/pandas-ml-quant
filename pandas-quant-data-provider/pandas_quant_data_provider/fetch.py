@@ -31,6 +31,7 @@ class QuantDataFetcher(object):
 
         if force_symmetric:
             df = fix_multiindex_row_asymetry(df, sort=True)
+            df["strike"] = df.index.get_level_values(1)
 
         if spot_column is not None:
             spot = self.fetch_price_history(symbol)[spot_column].iloc[-1].item()
