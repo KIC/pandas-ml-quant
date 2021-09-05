@@ -47,8 +47,7 @@ setup(
     description=__doc__,
     long_description=open('Readme.md').read(),
     long_description_content_type='text/markdown',
-    #install_requires=["pandas-ml-common", *open("requirements.txt").read().splitlines()],
-    install_requires=[*open("requirements.frozen.txt").read().splitlines()],
+    install_requires=open("requirements.frozen.txt").read().splitlines() + [f"pandas-ml-common=={__version__}"],
     extras_require={
        "dev": open("dev-requirements.frozen.txt").read().splitlines(),
     },

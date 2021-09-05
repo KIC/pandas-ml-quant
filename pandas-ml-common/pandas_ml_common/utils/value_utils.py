@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pandas.core.base import PandasObject
 
-from pandas_ml_common.utils.index_utils import unique_level_rows
+from pandas_ml_common.utils.index_utils import unique_level_rows, unwind_multiindex
 
 _log = logging.getLogger(__name__)
 
@@ -37,8 +37,13 @@ def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_m
             # stack all rows
             res = np.array([np.array(v) for v in values])
     else:
-        res = values
+        if hasattr(df, "columns") and isinstance(df.columns, pd.MultiIndex):
+            dimensions = np.array(unwind_multiindex(df.columns)).shape
+            res = values.reshape(df.shape[0], *dimensions[:-1]) if len(dimensions) >= df.columns.nlevels else values
+        else:
+            res = values
 
+    # squeeze single dimensions
     if res.ndim == 3 and res.shape[1] == 1:
         res = res[:, 0, :]
     if res.ndim == 3 and res.shape[-1] == 1:

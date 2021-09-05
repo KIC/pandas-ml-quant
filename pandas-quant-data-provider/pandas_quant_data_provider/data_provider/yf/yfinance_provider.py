@@ -20,6 +20,9 @@ class YahooSymbol(Symbol):
     def __init__(self, symbol: str):
         self.symbol = symbol
 
+    def spot_price_column_name(self):
+        return "Close"
+
     def fetch_price_history(self, period: str = 'max', **kwargs):
         return _download_yahoo_data(self.symbol, period, **kwargs)
 
@@ -73,7 +76,7 @@ def _fetch_option_chain(ticker: str, max_maturities=None):
         calls = options.calls[['contractSymbol', 'bid', 'ask', 'lastPrice', 'impliedVolatility', 'strike']]
         puts = options.puts[['contractSymbol', 'bid', 'ask', 'lastPrice', 'impliedVolatility', 'strike']]
         df = pd.merge(calls, puts, how='outer', left_on='strike', right_on='strike', suffixes=["_call", "_put"])
-        df.index = pd.MultiIndex.from_product([[exp], df["strike"]])
+        df.index = pd.MultiIndex.from_product([[pd.to_datetime(exp)], df["strike"]])
         frames[exp] = df
 
     option_chain = pd.concat(frames.values(), axis=0)

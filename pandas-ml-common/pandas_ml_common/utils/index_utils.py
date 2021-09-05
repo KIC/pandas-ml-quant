@@ -53,6 +53,16 @@ def add_multi_index(df, head, inplace=False, axis=1, level=0):
     return df
 
 
+def unwind_multiindex(mi, prefixes=tuple()):
+    if isinstance(mi, pd.MultiIndex) and mi.nlevels > 1:
+        return [unwind_multiindex(mi.to_series()[tlc].index, prefixes + (tlc,)) for tlc in set(mi.get_level_values(0))]
+    else:
+        if prefixes is not None:
+            return [prefixes + (c,) for c in mi.tolist()]
+        else:
+            return mi.tolist()
+
+
 def inner_join(df, join: pd.DataFrame, prefix: str = '', prefix_left='', force_multi_index=False, ffill=False):
     if df is None:
         if force_multi_index:

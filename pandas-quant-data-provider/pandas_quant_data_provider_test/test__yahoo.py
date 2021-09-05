@@ -1,6 +1,8 @@
 from unittest import TestCase
 
 from pandas_quant_data_provider.data_provider.yf import YahooSymbol
+from pandas_quant_data_provider.utils.options import calc_greeks
+import pandas_quant_data_provider as pd
 
 
 class TestYahoo(TestCase):
@@ -15,6 +17,12 @@ class TestYahoo(TestCase):
         self.assertGreater(df.shape[0], 1000)
 
     def test_option_chain(self):
-        chains = YahooSymbol("SPY").fetch_option_chain( 5)
-        print(chains.columns.tolist())
+        chains = pd.fetch_option_chain(YahooSymbol("SPY"), 5)
+        self.assertListEqual(
+            ['call_contract', 'call_bid', 'call_ask', 'call_last', 'call_IV', 'strike', 'dist_pct_spot', 'put_contract', 'put_bid', 'put_ask', 'put_last', 'put_IV'],
+            chains.columns.to_list()
+        )
         print(chains)
+
+        # test greeks
+        greeks = calc_greeks(chains, ['put_bid'], ['call_bid'])

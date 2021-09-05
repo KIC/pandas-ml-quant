@@ -58,9 +58,9 @@ class PricePredictionSummary(Summary):
         )
         self.figsize = figsize
         self.label_returns = call_callable_dynamic_args(label_returns, y=df[LABEL_COLUMN_NAME], df=df)
-        self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df)
+        self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df, target=(df[TARGET_COLUMN_NAME] if TARGET_COLUMN_NAME in df else None))
         self.predicted_returns = call_callable_dynamic_args(predicted_returns, y_hat=df[PREDICTION_COLUMN_NAME], df=df)
-        self.prediction_reconstruction = call_callable_dynamic_args(predicted_reconstruction, y_hat=self.predicted_returns, df=df, y=self.label_reconstruction)
+        self.prediction_reconstruction = call_callable_dynamic_args(predicted_reconstruction, y_hat=self.predicted_returns, df=df, y=self.label_reconstruction, target=(df[TARGET_COLUMN_NAME] if TARGET_COLUMN_NAME in df else None))
 
         # confidence intervals
         self.expected_confidence = np.sum(confidence)
@@ -180,7 +180,7 @@ class PriceSampledSummary(Summary):
             **kwargs
         )
         self.label_returns = call_callable_dynamic_args(label_returns, y=df[LABEL_COLUMN_NAME], df=df)
-        self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df)
+        self.label_reconstruction = call_callable_dynamic_args(label_reconstruction, y=self.label_returns, df=df, target=(df[TARGET_COLUMN_NAME] if TARGET_COLUMN_NAME in df else None))
         self.price_at_estimation = df[TARGET_COLUMN_NAME] if TARGET_COLUMN_NAME in df.columns else None
 
         self.sampler = sampler
@@ -303,6 +303,9 @@ class PriceSampledSummary(Summary):
             return None
 
     def calc_scores(self, *args, **kwargs):
+        left_confidence = kwargs.get("left_confidence", self.left_confidence)
+        right_confidence = kwargs.get("right_confidence", self.right_confidence)
+        expected_confidence = right_confidence - left_confidence
         dfcdf = self.cdf.to_frame().dropna()
         idx = dfcdf.index.intersection(self.label_returns.index)
         dfl = self.label_returns.loc[idx]
@@ -317,24 +320,24 @@ class PriceSampledSummary(Summary):
         r2 = r2_score(dfl, dfpp)
 
         tail_events = dfcdf.join(dfl).apply(
-            lambda x: x.iloc[0].is_tail_event(x.iloc[1], self.left_confidence, self.right_confidence),
+            lambda x: x.iloc[0].is_tail_event(x.iloc[1], left_confidence, right_confidence),
             axis=1,
             result_type='expand')
 
         cvars = dfcdf.apply(
-            lambda cdf: cdf.iloc[0].cvar(self.left_confidence, self.right_confidence),
+            lambda cdf: cdf.iloc[0].cvar(left_confidence, right_confidence),
             axis=1,
             result_type='expand')
 
         # how many % is the confidence band away from the price at the day of prediction (the smaller the better)
         distance = dfcdf.apply(
-            lambda cdf: cdf.iloc[0].confidence_interval(self.left_confidence, self.right_confidence),
+            lambda cdf: cdf.iloc[0].confidence_interval(left_confidence, right_confidence),
             axis=1,
             result_type='expand').mean()
 
         # how wide is the confidence interval, the smaller the better
         band_width = dfcdf.apply(
-            lambda cdf: cdf.iloc[0].confidence_band_width(self.left_confidence, self.right_confidence),
+            lambda cdf: cdf.iloc[0].confidence_band_width(left_confidence, right_confidence),
             axis=1,
             result_type='expand').mean()
 
@@ -346,7 +349,7 @@ class PriceSampledSummary(Summary):
             "correlation of extreme": [corr],
             "r^2 of extreme": [r2],
             "mean(σ)": [mean_std],
-            f"confidence (exp: {self.expected_confidence:.2f} %)": [1 - tail_events.values.sum().item() / nr_events],
+            f"confidence (exp: {expected_confidence:.2f} %)": [1 - tail_events.values.sum().item() / nr_events],
             "conf width": [band_width],
             "left tail avg. distance %": [np.abs(distance.iloc[0])],
             "right tail avg. distance %": [distance.iloc[1]],
@@ -356,3 +359,5 @@ class PriceSampledSummary(Summary):
             "right cvar %": [cvars.iloc[:, 1].mean()],
         }).T
 
+    def std(self):
+        return self.cdf.apply(lambda _cdf: _cdf.std())

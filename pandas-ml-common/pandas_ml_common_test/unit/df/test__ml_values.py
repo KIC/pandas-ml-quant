@@ -25,12 +25,16 @@ class TestMLValues(TestCase):
 
         self.assertRaises(Exception, lambda: df[["deep_1", "multi_1"]]._.values.shape)
 
-    def test__values_multi_index(self):
+    def test__values_multi_index_symetric(self):
         df = TEST_MULTI_INDEX_DF[-5:].copy()
 
         self.assertEqual((5, 2, 6), df._.values.shape)
         self.assertEqual(df._.values[0, 0, -1], df._.values[0, 1, -1])
         self.assertEqual(238703600, df._.values[0, 1, -1])
+
+    def test__values_multi_index_asymetric(self):
+        df = TEST_MULTI_INDEX_DF[-5:].copy().drop(("B", "Close"), axis=1)
+        self.assertEqual((5, 11), df._.values.shape)
 
     def test_multi_index_nested_values(self):
         df = pd.DataFrame(

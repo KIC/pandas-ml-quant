@@ -46,12 +46,12 @@ def ta_log_returns(df: Typing.PatchedPandas, period=1):
 
 
 def ta_logret_as_return(df: Typing.PatchedPandas):
-    return np.exp(df)
+    return np.exp(df) - 1
 
 
 @for_each_top_level_row
 def ta_cumlogret(df: Typing.PatchedPandas, period=1):
-    return ta_cumret(ta_logret_as_return(df) - 1, period)
+    return ta_cumret(ta_logret_as_return(df), period)
 
 
 @for_each_top_level_row

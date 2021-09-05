@@ -1,3 +1,5 @@
+from typing import List
+
 import pandas as pd
 import numpy as np
 from pandas.util import hash_pandas_object
@@ -5,6 +7,32 @@ from pandas.util import hash_pandas_object
 
 def pd_concat(frames: pd.DataFrame, default=None, *args, **kwargs):
     return pd.concat(frames, *args, **kwargs) if len(frames) > 0 else default
+
+
+def fix_multiindex_row_asymetry(df, default=np.NaN, sort=False):
+    return fix_multiindex_asymetry(df, default, False, axis=0, sort=sort)
+
+
+def fix_multiindex_column_asymetry(df, default=np.NaN, inplace=False, sort=False):
+    return fix_multiindex_asymetry(df, default, inplace=inplace, axis=1, sort=sort)
+
+
+def fix_multiindex_asymetry(df, default=np.NaN, inplace=False, axis=0, sort=False):
+    df = df.T.copy() if axis == 0 else df
+    idx = df.columns
+
+    if not isinstance(idx, pd.MultiIndex):
+        return df
+
+    df = df if inplace else df.copy()
+    all_levels_keys = [set(idx.get_level_values(l)) for l in range(idx.nlevels)]
+
+    for k in pd.MultiIndex.from_product(all_levels_keys).to_list():
+        if k not in idx:
+            df[k] = default
+
+    df = df.T.copy() if axis == 0 else df
+    return df.sort_index(axis=axis) if sort else df
 
 
 def pd_hash(df, columns=None, categorize: bool = False, **kwargs):

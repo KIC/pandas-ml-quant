@@ -2,6 +2,7 @@
 __version__ = '0.2.8'
 
 from .fetch import QuantDataFetcher
+import pandas_quant_data_provider.utils
 
 _qdf = QuantDataFetcher()
 fetch = _qdf.fetch_price_history

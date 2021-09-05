@@ -1,10 +1,10 @@
 import logging
-from typing import List, Union, Callable, Type, Dict
+from typing import List, Union, Type, Dict
 
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.utils import call_callable_dynamic_args
+from pandas_ml_common.utils import call_callable_dynamic_args, fix_multiindex_row_asymetry
 from pandas_quant_data_provider.data_provider.yf import YahooSymbol
 from pandas_quant_data_provider.symbol import Symbol
 
@@ -23,8 +23,22 @@ class QuantDataFetcher(object):
         # copy string data type mapping for numpy string type, otherwise the user has to provide both all the time :-(
         self.provider_map[np.str_] = self.provider_map[str]
 
-    def fetch_option_chain(self, symbol, max_maturities=None):
-        return YahooSymbol(symbol).fetch_option_chain(symbol, max_maturities)
+    def fetch_option_chain(self, symbol, max_maturities=None, force_symmetric=False):
+        symbol_implementation = symbol if isinstance(symbol, Symbol) else self.provider_map[type(symbol)](symbol)
+        df = symbol_implementation.fetch_option_chain(max_maturities)
+        spot_column = symbol_implementation.spot_price_column_name()
+        spot = np.NaN
+
+        if force_symmetric:
+            fix_multiindex_row_asymetry(df, sort=True)
+
+        if spot_column is not None:
+            spot = self.fetch_price_history(symbol)[spot_column].iloc[-1].item()
+            dist_col = 'dist_pct_spot'
+            df.insert(df.columns.get_loc("strike") + 1, dist_col, np.NaN)
+            df[dist_col] = df['strike'].apply(lambda v: (v / spot) - 1)
+
+        return df.sort_index(axis=0)
 
     def fetch_price_history(self,
                             *symbols: Union[Union[str, Symbol], List[Union[str, Symbol]]],
