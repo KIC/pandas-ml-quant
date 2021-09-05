@@ -63,7 +63,7 @@ def _fetch_hist(symbol, period, **kwargs):
 
 
 #@cachetools.cached(cache=cachetools.TTLCache(maxsize=10, ttl=60))
-@cachier(stale_after=timedelta(minutes=1))
+@cachier(stale_after=timedelta(minutes=5))
 def _fetch_option_chain(ticker: str, max_maturities=None):
     t = Ticker(ticker)
     expirations = t.options[:max_maturities] if max_maturities is not None else t.options

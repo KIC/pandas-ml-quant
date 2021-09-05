@@ -17,12 +17,17 @@ class TestYahoo(TestCase):
         self.assertGreater(df.shape[0], 1000)
 
     def test_option_chain(self):
-        chains = pd.fetch_option_chain(YahooSymbol("SPY"), 5)
+        chains = pd.fetch_option_chain(YahooSymbol("SPY"), 5, force_symmetric=True)
         self.assertListEqual(
             ['call_contract', 'call_bid', 'call_ask', 'call_last', 'call_IV', 'strike', 'dist_pct_spot', 'put_contract', 'put_bid', 'put_ask', 'put_last', 'put_IV'],
             chains.columns.to_list()
         )
+
+        self.assertEqual(3, len(chains[['call_ask']].T._.values.shape))
+
         print(chains)
 
         # test greeks
-        greeks = calc_greeks(chains, ['put_bid'], ['call_bid'])
+        greeks = calc_greeks(chains, ['put_bid'], ['call_bid'], cut_tails_after=0.15)
+        strikes = greeks['dist_pct_spot'].groupby(level=[1]).count()
+        self.assertEqual(strikes.min(), strikes.max())

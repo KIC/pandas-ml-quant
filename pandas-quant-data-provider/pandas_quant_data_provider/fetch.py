@@ -30,13 +30,13 @@ class QuantDataFetcher(object):
         spot = np.NaN
 
         if force_symmetric:
-            fix_multiindex_row_asymetry(df, sort=True)
+            df = fix_multiindex_row_asymetry(df, sort=True)
 
         if spot_column is not None:
             spot = self.fetch_price_history(symbol)[spot_column].iloc[-1].item()
             dist_col = 'dist_pct_spot'
             df.insert(df.columns.get_loc("strike") + 1, dist_col, np.NaN)
-            df[dist_col] = df['strike'].apply(lambda v: (v / spot) - 1)
+            df[dist_col] = df.index.to_series().apply(lambda v: (v[1] / spot) - 1)
 
         return df.sort_index(axis=0)
 

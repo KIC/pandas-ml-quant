@@ -5,6 +5,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 
+from pandas_ml_common.utils import fix_multiindex_row_asymetry
+
 
 def plot_surface(df_chain: pd.DataFrame, put_columns: List, call_columns: List, risk_free_rate: float = 0, spot: float = None):
     df_greeks = calc_greeks(df_chain, put_columns, call_columns, risk_free_rate, spot)
@@ -29,10 +31,13 @@ def plot_surface(df_chain: pd.DataFrame, put_columns: List, call_columns: List, 
     #ax.plot_surface(X, Y, z, color='b')
 
 
-def calc_greeks(df_chain: pd.DataFrame, put_columns: List, call_columns: List, risk_free_rate: float = 0, spot: float = None, interpolate_missing=False):
+def calc_greeks(df_chain: pd.DataFrame, put_columns: List, call_columns: List, risk_free_rate: float = 0, spot: float = None, cut_tails_after: float = None, interpolate_missing: bool = False):
     from py_vollib.black_scholes.implied_volatility import implied_volatility
     from py_vollib.black_scholes.greeks.analytical import delta
     from py_lets_be_rational.exceptions import BelowIntrinsicException
+
+    if cut_tails_after is not None:
+        df_chain = df_chain[df_chain["dist_pct_spot"].abs() <= cut_tails_after]
 
     df = pd.DataFrame(index=df_chain.index)
     today = pd.Timestamp.today(tz=df.index[0][0].tz)
@@ -97,7 +102,7 @@ def calc_greeks(df_chain: pd.DataFrame, put_columns: List, call_columns: List, r
         s = r.name[1] / (r['dist_pct_spot'] + 1) if spot is None else spot
         return delta(type, s, r.name[1], duration, risk_free_rate, r[f"{column}_iv"])
 
-    # something prints empty lines, wharp this shit
+    # something prints empty lines, wrap this shit
     with redirect_stdout(None):
         df["time_to_expiration"] =\
             df_chain.index.get_level_values(0).to_series().apply(partial(_duration, today=today, in_years=False)).values
@@ -119,7 +124,24 @@ def calc_greeks(df_chain: pd.DataFrame, put_columns: List, call_columns: List, r
             if tpe == 'p':
                 df["dist_pct_spot"] = df_chain["dist_pct_spot"] if spot is None else df.index.get_level_values(1) / spot - 1
 
-    return df.sort_index(axis=0)
+        return df.sort_index(axis=0)
+
+
+def get_otm_only(df: pd.DataFrame, put_prefix='put_', call_prefix='call_', force_symmetric=True):
+    put_columns = [c for c in df.columns.tolist() if c.startswith(put_prefix)]
+    call_columns = [c for c in df.columns.tolist() if c.startswith(call_prefix)]
+    other_columns = [c for c in df.columns.tolist() if not c.startswith(put_prefix) and not c.startswith(call_prefix)]
+
+    res = pd.concat(
+        [
+            df[df["dist_pct_spot"] < 0][put_columns].rename(columns=lambda s: s.replace(put_prefix, "")),
+            df[df["dist_pct_spot"] >= 0][call_columns].rename(columns=lambda s: s.replace(call_prefix, ""))
+        ],
+        axis=0,
+        sort=True
+    )
+
+    return (fix_multiindex_row_asymetry(res, sort=True) if force_symmetric else res).join(df[other_columns], how='inner')
 
 
 def _duration(t: pd.Timestamp, today: pd.Timestamp, in_years=True):
