@@ -3,11 +3,11 @@ bintrees==2.2.0
 colorama==0.4.4
 cvxopt==1.2.6
 cvxpy==1.1.15
-ipywidgets==7.6.3
+ipywidgets==7.6.4
 matplotlib==3.4.3
 mgarch-setup-fix==0.2.0
 MiniSom==2.2.9
-mlxtend==0.18.0
+mlxtend==0.19.0
 moviepy==1.0.3
 numba==0.54.0
 numpy==1.20.3
