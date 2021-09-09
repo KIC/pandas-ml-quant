@@ -24,6 +24,8 @@ class QuantDataFetcher(object):
         self.provider_map[np.str_] = self.provider_map[str]
 
     def fetch_option_chain(self, symbol, max_maturities=None, force_symmetric=False):
+        from pandas_quant_data_provider.utils.options import calc_greeks
+
         symbol_implementation = symbol if isinstance(symbol, Symbol) else self.provider_map[type(symbol)](symbol)
         df = symbol_implementation.fetch_option_chain(max_maturities)
         spot_column = symbol_implementation.spot_price_column_name()
@@ -39,7 +41,12 @@ class QuantDataFetcher(object):
             df.insert(df.columns.get_loc("strike") + 1, dist_col, np.NaN)
             df[dist_col] = df.index.to_series().apply(lambda v: (v[1] / spot) - 1)
 
-        return df.sort_index(axis=0)
+        df = df.sort_index(axis=0)
+
+        # monkey patch data frame
+        setattr(df, "calculate_greeks", property(lambda f, **kwargs: calc_greeks(f, *symbol_implementation.put_columns_call_columns())))
+
+        return df
 
     def fetch_price_history(self,
                             *symbols: Union[Union[str, Symbol], List[Union[str, Symbol]]],

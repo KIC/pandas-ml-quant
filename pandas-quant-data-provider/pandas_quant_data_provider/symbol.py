@@ -1,4 +1,7 @@
 from abc import abstractmethod
+from typing import Tuple, List
+
+import pandas as pd
 
 
 class Symbol(object):
@@ -11,7 +14,7 @@ class Symbol(object):
         return None
 
     @abstractmethod
-    def fetch_option_chain(self, max_maturities=None):
+    def fetch_option_chain(self, max_maturities=None) -> pd.DataFrame:
         """
 
         :param max_maturities: maximum number of expiration dates to download (None for all)
@@ -19,4 +22,6 @@ class Symbol(object):
         """
         raise NotImplemented
 
+    def put_columns_call_columns(self) -> Tuple[List[str], List[str]]:
+        return [], []
 

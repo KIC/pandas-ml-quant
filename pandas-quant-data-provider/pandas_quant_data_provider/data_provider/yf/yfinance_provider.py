@@ -29,6 +29,9 @@ class YahooSymbol(Symbol):
     def fetch_option_chain(self, max_maturities=None):
         return _fetch_option_chain(self.symbol, max_maturities)
 
+    def put_columns_call_columns(self):
+        return ['put_bid', 'put_ask', 'put_last'], ['call_bid', 'call_ask', 'call_last']
+
 
 def _download_yahoo_data(symbol, period, **kwargs):
     df = None
