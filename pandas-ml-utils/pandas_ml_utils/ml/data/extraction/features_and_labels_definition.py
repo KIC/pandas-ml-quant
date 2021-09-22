@@ -4,6 +4,7 @@ from typing import List, Callable, Tuple, Union, Any, TypeVar
 
 import pandas as pd
 
+from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common.utils import as_list
 from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
 from pandas_ml_common import Typing, get_pandas_object
@@ -287,6 +288,7 @@ class PostProcessedFeaturesAndLabels(FeaturesAndLabels):
 
         def extract_with_post_processor(selectors, postprocessor: Callable):
             def extractor(df, **kwargs):
+                if isinstance(df, MultiFrameDecorator): pass
                 return get_pandas_object(get_pandas_object(df, selectors, **kwargs), postprocessor, **kwargs)
 
             return extractor
