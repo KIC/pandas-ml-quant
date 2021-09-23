@@ -1,19 +1,56 @@
 import logging
-from typing import Tuple, Callable, Any, Generator, NamedTuple, Union, List
+from typing import Tuple, Callable, Any, Generator, NamedTuple, Union, List, Optional, Iterable
 
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.sampling.cross_validation import PartitionedOnRowMultiIndexCV
-from pandas_ml_common.utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, exec_if_not_none
+from ..sampling.cross_validation import PartitionedOnRowMultiIndexCV
+from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, none_as_empty_list
+from ..typing import MlTypes
 
 _log = logging.getLogger(__name__)
 
 
+class GetItem(object):
+
+    def __init__(self, container):
+        self.container = container
+
+    def __getitem__(self, item) -> 'XYWeight':
+        return self.container(item)
+
+
+class FoldXYWeight(NamedTuple):
+    epoch: int
+    fold: int
+    epoch_fold: int
+    x: List[MlTypes.PatchedDataFrame]
+    y: Optional[List[MlTypes.PatchedDataFrame]]
+    weight: Optional[List[MlTypes.PatchedDataFrame]]
+
+
 class XYWeight(NamedTuple):
-    x: pd.DataFrame
-    y: pd.DataFrame = None
-    weight: pd.DataFrame = None
+    x: Union[MlTypes.PatchedDataFrame, List[MlTypes.PatchedDataFrame]]
+    y: Optional[Union[MlTypes.PatchedDataFrame, List[MlTypes.PatchedDataFrame]]] = None
+    weight: Optional[Union[MlTypes.PatchedDataFrame, List[MlTypes.PatchedDataFrame]]] = None
+
+    def with_common_index(self, sort_index=False) -> Tuple['XYWeight', MlTypes.PdIndex]:
+        ci = intersection_of_index(
+            *none_as_empty_list(self.x), *none_as_empty_list(self.y), *none_as_empty_list(self.weight)
+        )
+
+        return (
+            XYWeight(*[loc_if_not_none(f, ci) for f in [self.x, self.y, self.weight]]),
+            ci.sort_values() if sort_index else ci
+        )
+
+    @property
+    def loc(self):
+        return GetItem(lambda idx: XYWeight(*[loc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
+
+    @property
+    def iloc(self):
+        return GetItem(lambda idx: XYWeight(*[iloc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
 
     def to_dict(self, loc=None):
         d = {"x": self.x, "y": self.y, "weight": self.weight}
@@ -23,20 +60,11 @@ class XYWeight(NamedTuple):
         return d
 
 
-class FoldXYWeight(NamedTuple):
-    epoch: int
-    fold: int
-    epoch_fold: int
-    x: pd.DataFrame
-    y: pd.DataFrame = None
-    weight: pd.DataFrame = None
-
-
 class Sampler(object):
 
     def __init__(
             self,
-            frames: XYWeight,
+            xyw_frames: XYWeight,
             splitter: Callable[[Any], Tuple[pd.Index, pd.Index]] = None,
             filter: Callable[[Any], bool] = None,
             cross_validation: Union['BaseCrossValidator', Callable[[Any], Generator[Tuple[np.ndarray, np.ndarray], None, None]]] = None,
@@ -52,11 +80,9 @@ class Sampler(object):
             after_batch: Callable = None,
             after_fold: Callable = None,
             after_fold_epoch: Callable = None,
-            after_end: Callable = None,
-            **kwargs
+            after_end: Callable = None
     ):
-        self.common_index = intersection_of_index(*frames).sort_values()
-        self.frames = XYWeight(*[loc_if_not_none(f, self.common_index) for f in frames])
+        self.xyw_frames, self.common_index = xyw_frames.with_common_index(sort_index=True)
         self.epochs = epochs
         self.batch_size = batch_size
         self.fold_epochs = fold_epochs
@@ -82,7 +108,7 @@ class Sampler(object):
                              "`partition_row_multi_index` parameter in your splitter")
 
             self.train_idx, self.test_idx = call_callable_dynamic_args(
-                self.splitter, self.common_index, **self.frames.to_dict())
+                self.splitter, self.common_index, **self.xyw_frames.to_dict())
         else:
             self.train_idx, self.test_idx = self.common_index, pd.Index([])
 
@@ -116,7 +142,7 @@ class Sampler(object):
             after_end: Callable = None,
     ):
         return Sampler(
-            self.frames,
+            self.xyw_frames,
             self.splitter,
             self.filter,
             self.cross_validation,
@@ -140,20 +166,18 @@ class Sampler(object):
 
         # filter samples
         if self.filter is not None:
-            train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(self.filter, idx, **self.frames.to_dict(idx))]
+            train_idx = [idx for idx in self.train_idx if call_callable_dynamic_args(self.filter, idx, **self.xyw_frames.to_dict(idx))]
         else:
             train_idx = self.train_idx
 
         # update frame views
-        train_frames = XYWeight(*[loc_if_not_none(f, train_idx) for f in self.frames])
-        test_frames = XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])
+        train_frames = XYWeight(*[loc_if_not_none(f, train_idx) for f in self.xyw_frames])
+        test_frames = XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.xyw_frames])
 
         # call for start ...
         call_callable_dynamic_args(
             self.on_start,
             epochs=self.epochs, batch_size=self.batch_size, fold_epochs=self.fold_epochs,
-            features=exec_if_not_none(lambda x: x.columns.tolist(), self.frames.x),
-            labels=exec_if_not_none(lambda y: y.columns.tolist(), self.frames.y),
             cross_validation=self.nr_folds is not None)
 
         # generate samples
@@ -169,24 +193,20 @@ class Sampler(object):
                 # build our test data sets
                 if cv_test_i is not None:
                     if cv_test_i.ndim > 1:
-                        cv_test_frames = [
-                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i[:, i]]) for f in self.frames])
-                            for i in range(cv_test_i.shape[1])
-                        ]
+                        cv_test_frames = [self.xyw_frames.loc[train_idx[cv_test_i[:, i]]] for i in range(cv_test_i.shape[1])]
                     else:
-                        cv_test_frames = [
-                            XYWeight(*[loc_if_not_none(f, train_idx[cv_test_i]) for f in self.frames])]
+                        cv_test_frames = [self.xyw_frames.loc[train_idx[cv_test_i]]]
                 else:
                     if len(self.test_idx) <= 0:
                         cv_test_frames = []
                     else:
-                        cv_test_frames = [XYWeight(*[loc_if_not_none(f, self.test_idx) for f in self.frames])]
+                        cv_test_frames = [self.xyw_frames.loc[self.test_idx]]
 
                 for fold_epoch in range(self.fold_epochs):
                     call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold, fold_epoch=fold_epoch)
 
                     # build our training data sets aka batches
-                    cv_train_frames = XYWeight(*[loc_if_not_none(f, cv_train_idx) for f in self.frames])
+                    cv_train_frames = self.xyw_frames.loc[cv_train_idx]
 
                     # theoretically we could already yield cv_train_frames, cv_test_frames
                     # but lets create batches first and then yield all together
@@ -197,7 +217,7 @@ class Sampler(object):
                     batch_iter = range(0, nr_instances, bs)
                     for i in batch_iter:
                         call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                        yield FoldXYWeight(epoch, fold, fold_epoch, *(f.iloc[i if i < nice_i else i - 1:i + bs] if f is not None else None for f in cv_train_frames))
+                        yield FoldXYWeight(epoch, fold, fold_epoch, *cv_train_frames.iloc[i if i < nice_i else i - 1:i + bs])
                         call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
 
                     # end of fold epoch
@@ -221,9 +241,9 @@ class Sampler(object):
         # end of generator
         call_callable_dynamic_args(self.after_end)
 
-    def get_in_sample_features(self) -> pd.DataFrame:
-        return self.frames.x.loc[self.train_idx]
-
-    def get_out_of_sample_features(self) -> pd.DataFrame:
-        return self.frames.x.loc[self.test_idx]
+    #def get_in_sample_features(self) -> pd.DataFrame:
+    #    return self.xyw_frames.x.loc[self.train_idx]
+    #
+    #def get_out_of_sample_features(self) -> pd.DataFrame:
+    #    return self.xyw_frames.x.loc[self.test_idx]
 

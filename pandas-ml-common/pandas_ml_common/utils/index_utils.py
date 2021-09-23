@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import OrderedDict
-from typing import List, Union, Callable
+from typing import List, Union, Callable, Any, Optional, Dict, Type, Hashable, Tuple, Set
 
 import numpy as np
 import pandas as pd
@@ -162,22 +162,51 @@ def intersection_of_index(*dfs: pd.DataFrame):
 
 
 def loc_if_not_none(df, value):
+    if isinstance(df, (List, Set, Tuple)):
+        return [loc_if_not_none(f, value) for f in df]
+
     if df is None:
         return None
     else:
         return df.loc[value]
 
 
-def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
+def iloc_if_not_none(df, value):
+    if isinstance(df, (List, Set, Tuple)):
+        return [iloc_if_not_none(f, value) for f in df]
+
+    if df is None:
+        return None
+    else:
+        return df.iloc[value]
+
+
+def is_in_index(item, index):
+    # if requested_features is in columns, wrap it within a list
+    if isinstance(item, Hashable):
+        try:
+            if item in index:
+                return True
+        except TypeError as te:
+            #  unhashable type, so it cant be a single key
+            return True
+
+    return False
+
+
+def get_pandas_object(po: PandasObject, item, type_map: Optional[Dict[Type, Callable[[pd.DataFrame, Any], pd.DataFrame]]] = None, **kwargs):
     if item is None:
         _log.info("passed item was None")
         return None
     elif isinstance(item, Constant):
         return pd.Series(np.full(len(po), item.value), name=f"{item.value}", index=po.index)
     elif type_map is not None and type(item) in type_map:
+        # this allows the caller to map a Type to access the result of a callable i.e. for nesting models as selectors
         return call_callable_dynamic_args(type_map[type(item)], po, item, **kwargs)
     elif isinstance(item, PandasObject):
         return item
+    elif is_in_index(item, (po.columns if has_indexed_columns(po) else po.index)):
+        return po[item]
     else:
         if isinstance(item, Callable):
             # also allow callables where we pass kwargs and such ...
@@ -186,7 +215,7 @@ def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
                 return res
             else:
                 return pd.Series(res, index=po.index)
-        if isinstance(item, List):
+        if isinstance(item, (List, Set)):
             res = None
             for sub_item in item:
                 sub_po = get_pandas_object(po, sub_item, type_map, **kwargs)
@@ -216,25 +245,24 @@ def get_pandas_object(po: PandasObject, item, type_map=None, **kwargs):
         else:
             try:
                 if has_indexed_columns(po):
-                    if item in po.columns:
-                        return po[item]
-                    else:
-                        if isinstance(po.columns, pd.MultiIndex):
-                            # try partial match
-                            cols = {col: col.index(item) for col in po.columns.tolist() if item in col}
+                    if isinstance(po.columns, pd.MultiIndex):
+                        # try partial match
+                        cols = {col: col.index(item) for col in po.columns.tolist() if item in col}
 
-                            if len(cols) <= 0:
-                                # try regex
-                                cols = {col: i for col in po.columns.tolist() for i, part in enumerate(col) if re.compile(item).match(part)}
-
-                            levels = set(cols.values())
-                            if len(levels) == 1:
-                                return po[cols.keys()].swaplevel(0, levels.pop(), axis=1)
-                            else:
-                                return po[cols.keys()]
-                        else:
+                        if len(cols) <= 0:
                             # try regex
-                            return po[list(filter(re.compile(item).match, po.columns))]
+                            cols = {col: i for col in po.columns.tolist() for i, part in enumerate(col) if re.compile(item).match(part)}
+
+                        levels = set(cols.values())
+                        if len(levels) == 1:
+                            return po[cols.keys()].swaplevel(0, levels.pop(), axis=1)
+                        else:
+                            return po[cols.keys()]
+                    elif isinstance(item, str):
+                        # try regex
+                        return po[list(filter(re.compile(item).match, po.columns))]
+                    else:
+                        raise KeyError("should never get here ?")(f"key {item} not found in {po.columns if has_indexed_columns(po) else po.index}")
                 else:
                     # return po[item]
                     raise KeyError("should never get here ?")

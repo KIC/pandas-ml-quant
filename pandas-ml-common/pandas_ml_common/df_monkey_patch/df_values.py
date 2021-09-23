@@ -3,8 +3,8 @@ from typing import Union, List
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.utils.callable_utils import call_callable_dynamic_args
-from pandas_ml_common.utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
+from ..preprocessing.features_labels import FeaturesLabels, Extractor
+from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
 
 
 class MLCompatibleValues(object):
@@ -47,8 +47,8 @@ class MLCompatibleValues(object):
         return [reshape_when_multi_index_column(v) for v in values] if isinstance(values, List) else \
             reshape_when_multi_index_column(values)
 
-    def extract(self, func: callable, *args, **kwargs):
-        return call_callable_dynamic_args(func, self.df, *args, **kwargs)
+    def extract(self, features_and_labels_definition: FeaturesLabels, **kwargs) -> Extractor:
+        return Extractor(self.df, features_and_labels_definition, **kwargs)
 
     def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
         """

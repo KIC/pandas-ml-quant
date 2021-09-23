@@ -2,7 +2,6 @@
 __version__ = '0.3.0'
 
 import logging
-from typing import Union, List, Callable, Any
 
 import numpy as np
 import pandas as pd
@@ -32,13 +31,17 @@ from pandas_ml_common.utils import (
 )
 
 from pandas_ml_common.sampling import *
+from pandas_ml_common.typing import MlTypes
+from pandas_ml_common.preprocessing import FeaturesLabels
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")
 _log.debug(f"pandas version {pd.__version__}")
 
 np.nans = np_nans
-setattr(PandasObject, "_", property(lambda self: MLCompatibleValues(self)))
+
+# IMPORTANT keep the monkey patchings in sync with the type class pandas_ml_common.typing.pandas_ml_types.PatchedPandas
+setattr(PandasObject, "ML", property(lambda self: MLCompatibleValues(self)))
 setattr(PandasObject, "inner_join", inner_join)
 setattr(PandasObject, "has_multi_index_columns", lambda self: isinstance(self, pd.DataFrame) and isinstance(self.columns, pd.MultiIndex))
 setattr(PandasObject, "has_multi_index_rows", lambda self: isinstance(self.index, pd.MultiIndex))
@@ -53,14 +56,3 @@ setattr(pd.Series, "add_multi_index", lambda self, *args, **kwargs: add_multi_in
 setattr(pd.MultiIndex, "unique_level", lambda self, *args: unique_level(self, *args))
 
 
-class Typing(object):
-    PatchedDataFrame = pd.DataFrame
-    PatchedSeries = pd.Series
-    PatchedPandas = Union[PatchedDataFrame, PatchedSeries]
-    AnyPandasObject = PandasObject
-
-    DataFrame = pd.DataFrame
-    Series = pd.Series
-    Pandas = Union[DataFrame, Series]
-    PdIndex = pd.Index
-    _Selector = Union[str, List['MlGetItem'], Callable[[Any], Union[pd.DataFrame, pd.Series]], Constant]

@@ -1,0 +1,39 @@
+from unittest import TestCase
+from pandas_ml_common.trainingloop import sampling
+from pandas_ml_common import MlTypes, FeaturesLabels
+from pandas_ml_common_test.config import TEST_DF
+
+
+class TestTrainingLoop(TestCase):
+
+    def test_loop(self):
+        """given a patched dataframe and a features and labels definition"""
+        df: MlTypes.PatchedDataFrame = TEST_DF.copy()
+        fl = FeaturesLabels(features=["Open"], labels="Close")
+
+        """when sampling from a sampler of the given dataframe and features"""
+        sampler = sampling(df, fl, batch_size=len(df) // 2 + 1, epochs=2)
+        batches = [batch for batch in sampler.sample_for_training()]
+
+        """then we expect the result of a nice traing loop"""
+        self.assertEqual(4, len(batches))
+        self.assertEqual(1, len(batches[0].x))
+        self.assertEqual(1, len(batches[0].y))
+        self.assertEqual(len(df) * 2, sum([len(batches[i].x[0]) for i in range(0, 4)]))
+
+    def test_loop_multiple_features(self):
+        """given a patched dataframe and a features and labels definition for multiple features sets"""
+        df: MlTypes.PatchedDataFrame = TEST_DF.copy()
+        fl = FeaturesLabels(features=[["Open"], ["High", "Low"]], labels=["Close"])
+
+        """when sampling from a sampler of the given dataframe and features"""
+        sampler = sampling(df, fl, batch_size=len(df) // 2 + 1, epochs=2)
+        batches = [batch for batch in sampler.sample_for_training()]
+
+        """then we expect the result of a nice traing loop"""
+        self.assertEqual(4, len(batches))
+        self.assertEqual(2, len(batches[0].x))
+        self.assertEqual(1, len(batches[0].y))
+        self.assertEqual(len(df) * 2, sum([len(batches[i].x[0]) for i in range(0, 4)]))
+
+

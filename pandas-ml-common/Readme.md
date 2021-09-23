@@ -1,7 +1,8 @@
 ## The pandas ml common module
 
-This module holds all common extensions and utilities for the pandas ml quant stack. 
-Feel free to study the [examples][ghl1] as well.
+This module holds all necessary extensions to get from a single `DataFrame` to a state-of-the-art training loop. 
+There are also plenty of utils for easy access of data stored in pandas `DataFrame`s like nested lists or easy `getter` 
+functions for `MultiIndex` frames and more. Feel free to study the [examples][ghl1] as well.
 
 * easy joining of data frames with multi indexes
 ```python

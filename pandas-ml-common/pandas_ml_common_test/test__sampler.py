@@ -5,7 +5,6 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 from pandas_ml_common import naive_splitter
-from pandas_ml_common.decorator import MultiFrameDecorator
 from pandas_ml_common.sampling.cross_validation import PartitionedOnRowMultiIndexCV
 from pandas_ml_common.sampling.sampler import Sampler, XYWeight
 from pandas_ml_common_test.config import TEST_MUTLI_INDEX_ROW_DF, TEST_DF
@@ -76,7 +75,7 @@ class TestSampler(TestCase):
 
     def test_multiframe_decorator(self):
         sampler = Sampler(
-            XYWeight(MultiFrameDecorator((TEST_DF.tail(), TEST_DF)), TEST_DF.tail(10)),
+            XYWeight([TEST_DF.tail(), TEST_DF], TEST_DF.tail(10)),
             splitter=lambda i, *args: (i[:3], i[3:]),
             epochs=2
         )
@@ -84,7 +83,8 @@ class TestSampler(TestCase):
         batches = list(sampler.sample_for_training())
 
         self.assertEqual(2, len(batches))
-        self.assertEqual(3, len(batches[0].x))
+        self.assertEqual(3, len(batches[0].x[0]))
+        self.assertEqual(3, len(batches[0].x[1]))
         self.assertEqual(3, len(batches[1].y))
 
     def test_filter(self):
