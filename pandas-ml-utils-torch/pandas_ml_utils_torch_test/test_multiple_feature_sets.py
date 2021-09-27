@@ -89,5 +89,5 @@ class TestMultiFeatureSet(TestCase):
                 )
             )
 
-        self.assertEqual(ext.features.frames()[0].sum(axis=1).sum(), 24)
-        self.assertEqual(ext.features.frames()[1].sum(axis=1).sum(), 40)
+        self.assertEqual(ext.features.xyw_frames()[0].sum(axis=1).sum(), 24)
+        self.assertEqual(ext.features.xyw_frames()[1].sum(axis=1).sum(), 40)

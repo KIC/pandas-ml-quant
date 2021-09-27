@@ -10,7 +10,7 @@ from pandas_ml_common.utils.index_utils import unique_level_rows, unwind_multiin
 _log = logging.getLogger(__name__)
 
 
-def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_multi_index_rows=True, dtype=None) -> Union[List[np.ndarray], np.ndarray]:
+def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_multi_index_rows=True, dtype=None) -> Union[List[np.ndarray], np.ndarray, None]:
     if df is None:
         return None
     elif isinstance(df, PandasObject):

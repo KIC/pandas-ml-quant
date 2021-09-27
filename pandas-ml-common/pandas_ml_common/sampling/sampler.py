@@ -5,19 +5,10 @@ import numpy as np
 import pandas as pd
 
 from ..sampling.cross_validation import PartitionedOnRowMultiIndexCV
-from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, none_as_empty_list
+from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, none_as_empty_list, GetItem
 from ..typing import MlTypes
 
 _log = logging.getLogger(__name__)
-
-
-class GetItem(object):
-
-    def __init__(self, container):
-        self.container = container
-
-    def __getitem__(self, item) -> 'XYWeight':
-        return self.container(item)
 
 
 class FoldXYWeight(NamedTuple):
@@ -45,11 +36,11 @@ class XYWeight(NamedTuple):
         )
 
     @property
-    def loc(self):
+    def loc(self) -> GetItem['XYWeight']:
         return GetItem(lambda idx: XYWeight(*[loc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
 
     @property
-    def iloc(self):
+    def iloc(self) -> GetItem['XYWeight']:
         return GetItem(lambda idx: XYWeight(*[iloc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
 
     def to_dict(self, loc=None):
@@ -241,9 +232,11 @@ class Sampler(object):
         # end of generator
         call_callable_dynamic_args(self.after_end)
 
-    #def get_in_sample_features(self) -> pd.DataFrame:
-    #    return self.xyw_frames.x.loc[self.train_idx]
-    #
-    #def get_out_of_sample_features(self) -> pd.DataFrame:
-    #    return self.xyw_frames.x.loc[self.test_idx]
+    @property
+    def get_in_sample_features_index(self) -> MlTypes.PdIndex:
+        return self.train_idx
+
+    @property
+    def get_out_of_sample_features_index(self) -> MlTypes.PdIndex:
+        return self.test_idx
 

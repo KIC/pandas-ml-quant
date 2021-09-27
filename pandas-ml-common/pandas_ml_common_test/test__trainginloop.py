@@ -12,7 +12,7 @@ class TestTrainingLoop(TestCase):
         fl = FeaturesLabels(features=["Open"], labels="Close")
 
         """when sampling from a sampler of the given dataframe and features"""
-        sampler = sampling(df, fl, batch_size=len(df) // 2 + 1, epochs=2)
+        _, sampler = sampling(df, fl, batch_size=len(df) // 2 + 1, epochs=2)
         batches = [batch for batch in sampler.sample_for_training()]
 
         """then we expect the result of a nice traing loop"""
@@ -27,7 +27,7 @@ class TestTrainingLoop(TestCase):
         fl = FeaturesLabels(features=[["Open"], ["High", "Low"]], labels=["Close"])
 
         """when sampling from a sampler of the given dataframe and features"""
-        sampler = sampling(df, fl, batch_size=len(df) // 2 + 1, epochs=2)
+        _, sampler = sampling(df, fl, batch_size=len(df) // 2 + 1, epochs=2)
         batches = [batch for batch in sampler.sample_for_training()]
 
         """then we expect the result of a nice traing loop"""

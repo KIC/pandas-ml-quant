@@ -3,11 +3,10 @@ from functools import wraps
 from string import Template
 from typing import Union
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes, FeaturesLabels
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels
 from pandas_ml_common.utils.time_utils import seconds_since_midnight
 from pandas_ml_utils.df_patching.model_patch import DfModelPatch
-from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels
-from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
 from pandas_ml_utils.ml.fitting import Fit
 from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model import Model
@@ -16,7 +15,7 @@ from pandas_ml_utils.ml.summary import Summary
 
 class ModelContext(object):
 
-    def __init__(self, df: Typing.PatchedDataFrame, file_name: str = None):
+    def __init__(self, df: MlTypes.PatchedDataFrame, file_name: str = None):
         self.df = df
         self.file_name = file_name
 
@@ -34,7 +33,7 @@ class ModelContext(object):
 
         return fit
 
-    def extract(self, model_or_fnl: Union[Model, FeaturesAndLabels], **kwargs) -> FeaturesWithLabels:
+    def extract(self, model_or_fnl: Union[Model, FeaturesLabels], **kwargs) -> FeaturesWithLabels:
         if isinstance(model_or_fnl, Model):
             kwargs = {**model_or_fnl.features_and_labels.kwargs, **model_or_fnl.kwargs, **kwargs}
             return self.df._.extract(model_or_fnl.features_and_labels, **kwargs)
@@ -43,7 +42,7 @@ class ModelContext(object):
             return self.df._.extract(model_or_fnl, **kwargs)
 
     @wraps(DfModelPatch.predict)
-    def predict(self, *args, **kwargs) -> Union[Typing.PatchedDataFrame, Forecast]:
+    def predict(self, *args, **kwargs) -> Union[MlTypes.PatchedDataFrame, Forecast]:
         return self.df.model.predict(Model.load(self.file_name), *args, **kwargs)
 
     @wraps(DfModelPatch.backtest)

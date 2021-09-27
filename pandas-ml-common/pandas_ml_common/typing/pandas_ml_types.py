@@ -61,3 +61,5 @@ class MlTypes(object):
     PdIndex = pd.Index
     Array = np.ndarray
     DataSelector = TypeVar('DataSelector', str, List['MlGetItem'], PandasObject, Constant, Callable[..., PandasObject])
+
+    Loss = float

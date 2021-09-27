@@ -1,12 +1,12 @@
 from typing import NamedTuple, Tuple, Callable, Union, List, Dict
 
-from pandas_ml_common import Typing, naive_splitter
+from pandas_ml_common import MlTypes, naive_splitter
 
 
 class FittingParameter(NamedTuple):
-    splitter: Callable[[Typing.PdIndex], Tuple[Typing.PdIndex, Typing.PdIndex]] = naive_splitter()
-    filter: Callable[[Typing.PatchedSeries], bool] = None
-    cross_validation: Union['BaseCrossValidator', Tuple[int, Callable[[Typing.PdIndex], Tuple[List[int], List[int]]]]] = None
+    splitter: Callable[[MlTypes.PdIndex], Tuple[MlTypes.PdIndex, MlTypes.PdIndex]] = naive_splitter()
+    filter: Callable[[MlTypes.PatchedSeries], bool] = None
+    cross_validation: Union['BaseCrossValidator', Tuple[int, Callable[[MlTypes.PdIndex], Tuple[List[int], List[int]]]]] = None
     epochs: int = 1
     batch_size: int = None
     fold_epochs: int = 1

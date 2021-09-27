@@ -7,7 +7,7 @@ from sklearn.ensemble._forest import ForestClassifier, ForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV
 
-from pandas_ml_common import Typing, Sampler, XYWeight
+from pandas_ml_common import MlTypes, Sampler, XYWeight
 from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
@@ -20,7 +20,7 @@ _CONTEXT = "This summary should only be used by df.model.feature_selection()"
 
 class FeatureSelectionSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'pandas_ml_utils.Model', is_test: bool, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'pandas_ml_utils.Model', is_test: bool, **kwargs):
         # assert the summary is used properly i.e. from the feature selection call
         assert hasattr(model, 'sk_model'), _CONTEXT
         assert isinstance(model.sk_model, RandomizedSearchCV), _CONTEXT

@@ -5,7 +5,6 @@ from pandas_ml_utils.ml.summary import *
 from pandas_ml_common import *
 from pandas_ml_utils.df_patching.model_patch import DfModelPatch
 from pandas_ml_utils.ml.data import *
-from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels, PostProcessedFeaturesAndLabels
 from pandas_ml_utils.ml.model import *
 from pandas_ml_utils.ml.fitting import *
 

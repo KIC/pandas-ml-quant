@@ -1,11 +1,11 @@
 import pandas as pd
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 
 
 class Forecast(object):
 
-    def __init__(self, df: Typing.PatchedDataFrame, *args, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, *args, **kwargs):
         self._df = df
 
     @property

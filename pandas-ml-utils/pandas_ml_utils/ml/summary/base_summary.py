@@ -1,7 +1,7 @@
 from collections import namedtuple
 from typing import List
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from .figures import *
@@ -17,7 +17,7 @@ class Summary(object):
 
     Cell = namedtuple("Cell", ["index", "rowspan", "colspan"])
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', *args, layout: List[List[int]] = None, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', *args, layout: List[List[int]] = None, **kwargs):
         self._df = df
         self.model = model
         self.args = args
@@ -77,7 +77,7 @@ class Summary(object):
 
 class RegressionSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', **kwargs):
         super().__init__(
             df,
             model,
@@ -97,7 +97,7 @@ class RegressionSummary(Summary):
 
 class ClassificationSummary(Summary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: 'Model', include_feature_importance=True, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', include_feature_importance=True, **kwargs):
         super().__init__(
             df,
             model,

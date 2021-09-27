@@ -1,10 +1,12 @@
 from typing import NamedTuple, List, TypeVar, Type, Optional, Dict, Tuple, Set, Union, Iterable, Callable
 
+import pandas as pd
 import numpy as np
 import logging
 from ..typing import MlTypes
 from ..utils import call_if_not_none, get_pandas_object, intersection_of_index, loc_if_not_none, is_in_index, \
-    make_same_length, call_callable_dynamic_args, none_as_empty_list, flatten_nested_list, none_as_empty_dict
+    make_same_length, call_callable_dynamic_args, none_as_empty_list, flatten_nested_list, none_as_empty_dict, GetItem, \
+    add_multi_index, flatten_multi_column_index
 
 _log = logging.getLogger(__name__)
 
@@ -36,6 +38,27 @@ class FeaturesWithReconstructionTargets(NamedTuple):
     min_required_samples: int
 
     @property
+    def joint_feature_frame(self):
+        return pd.concat(
+            [add_multi_index(flatten_multi_column_index(f, as_string=True), i) for i, f in enumerate(self.features)],
+            axis=1,
+            join='outer'
+        ) if len(self.features) > 1 else self.features[0]
+
+    @property
+    def common_index(self):
+        return intersection_of_index(*self.features)
+
+    @property
+    def loc(self) -> GetItem['FeaturesWithReconstructionTargets']:
+        return GetItem(
+            lambda idx: FeaturesWithReconstructionTargets(
+                *[loc_if_not_none(f, idx) for f in [self.features, self.reconstruction_targets]],
+                min_required_samples = self.min_required_samples
+            )
+        )
+
+    @property
     def shape(self) -> Dict:
         return {
             'features': [(len(f),) + f[:1].ML.values.shape for f in self.features],
@@ -43,11 +66,31 @@ class FeaturesWithReconstructionTargets(NamedTuple):
             'min_required_samples': self.min_required_samples,
         }
 
+    def __len__(self):
+        return len(self.features)
+
 
 class LabelsWithSampleWeights(NamedTuple):
     labels: List[MlTypes.PatchedDataFrame]
     sample_weights: Optional[List[Optional[MlTypes.PatchedDataFrame]]]
     gross_loss: Optional[MlTypes.PatchedDataFrame] = None
+
+    @property
+    def joint_label_frame(self):
+        return pd.concat(
+            [add_multi_index(flatten_multi_column_index(f, as_string=True), i) for i, f in enumerate(self.labels)],
+            axis=1,
+            join='outer'
+        ) if len(self.labels) > 1 else self.labels[0]
+
+    @property
+    def joint_sample_weights_frame(self):
+        if self.sample_weights is None: return None
+        return pd.concat(
+            [add_multi_index(flatten_multi_column_index(f, as_string=True), i) for i, f in enumerate(self.sample_weights)],
+            axis=1,
+            join='outer'
+        ) if len(self.sample_weights) > 1 else self.sample_weights[0]
 
     @property
     def shape(self) -> Dict:
@@ -61,6 +104,10 @@ class LabelsWithSampleWeights(NamedTuple):
 class FeaturesWithLabels(NamedTuple):
     features_with_required_samples: FeaturesWithReconstructionTargets
     labels_with_sample_weights: LabelsWithSampleWeights
+
+    @property
+    def common_index(self):
+        return intersection_of_index(*self.features, *self.labels)
 
     @property
     def features(self) -> List[MlTypes.PatchedDataFrame]:
@@ -90,8 +137,8 @@ class Extractor(object):
         self.type_map = none_as_empty_dict(type_mapping)
         self.kwargs = kwargs
 
-    def extract_features_labels_weights(self) -> FeaturesWithLabels:
-        features = self.extract_features()
+    def extract_features_labels_weights(self, tail=None) -> FeaturesWithLabels:
+        features = self.extract_features(tail=tail)
         labels = self.extract_labels()
 
         # do some sanity check for any non-numeric values in any of the data frames
@@ -112,9 +159,12 @@ class Extractor(object):
 
         return FeaturesWithLabels(features, labels)
 
-    def extract_features(self) -> FeaturesWithReconstructionTargets:
+    def extract_features(self, tail=None) -> FeaturesWithReconstructionTargets:
         # extract 2D features
-        features = self._extract_eventaually_nested_selectors(self.features_and_labels_definition.features)
+        features = self._extract_eventaually_nested_selectors(
+            self.df if tail is None else self.df.tail(abs(tail)),
+            self.features_and_labels_definition.features
+        )
 
         # however one model can only have one frame of reconstruction targets
         reconstruction_targets = self.features_and_labels_definition.reconstruction_targets
@@ -138,8 +188,8 @@ class Extractor(object):
 
     def extract_labels(self) -> LabelsWithSampleWeights:
         label_types = self.features_and_labels_definition.label_type
-        labels = self._extract_eventaually_nested_selectors(self.features_and_labels_definition.labels)
-        weights = self._extract_eventaually_nested_selectors(self.features_and_labels_definition.sample_weights)
+        labels = self._extract_eventaually_nested_selectors(self.df, self.features_and_labels_definition.labels)
+        weights = self._extract_eventaually_nested_selectors(self.df, self.features_and_labels_definition.sample_weights)
         gross_loss = call_if_not_none(get_pandas_object(self.df, self.features_and_labels_definition.gross_loss, type_map=self.type_map, **self.kwargs), 'dropna')
 
         # execute post-processors on labels and weights !!!
@@ -207,21 +257,21 @@ class Extractor(object):
     #
     #     return frames
 
-    def _extract_eventaually_nested_selectors(self, requested_selectors):
+    def _extract_eventaually_nested_selectors(self, df, requested_selectors):
         if requested_selectors is None:
             return None
 
         # check direct access of a single item
-        if is_in_index(requested_selectors, self.df.columns):
+        if is_in_index(requested_selectors, df.columns):
             requested_selectors = [requested_selectors]
 
         # check if requested_features are a nested data structure
-        if all([is_in_index(rf, self.df.columns) for rf in requested_selectors if isinstance(rf, (List, Tuple))]):
+        if all([is_in_index(rf, df.columns) for rf in requested_selectors if isinstance(rf, (List, Tuple))]):
             # it is NOT a nested data structure
             requested_selectors = [requested_selectors]
 
         # extract 2D features
-        frames = [get_pandas_object(self.df, rf, type_map=self.type_map, **self.kwargs).dropna() for rf in requested_selectors]
+        frames = [get_pandas_object(df, rf, type_map=self.type_map, **self.kwargs).dropna() for rf in requested_selectors]
         frames = [f.to_frame() if f.ndim <= 1 else f for f in frames]
 
         return frames

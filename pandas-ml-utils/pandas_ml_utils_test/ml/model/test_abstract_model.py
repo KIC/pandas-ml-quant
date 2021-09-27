@@ -4,8 +4,8 @@ import uuid
 from typing import Tuple
 from unittest import TestCase
 
-from pandas_ml_common import pd, np, naive_splitter, random_splitter
-from pandas_ml_utils import FeaturesAndLabels, Model, SubModelFeature, FittingParameter, ConcatenatedMultiModel
+from pandas_ml_common import pd, np, naive_splitter, random_splitter, FeaturesLabels
+from pandas_ml_utils import Model, SubModelFeature, FittingParameter, ConcatenatedMultiModel, FittableModel, ModelProvider
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, LABEL_COLUMN_NAME
 from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
@@ -24,7 +24,11 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_classification_model(FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int))
+        model = FittableModel(
+            self.provide_classification_model,
+            FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
+        )
+
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
         """when we fit the model"""
@@ -67,7 +71,7 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
@@ -97,7 +101,7 @@ class TestAbstractModel(TestCase):
 
         """given the implementation can handle auto encoders"""
         model = self.provide_auto_encoder_model(
-            FeaturesAndLabels(
+            FeaturesLabels(
                 features=["a", "b"],
                 labels=["a", "b"],
                 latent=["x"]
@@ -170,7 +174,7 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
@@ -194,7 +198,7 @@ class TestAbstractModel(TestCase):
         }, index=pd.MultiIndex.from_product([["A", "B"], range(6)]))
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
@@ -231,7 +235,7 @@ class TestAbstractModel(TestCase):
         }, index=pd.MultiIndex.from_product([["A", "B"], range(6)]))
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
@@ -258,7 +262,7 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesAndLabels(features=["a"], labels=["b"]))
+        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
 
         """when we fit the model"""
         batch_size, epochs = self.provide_batch_size_and_epoch()
@@ -286,11 +290,11 @@ class TestAbstractModel(TestCase):
 
         """and a model"""
         model = self.provide_classification_model(
-            FeaturesAndLabels(
+            FeaturesLabels(
                 features=[
                     "a",
                     SubModelFeature("b", self.provide_classification_model(
-                        FeaturesAndLabels(features=["a", "b"], labels=["c"], label_type=int)
+                        FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
                     ))
                 ],
                 labels=["c"],
@@ -326,7 +330,7 @@ class TestAbstractModel(TestCase):
         model = ConcatenatedMultiModel(
             model_provider=self.provide_regression_model,
             kwargs_list=[{'period': x} for x in range(4)],
-            features_and_labels=FeaturesAndLabels(
+            features_and_labels=FeaturesLabels(
                 features=["a"],
                 labels=[lambda df, period: (df["b"].shift(period) - df["a"]).rename(f'b_{period}')]
             )
@@ -359,7 +363,7 @@ class TestAbstractModel(TestCase):
     def provide_regression_model(self, features_and_labels, **kwargs) -> Model:
         pass
 
-    def provide_classification_model(self, features_and_labels) -> Model:
+    def provide_classification_model(self, ) -> ModelProvider:
         pass
 
     def provide_auto_encoder_model(self, features_and_labels) -> AutoEncoderModel:

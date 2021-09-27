@@ -3,7 +3,7 @@ from typing import Any, Callable
 import pandas as pd
 
 import pandas_ml_utils.html as html
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils.ml.summary import Summary
 
@@ -63,7 +63,7 @@ class Fit(object):
         self._hide_loss_plot = True
         return self
 
-    def with_summary(self, summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary, **kwargs):
+    def with_summary(self, summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary, **kwargs):
         return Fit(self.model,
                    summary_provider(self.training_summary.df, **{**self._kwargs, **kwargs}),
                    summary_provider(self.test_summary.df, **{**self._kwargs, **kwargs}),

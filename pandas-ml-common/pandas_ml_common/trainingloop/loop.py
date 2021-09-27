@@ -3,6 +3,7 @@ from typing import Dict, Type, Callable, Tuple, Union, Optional, Generator
 from ..sampling import Sampler, XYWeight
 from ..typing import MlTypes
 from ..preprocessing import FeaturesLabels, Extractor
+from ..preprocessing.features_labels import FeaturesWithLabels
 
 
 def sampling(df: MlTypes.PatchedDataFrame,
@@ -14,7 +15,7 @@ def sampling(df: MlTypes.PatchedDataFrame,
              epochs: int = 1,
              batch_size: int = None,
              fold_epochs: int = 1,
-             **kwargs) -> Sampler:
+             **kwargs) -> Tuple[FeaturesWithLabels, Sampler]:
     """
     This is all you need to get a training loop based on a single dataframe
 
@@ -37,7 +38,7 @@ def sampling(df: MlTypes.PatchedDataFrame,
     xyw = XYWeight(frames.features, frames.labels, frames.labels_with_sample_weights.sample_weights)
 
     # set up a sampler for the data
-    return Sampler(
+    return frames, Sampler(
         xyw,
         splitter=splitter,
         filter=filter,

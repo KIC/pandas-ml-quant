@@ -7,15 +7,12 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
 
-from pandas_ml_common import Typing, naive_splitter
-from pandas_ml_common.utils import get_correlation_pairs, call_silent, \
-    call_callable_dynamic_args
-from pandas_ml_utils.ml.data.extraction.features_and_labels_definition import FeaturesAndLabels, \
-    PostProcessedFeaturesAndLabels
+from pandas_ml_common import MlTypes, FeaturesLabels, naive_splitter
+from pandas_ml_common.utils import get_correlation_pairs, call_silent, call_callable_dynamic_args
 from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
 from pandas_ml_utils.ml.fitting import Fit, FitException, FittingParameter
 from pandas_ml_utils.ml.forecast import Forecast
-from pandas_ml_utils.ml.model import Model as MlModel, SkModel, AutoEncoderModel
+from pandas_ml_utils.ml.model import Fittable, AutoEncoderModel, FittableModel
 from pandas_ml_utils.ml.summary import Summary
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
 
@@ -24,15 +21,11 @@ _log = logging.getLogger(__name__)
 
 class DfModelPatch(object):
 
-    def __init__(self, df: Typing.PatchedDataFrame):
+    def __init__(self, df: MlTypes.PatchedDataFrame):
         self.df = df
-        self._type_mapping = {
-            AutoEncoderModel: lambda df, model, **kwargs: df.model.predict(model.as_encoder(), **kwargs),
-            MlModel: lambda df, model, **kwargs: df.model.predict(model, **kwargs),
-        }
 
     def feature_selection(self,
-                          features_and_labels: FeaturesAndLabels,
+                          features_and_labels: FeaturesLabels,
                           training_data_splitter: Callable = naive_splitter(0.2),
                           correlated_features_th: float = 0.75,
                           rfecv_splits: int = 4,
@@ -94,7 +87,7 @@ class DfModelPatch(object):
         return fit.with_hidden_loss_plot()
 
     def fit(self,
-            model_provider: Callable[[], MlModel],
+            model: Fittable,
             fitting_parameter: FittingParameter = FittingParameter(),
             verbose: int = 0,
             callbacks: Union[Callable, List[Callable]] = None,
@@ -103,32 +96,19 @@ class DfModelPatch(object):
             ) -> Fit:
         df = self.df
         trails = None
-        model = model_provider()
 
         start_performance_count = perf_counter()
         _log.info("create model")
 
-        frames, df_train_prediction, df_test_prediction = model.fit_to_df(
+        df_train, df_test = model.fit_to_df(
             df,
             fitting_parameter,
-            self._type_mapping,
             verbose,
             callbacks,
             **kwargs
         )
 
         _log.info(f"fitting model done in {perf_counter() - start_performance_count: .2f} sec!")
-
-        # assemble result objects
-        # get training and test data tuples of the provided frames.
-        # NOTE due to event boosting there might be duplicate events in the test data which we need to filter away
-        ext_frames = frames.targets, frames.labels, frames.gross_loss, frames.sample_weights, frames.features
-        df_train = assemble_result_frame(df_train_prediction, *ext_frames)
-        df_test = assemble_result_frame(df_test_prediction[~df_test_prediction.index.duplicated()], *ext_frames)
-
-        # update model properties and return the fit
-        model.features_and_labels.set_min_required_samples(frames.features_with_required_samples.min_required_samples)
-        model.features_and_labels._kwargs = {k: a for k, a in kwargs.items() if k in model.features_and_labels.kwargs}
 
         def assemble_fit():
             return Fit(
@@ -139,31 +119,26 @@ class DfModelPatch(object):
                 **kwargs
             )
 
+        # FIXME move directly to ModelContext
         return call_silent(assemble_fit, lambda e: FitException(e, model)) if fail_silent else assemble_fit()
 
     def backtest(self,
-                 model: MlModel,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = None,
+                 model: Fittable,
+                 summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = None,
                  tail: int = None,
                  **kwargs) -> Summary:
-
-        frames, predictions = model.predict_of_df(self.df, self._type_mapping, tail, include_labels=True, **kwargs)
-        df_backtest = assemble_result_frame(predictions, frames.targets, frames.labels, frames.gross_loss,
-                                            frames.sample_weights, frames.features)
-
-        return call_callable_dynamic_args(summary_provider or model.summary_provider, df_backtest, model, **kwargs)
+        # FIXME move directly to ModelContext
+        df_backtest = model.forecast(self.df, tail, 1, None, True, **kwargs)
+        return call_callable_dynamic_args(summary_provider or model.summary_provider, df=df_backtest, model=model, **kwargs)
 
     def predict(self,
-                model: MlModel,
+                model: Fittable,
                 tail: int = None,
                 samples: int = 1,
-                forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
-                **kwargs) -> Union[Typing.PatchedDataFrame, Forecast]:
-        frames, predictions = model.predict_of_df(self.df, self._type_mapping, tail, samples, **kwargs)
-        fc_provider = forecast_provider or model.forecast_provider
-        res_df = assemble_result_frame(predictions, frames.targets, None, None, None, frames.features)
-
-        return res_df if fc_provider is None else call_callable_dynamic_args(fc_provider, res_df, **kwargs)
+                forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
+                **kwargs) -> Union[MlTypes.PatchedDataFrame, Forecast]:
+        # FIXME move directly to ModelContext
+        return model.forecast(self.df, tail, samples, forecast_provider, False, **kwargs)
 
     def __call__(self, file_name=None):
         from .model_context import ModelContext

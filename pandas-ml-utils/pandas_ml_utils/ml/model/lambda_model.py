@@ -1,44 +1,51 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Union
+from typing import Callable, List, Optional
 
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common import Typing
-from pandas_ml_common.utils import to_pandas, call_callable_dynamic_args
-from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
-from pandas_ml_utils.ml.summary import Summary
-from .base_model import Model
+from pandas_ml_common import MlTypes, XYWeight
+from pandas_ml_common.utils import call_callable_dynamic_args
+from .base_model import ModelProvider
+from ..fitting import FittingParameter
 
 _log = logging.getLogger(__name__)
 
 
-class LambdaModel(Model):
+class LambdaModel(ModelProvider):
     """
     The Lambda Model provides a constant output of a given function, hence it can not be trained
     """
 
     def __init__(self,
-                 model: Callable[[pd.DataFrame], Union[np.ndarray, pd.DataFrame]],
-                 features_and_labels: FeaturesAndLabels,
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
+                 model: Callable[[pd.DataFrame], np.ndarray],
                  **kwargs):
-        super().__init__(features_and_labels, summary_provider, **kwargs)
+        super().__init__()
         self.model = model
+        self.kwargs = kwargs
 
-    def fit_batch(self, x: pd.DataFrame, y: pd.DataFrame, w: pd.DataFrame, fold: int, **kwargs):
+    def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
         pass
 
-    def calculate_loss(self, fold: int, x: pd.DataFrame, y_true: pd.DataFrame, weight: pd.DataFrame) -> float:
+    def init_fold(self, epoch: int, fold: int):
+        pass
+
+    def after_epoch(self, epoch, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
+        pass
+
+    def finish_learning(self, **kwargs):
+        pass
+
+    def encode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
+        pass
+
+    def decode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
+        pass
+
+    def fit_batch(self, x: List[MlTypes.PatchedDataFrame], y: List[MlTypes.PatchedDataFrame], weight: Optional[List[MlTypes.PatchedDataFrame]], **kwargs) -> MlTypes.Loss:
         return 0
 
-    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, **kwargs) -> Typing.PatchedDataFrame:
-        pred = call_callable_dynamic_args(self.model, features, targets=targets, **self.kwargs)
-
-        if isinstance(pred, pd.DataFrame):
-            pred.columns = self._labels_columns
-            return pred
-        else:
-            return to_pandas(pred, features.index, self._labels_columns)
+    def predict(self, features: List[MlTypes.PatchedDataFrame], samples=1, **kwargs) -> np.ndarray:
+        return call_callable_dynamic_args(self.model, features, **self.kwargs)

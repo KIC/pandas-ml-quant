@@ -1,10 +1,11 @@
-from typing import Union, List
+from typing import Union, List, Dict, Type, Callable
 
 import numpy as np
 import pandas as pd
 
 from ..preprocessing.features_labels import FeaturesLabels, Extractor
 from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
+from ..typing import MlTypes
 
 
 class MLCompatibleValues(object):
@@ -47,8 +48,11 @@ class MLCompatibleValues(object):
         return [reshape_when_multi_index_column(v) for v in values] if isinstance(values, List) else \
             reshape_when_multi_index_column(values)
 
-    def extract(self, features_and_labels_definition: FeaturesLabels, **kwargs) -> Extractor:
-        return Extractor(self.df, features_and_labels_definition, **kwargs)
+    def extract(self,
+                features_and_labels_definition: FeaturesLabels,
+                type_mapping: Dict[Type, Callable[[MlTypes.DataFrame], MlTypes.DataFrame]] = None,
+                **kwargs) -> Extractor:
+        return Extractor(self.df, features_and_labels_definition, type_mapping, **kwargs)
 
     def __getitem__(self, item: Union[str, list, callable]) -> Union[pd.Series, pd.DataFrame]:
         """

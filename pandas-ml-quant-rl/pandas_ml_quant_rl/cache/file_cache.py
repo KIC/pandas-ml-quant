@@ -35,7 +35,7 @@ class FileCache(Cache):
                 features = MultiFrameDecorator(features)
             else:
                 features, _, _ = extract_features(df, features_and_labels)
-                for fk, f in zip(fkeys, features.frames()):
+                for fk, f in zip(fkeys, features.xyw_frames()):
                     self.file_cache[fk] = f
         else:
             if fkey in self.file_cache:
