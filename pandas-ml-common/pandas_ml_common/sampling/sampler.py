@@ -1,12 +1,13 @@
 import logging
-from typing import Tuple, Callable, Any, Generator, NamedTuple, Union, List, Optional, Iterable
+from typing import Tuple, Callable, Any, Generator, NamedTuple, Union, List, Optional
 
 import numpy as np
 import pandas as pd
 
 from ..sampling.cross_validation import PartitionedOnRowMultiIndexCV
-from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, none_as_empty_list, GetItem
 from ..typing import MlTypes
+from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, \
+    none_as_empty_list, GetItem
 
 _log = logging.getLogger(__name__)
 

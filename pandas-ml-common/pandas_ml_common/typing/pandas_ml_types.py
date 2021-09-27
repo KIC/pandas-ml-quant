@@ -1,4 +1,4 @@
-from typing import List, Callable, Any, TypeVar, TYPE_CHECKING
+from typing import List, Callable, TypeVar, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd

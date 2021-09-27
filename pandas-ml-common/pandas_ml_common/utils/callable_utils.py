@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Dict, Callable, Union, List, Tuple, Iterable
+from typing import Dict, Union, List, Tuple, Iterable
 
 _log = logging.getLogger(__name__)
 _DEBUG = False

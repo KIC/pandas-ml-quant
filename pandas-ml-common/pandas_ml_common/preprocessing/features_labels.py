@@ -1,8 +1,9 @@
+import logging
 from typing import NamedTuple, List, TypeVar, Type, Optional, Dict, Tuple, Set, Union, Iterable, Callable
 
-import pandas as pd
 import numpy as np
-import logging
+import pandas as pd
+
 from ..typing import MlTypes
 from ..utils import call_if_not_none, get_pandas_object, intersection_of_index, loc_if_not_none, is_in_index, \
     make_same_length, call_callable_dynamic_args, none_as_empty_list, flatten_nested_list, none_as_empty_dict, GetItem, \

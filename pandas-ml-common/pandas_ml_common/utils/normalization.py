@@ -4,7 +4,7 @@ from typing import Tuple as _Tuple
 import numpy as _np
 import pandas as _pd
 
-from pandas_ml_common.utils import unpack_nested_arrays
+from .value_utils import unpack_nested_arrays
 
 
 class ReScaler(object):

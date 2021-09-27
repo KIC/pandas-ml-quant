@@ -1,11 +1,11 @@
 from typing import Generator, Tuple
 
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils.validation import _num_samples
 
 from pandas_ml_common.utils import temp_seed, call_callable_dynamic_args, unique_level_rows, PandasObject
-import pandas as pd
 
 
 class KFoldBoostRareEvents(KFold):

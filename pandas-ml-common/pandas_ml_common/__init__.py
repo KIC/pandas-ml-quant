@@ -8,7 +8,9 @@ import pandas as pd
 from pandas.core.base import PandasObject
 
 from pandas_ml_common.df_monkey_patch.df_values import MLCompatibleValues
-from pandas_ml_common.utils.lazy_value import LazyInit
+from pandas_ml_common.preprocessing import FeaturesLabels
+from pandas_ml_common.sampling import *
+from pandas_ml_common.typing import MlTypes
 from pandas_ml_common.utils import (
     Constant,
     ReScaler,
@@ -29,10 +31,7 @@ from pandas_ml_common.utils import (
     unique_level_rows,
     unique_level
 )
-
-from pandas_ml_common.sampling import *
-from pandas_ml_common.typing import MlTypes
-from pandas_ml_common.preprocessing import FeaturesLabels
+from pandas_ml_common.utils.lazy_value import LazyInit
 
 _log = logging.getLogger(__name__)
 _log.debug(f"numpy version {np.__version__}")

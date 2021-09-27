@@ -1,9 +1,9 @@
 from typing import Dict, Type, Callable, Tuple, Union, Optional, Generator
 
-from ..sampling import Sampler, XYWeight
-from ..typing import MlTypes
 from ..preprocessing import FeaturesLabels, Extractor
 from ..preprocessing.features_labels import FeaturesWithLabels
+from ..sampling import Sampler, XYWeight
+from ..typing import MlTypes
 
 
 def sampling(df: MlTypes.PatchedDataFrame,

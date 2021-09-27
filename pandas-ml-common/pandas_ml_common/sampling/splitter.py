@@ -2,8 +2,8 @@ import logging
 import math
 from typing import Tuple, Callable
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from pandas_ml_common.utils import temp_seed, unique_level_rows, concat_indices
 
