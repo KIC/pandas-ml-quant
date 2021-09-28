@@ -38,8 +38,7 @@ class Model(metaclass=ABCMeta):
     def forecast_provider(self) -> Optional[Callable[[MlTypes.PatchedDataFrame], Forecast]]:
         return self._forecast_provider
 
-    @property
-    def label_names(self) -> List[Tuple[int, Any]]:
+    def label_names(self, df: MlTypes.PatchedDataFrame = None) -> List[Any]:
         return self._label_names
 
     @staticmethod
@@ -97,7 +96,7 @@ class Model(metaclass=ABCMeta):
             frames = extractor.extract_features(tail=tail)
             predictions = self.predict(frames, **merged_kwargs)
 
-        predictions_df = to_pandas(predictions, frames.common_index, self.label_names)
+        predictions_df = to_pandas(predictions, frames.common_index, self.label_names(df[:0]))
         return frames, predictions_df
 
     @abstractmethod

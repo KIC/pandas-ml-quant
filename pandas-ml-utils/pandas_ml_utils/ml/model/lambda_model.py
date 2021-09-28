@@ -44,7 +44,7 @@ class LambdaModel(ModelProvider):
     def decode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
         pass
 
-    def fit_batch(self, x: List[MlTypes.PatchedDataFrame], y: List[MlTypes.PatchedDataFrame], weight: Optional[List[MlTypes.PatchedDataFrame]], **kwargs) -> MlTypes.Loss:
+    def fit_batch(self, xyw: XYWeight, **kwargs):
         return 0
 
     def predict(self, features: List[MlTypes.PatchedDataFrame], samples=1, **kwargs) -> np.ndarray:

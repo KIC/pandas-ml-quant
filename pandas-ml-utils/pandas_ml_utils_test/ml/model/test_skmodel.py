@@ -43,6 +43,37 @@ class TestSkModel(TestAbstractModel):
         backtest = df.model.backtest(fit.model)
         self.assertLess(backtest.model._cross_validation_models[0].sk_model.coef_[0], 1e-5)
 
+    def test_autoencoder_model(self):
+        df = DF_NOTES.copy()
+
+        with df.model() as m:
+            fit = m.fit(
+                FittableModel(
+                    SkAutoEncoderProvider([2, 1], [2],),
+                    FeaturesLabels(
+                        features=[
+                            lambda df: df["variance"],
+                            lambda df: (df["skewness"] / df["kurtosis"]).rename("engineered")
+                        ],
+                        labels=[
+                            'authentic'
+                        ]
+                    )
+                ),
+                FittingParameter(naive_splitter()),
+                verbose=1,
+                callbacks=None,
+                fail_silent=False
+            )
+
+        print(fit)
+
+        prediction = df.model.predict(fit.model)
+        print(prediction)
+
+        backtest = df.model.backtest(fit.model)
+        # self.assertLess(backtest.model._cross_validation_models[0].sk_model.coef_[0], 1e-5)
+
     #def test_partial_fit_regression(self):
     #    data = make_regression(100, 2, 1)
     #    df = pd.DataFrame(data[0])

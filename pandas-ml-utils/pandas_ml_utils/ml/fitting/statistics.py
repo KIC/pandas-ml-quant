@@ -1,24 +1,20 @@
 from collections import defaultdict
 
-import numpy as np
 import pandas as pd
-from typing import List
 
-from pandas_ml_common import call_callable_dynamic_args, LazyInit, XYWeight
+from .fitting_parameter import FittingParameter
 
 
-class ModelFitStatistics(object):
+class FitStatistics(object):
 
-    def __init__(self):
+    def __init__(self, fitting_parameter: FittingParameter):
         self._history = defaultdict(dict)
+        self.fitting_parameter = fitting_parameter
 
-    def record_meta(self, epochs, batch_size, fold_epochs, cross_validation, features, labels: List[str], fitting_param):
-        pass
-
-    def record_loss(self, loss_history_key, epoch, fold, fold_epoch, train_loss, test_loss):
+    def record_loss(self, epoch, fold, fold_epoch, train_loss, test_loss):
         # loss_history_key or fold
         self._history["train", ][(epoch, fold_epoch)] = train_loss
-        self._history["test", loss_history_key or fold][(epoch, fold_epoch)] = test_loss
+        self._history["test",fold][(epoch, fold_epoch)] = test_loss
 
     def plot_loss(self, figsize=(8, 6), **kwargs):
         """

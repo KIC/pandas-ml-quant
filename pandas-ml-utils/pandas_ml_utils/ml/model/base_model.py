@@ -13,7 +13,7 @@ from pandas_ml_common.sampling.sampler import XYWeight, FoldXYWeight
 from pandas_ml_common.utils import merge_kwargs
 from pandas_ml_utils.ml.fitting.fitting_parameter import FittingParameter
 from pandas_ml_utils.ml.model.fittable import Fittable
-from pandas_ml_utils.ml.model.persistence import Model
+from pandas_ml_utils.ml.model.predictable import Model
 
 _log = logging.getLogger(__name__)
 
@@ -38,11 +38,7 @@ class ModelProvider(metaclass=ABCMeta):
         return copy
 
     @abstractmethod
-    def fit_batch(self,
-                  x: List[MlTypes.PatchedDataFrame],
-                  y: List[MlTypes.PatchedDataFrame],
-                  weight: Optional[List[MlTypes.PatchedDataFrame]],
-                  **kwargs) -> MlTypes.Loss:
+    def fit_batch(self, xyw: XYWeight, **kwargs):
         raise NotImplemented
 
     @abstractmethod
@@ -55,6 +51,10 @@ class ModelProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def after_epoch(self, epoch, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
+        pass
+
+    @abstractmethod
+    def calculate_loss(self, xyw: XYWeight) -> float:
         pass
 
     @abstractmethod
@@ -95,8 +95,8 @@ class FittableModel(Fittable):
         for m in self._cross_validation_models.values():
             m.init_fit(fitting_parameter, **kwargs)
 
-    def fit_batch(self, xyw: FoldXYWeight, **kwargs) -> MlTypes.Loss:
-        return self._cross_validation_models[xyw.fold].fit_batch(xyw.x, xyw.y, xyw.weight)
+    def fit_batch(self, xyw: FoldXYWeight, **kwargs):
+        self._cross_validation_models[xyw.fold].fit_batch(xyw)
 
     def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         self._cross_validation_models[fold].after_epoch(epoch, fold_epoch, train_data, test_data)
@@ -113,6 +113,12 @@ class FittableModel(Fittable):
     def train_predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
         return self.cross_validation_aggregator(
             np.stack([mp.train_predict(features.features, samples, **kwargs) for mp in self._cross_validation_models.values()], axis=0)
+        )
+
+    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight]) -> MlTypes.Loss:
+        return (
+            self._cross_validation_models[fold].calculate_loss(train_data),
+            [self._cross_validation_models[fold].calculate_loss(td) for td in test_data],
         )
 
     def init_fold(self, epoch: int, fold: int):
@@ -184,10 +190,12 @@ class AutoEncoderModel(Fittable):
         else:
             return self._features_and_labels_definition
 
-    @property
-    def label_names(self) -> List[Tuple[int, Any]]:
-        # FIXME !!!
-        return None
+    def label_names(self, df: MlTypes.PatchedDataFrame = None) -> List[Any]:
+        if self.mode == AutoEncoderModel.ENCODE:
+            label_frames = df.ML.extract(self.features_and_labels_definition).extract_labels().labels
+            return [(i, col) if len(label_frames) > 1 else col for i, l in enumerate(label_frames) for col in l]
+        else:
+            return self._label_names
 
     def as_encoder(self) -> 'AutoEncoderModel':
         self.mode = AutoEncoderModel.ENCODE
@@ -205,11 +213,17 @@ class AutoEncoderModel(Fittable):
         for m in self._cross_validation_models.values():
             m.init_fit(fitting_parameter, **kwargs)
 
-    def fit_batch(self, xyw: FoldXYWeight, **kwargs) -> MlTypes.Loss:
-        return self._cross_validation_models[xyw.fold].fit_batch(xyw.x, xyw.y, xyw.weight)
+    def fit_batch(self, xyw: FoldXYWeight, **kwargs):
+        self._cross_validation_models[xyw.fold].fit_batch(xyw.x, xyw.y, xyw.weight)
 
     def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         self._cross_validation_models[fold].after_epoch(epoch, fold_epoch, train_data, test_data)
+
+    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight]) -> MlTypes.Loss:
+        return (
+            self._cross_validation_models[fold].calculate_loss(train_data),
+            [self._cross_validation_models[fold].calculate_loss(td) for td in test_data],
+        )
 
     def finish_learning(self, **kwargs):
         for m in self._cross_validation_models.values():

@@ -1,4 +1,4 @@
-from typing import List, Callable, TypeVar, TYPE_CHECKING
+from typing import List, Callable, TypeVar, TYPE_CHECKING, Tuple
 
 import numpy as np
 import pandas as pd
@@ -62,4 +62,4 @@ class MlTypes(object):
     Array = np.ndarray
     DataSelector = TypeVar('DataSelector', str, List['MlGetItem'], PandasObject, Constant, Callable[..., PandasObject])
 
-    Loss = float
+    Loss = Tuple[float, List[float]]
