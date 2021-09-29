@@ -12,6 +12,7 @@ class FittingParameter(NamedTuple):
     fold_epochs: int = 1
     hyper_parameter_space: Dict = None
     context: str = None
+    partition_row_multi_index_batch: bool = False
 
     def with_splitter(self, splitter):
         return FittingParameter(**{**self._asdict(), "splitter": splitter})

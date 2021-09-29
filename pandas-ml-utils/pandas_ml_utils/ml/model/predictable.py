@@ -95,7 +95,7 @@ class Model(metaclass=ABCMeta):
             predictions = self.predict(frames.features_with_required_samples, samples=samples, **merged_kwargs)
         else:
             frames = extractor.extract_features(tail=tail)
-            predictions = self.predict(frames, **merged_kwargs)
+            predictions = self.predict(frames, samples=samples, **merged_kwargs)
 
         predictions_df = to_pandas(predictions, frames.common_index, self.label_names)
         return frames, predictions_df

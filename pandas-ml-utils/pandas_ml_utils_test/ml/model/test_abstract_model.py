@@ -1,7 +1,7 @@
 import os
 import tempfile
 import uuid
-from typing import Tuple
+from typing import Tuple, Any, Dict
 from unittest import TestCase
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter, FeaturesLabels
@@ -11,11 +11,9 @@ from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 
 
-class TestAbstractModel(TestCase):
+class TestAbstractModel(object):
 
     def test_classifier(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy classification data"""
         df = pd.DataFrame({
             "a": [1, 0, 1, 0, 1, 0, 1, 0,],
@@ -24,17 +22,16 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = FittableModel(
-            self.provide_classification_model,
-            FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
-        )
-
+        model, params = self.provide_classification_model()
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model(temp) as m:
-            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.49), batch_size=batch_size, epochs=epochs), verbose=0)
+            fit = m.fit(
+                FittableModel(model, FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)),
+                FittingParameter(splitter=naive_splitter(0.49), **params),
+                verbose=0
+            )
 
         print(fit.training_summary.df)
         # fit.training_summary.df.to_pickle('/tmp/classifier.df')
@@ -62,8 +59,6 @@ class TestAbstractModel(TestCase):
             os.remove(temp)
 
     def test_regressor(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy regression data"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -71,13 +66,15 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
+        model, params = self.provide_regression_model()
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model() as m:
-            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.3), batch_size=batch_size, epochs=epochs),
-                        verbose=0)
+            fit = m.fit(
+                FittableModel(model, FeaturesLabels(features=["a"], labels=["b"])),
+                FittingParameter(splitter=naive_splitter(0.3), **params),
+                verbose=0
+            )
 
         print(fit.training_summary.df)
         self.assertEqual(4, len(fit.training_summary.df))
@@ -97,16 +94,8 @@ class TestAbstractModel(TestCase):
             os.remove(temp)
 
     def test_auto_encoder(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given the implementation can handle auto encoders"""
-        model = self.provide_auto_encoder_model(
-            FeaturesLabels(
-                features=["a", "b"],
-                labels=["a", "b"],
-                latent=["x"]
-            )
-        )
+        model, params = self.provide_auto_encoder_model()
 
         if model is None:
             return
@@ -118,10 +107,18 @@ class TestAbstractModel(TestCase):
         })
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model() as m:
-            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.49), batch_size=batch_size, epochs=epochs),
-                        verbose=0)
+            fit = m.fit(
+                AutoEncoderModel(
+                    model,
+                    FeaturesLabels(
+                        features=["a", "b"],
+                        labels=["x"],
+                    )
+                ),
+                FittingParameter(splitter=naive_splitter(0.49), **params),
+                verbose=0
+            )
 
         print(fit.training_summary.df)
 
@@ -165,8 +162,6 @@ class TestAbstractModel(TestCase):
             os.remove(temp)
 
     def test_multi_sample_regressor(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy regression data"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -174,23 +169,23 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
+        model, params = self.provide_regression_model()
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model() as m:
-            fit = m.fit(model, FittingParameter(splitter=naive_splitter(0.3), batch_size=batch_size, epochs=epochs),
-                        verbose=0)
+            fit = m.fit(
+                FittableModel(model, FeaturesLabels(features=["a"], labels=["b"])),
+                FittingParameter(splitter=naive_splitter(0.3), **params),
+                verbose=0
+            )
 
         print(fit.training_summary.df)
 
         """then we can predict"""
         prediction = df.model.predict(fit.model, samples=2)
-        np.testing.assert_array_almost_equal(prediction.iloc[:, 0]._.values, np.concatenate([df[["b"]].values, df[["b"]].values], axis=1), 1)
+        np.testing.assert_array_almost_equal(prediction.iloc[:, 0].ML.values, np.concatenate([df[["b"]].values, df[["b"]].values], axis=1), 1)
 
     def test_multindex_row(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy regression data while we provide a multiindex for the rows"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -198,14 +193,15 @@ class TestAbstractModel(TestCase):
         }, index=pd.MultiIndex.from_product([["A", "B"], range(6)]))
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
+        model, params = self.provide_regression_model()
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model() as m:
-            fit = m.fit(model,
-                        FittingParameter(splitter=random_splitter(0.3, partition_row_multi_index=True), batch_size=batch_size, epochs=epochs),
-                        verbose=0)
+            fit = m.fit(
+                FittableModel(model, FeaturesLabels(features=["a"], labels=["b"])),
+                FittingParameter(splitter=random_splitter(0.3, partition_row_multi_index=True), **params),
+                verbose=0
+            )
 
         prediction = df.model.predict(fit.model)
         print(fit)
@@ -226,8 +222,6 @@ class TestAbstractModel(TestCase):
         np.testing.assert_array_almost_equal(prediction.iloc[:, 0].values, df["b"].values, 1)
 
     def test_multindex_row_multi_samples(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy regression data while we provide a multiindex for the rows"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -235,26 +229,29 @@ class TestAbstractModel(TestCase):
         }, index=pd.MultiIndex.from_product([["A", "B"], range(6)]))
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
+        model, params = self.provide_regression_model()
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model() as m:
-            fit = m.fit(model,
-                        FittingParameter(splitter=random_splitter(0.3, partition_row_multi_index=True), batch_size=batch_size, epochs=epochs),
-                        verbose=0)
+            fit = m.fit(
+                FittableModel(model, FeaturesLabels(features=["a"], labels=["b"])),
+                FittingParameter(
+                    splitter=random_splitter(0.3, partition_row_multi_index=True),
+                    partition_row_multi_index_batch=True,
+                    **params
+                ),
+                verbose=0
+            )
 
         self.assertEqual(8, len(fit.training_summary.df))
         self.assertEqual(4, len(fit.test_summary.df))
 
         prediction = df.model.predict(fit.model, samples=2)
-        self.assertEqual(2, len(prediction.iloc[:, 0]._.values))
-        self.assertEqual((6, 2), prediction.loc["A"].iloc[:, 0]._.values.shape)
-        self.assertEqual((6, 2), prediction.loc["B"].iloc[:, 0]._.values.shape)
+        self.assertEqual((12, 2), prediction.iloc[:, 0].ML.values.shape)
+        self.assertEqual((6, 2), prediction.loc["A"].iloc[:, 0].ML.values.shape)
+        self.assertEqual((6, 2), prediction.loc["B"].iloc[:, 0].ML.values.shape)
 
     def test_no_test_data(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy regression data"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -262,14 +259,15 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_regression_model(FeaturesLabels(features=["a"], labels=["b"]))
+        model, params = self.provide_regression_model()
 
         """when we fit the model"""
-        batch_size, epochs = self.provide_batch_size_and_epoch()
         with df.model() as m:
-            fit = m.fit(model,
-                        FittingParameter(splitter=naive_splitter(0), batch_size=batch_size, epochs=epochs),
-                        verbose=0)
+            fit = m.fit(
+                FittableModel(model, FeaturesLabels(features=["a"], labels=["b"])),
+                FittingParameter(splitter=naive_splitter(0), **params),
+                verbose=0
+            )
 
         # print(fit.training_summary.df)
         print(fit.test_summary.df)
@@ -279,8 +277,6 @@ class TestAbstractModel(TestCase):
         self.assertEqual(len(fit.test_summary.df), 0)
 
     def test_stacked_models(self):
-        if self.__class__ == TestAbstractModel: return
-
         """given some toy classification data"""
         df = pd.DataFrame({
             "a": [1, 0, 1, 0, 1, 0, 1, 0, ],
@@ -289,24 +285,28 @@ class TestAbstractModel(TestCase):
         })
 
         """and a model"""
-        model = self.provide_classification_model(
-            FeaturesLabels(
-                features=[
-                    "a",
-                    SubModelFeature("b", self.provide_classification_model(
-                        FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
-                    ))
-                ],
-                labels=["c"],
-                label_type=int
-            )
-        )
+        model, params = self.provide_classification_model()
 
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
         with self.assertLogs(level='INFO') as cm:
             with df.model(temp) as m:
-                fit = m.fit(model)
+                fit = m.fit(
+                    FittableModel(
+                        model,
+                        FeaturesLabels(
+                            features=[
+                                "a",
+                                SubModelFeature("b", self.provide_classification_model(
+                                    FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
+                                ))
+                            ],
+                            labels=["c"],
+                            label_type=int
+                        )
+                    ),
+                    FittingParameter(**params)
+                )
 
             self.assertIn("INFO:pandas_ml_utils.ml.model.base_model:fitting submodel: b", cm.output[1])
             self.assertIn(
@@ -320,8 +320,6 @@ class TestAbstractModel(TestCase):
         os.remove(temp)
 
     def test_concatenated_multi_models(self):
-        if self.__class__ == TestAbstractModel: return
-
         df = pd.DataFrame({
             "a": np.linspace(0, 0.5, 50),
             "b": np.linspace(0.1, 0.6, 50),
@@ -356,15 +354,11 @@ class TestAbstractModel(TestCase):
 
         pd.testing.assert_frame_equal(prediction1, prediction2)
 
-    # Abstract methods
-    def provide_batch_size_and_epoch(self) -> Tuple[int, int]:
-        return (None, 1)
-
-    def provide_regression_model(self, features_and_labels, **kwargs) -> Model:
+    def provide_regression_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         pass
 
-    def provide_classification_model(self, ) -> ModelProvider:
+    def provide_classification_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         pass
 
-    def provide_auto_encoder_model(self, features_and_labels) -> AutoEncoderModel:
-        return None
+    def provide_auto_encoder_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
+        return None, {}

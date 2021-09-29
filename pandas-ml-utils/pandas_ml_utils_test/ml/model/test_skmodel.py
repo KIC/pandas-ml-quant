@@ -1,3 +1,4 @@
+from typing import Tuple, Dict, Any
 from unittest import TestCase
 
 from sklearn.linear_model import Lasso
@@ -5,13 +6,13 @@ from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter, FeaturesLabels
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
-from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
+from pandas_ml_utils.ml.model.base_model import AutoEncoderModel, ModelProvider
 from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils import SkModelProvider, SkAutoEncoderProvider, FittableModel, ClassificationSummary, RegressionSummary, FittingParameter
 from pandas_ml_utils_test.config import DF_NOTES
 
 
-class TestSkModel(TestAbstractModel):
+class TestSkModel(TestAbstractModel, TestCase):
 
     def test_linear_model(self):
         df = DF_NOTES.copy()
@@ -161,27 +162,37 @@ class TestSkModel(TestAbstractModel):
     #
     #    self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 
-    def provide_classification_model(self, features_and_labels):
+    def test_multi_sample_regressor(self):
+        super().test_multi_sample_regressor()
+
+    def test_no_test_data(self):
+        super().test_no_test_data()
+
+    def test_multindex_row(self):
+        super().test_multindex_row()
+
+    def test_multindex_row_multi_samples(self):
+        super().test_multindex_row_multi_samples()
+
+    def provide_classification_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         model = SkModelProvider(
             MLPClassifier(activation='logistic', max_iter=1000, hidden_layer_sizes=(3,), alpha=0.001, solver='lbfgs', random_state=42),
         )
 
-        return model
+        return model, dict(batch_size=None, epochs=1)
 
-    def provide_regression_model(self, features_and_labels, **kwargs):
+    def provide_regression_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         model = SkModelProvider(
-            MLPRegressor(1, learning_rate_init=0.01, solver='sgd', activation='identity', momentum=0, max_iter=1500, n_iter_no_change=500, nesterovs_momentum=False, shuffle=False, validation_fraction=0.0, random_state=42),
-            features_and_labels,
-            summary_provider=RegressionSummary,
-            **kwargs
+            MLPRegressor(1, learning_rate_init=0.01, solver='sgd', activation='identity', momentum=0, max_iter=1500,
+                         n_iter_no_change=500, nesterovs_momentum=False, shuffle=False, validation_fraction=0.0,
+                         random_state=42)
         )
 
-        return model
+        return model, dict(batch_size=None, epochs=1)
 
-    def provide_auto_encoder_model(self, features_and_labels) -> AutoEncoderModel:
+    def provide_auto_encoder_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         model = SkAutoEncoderProvider(
             [2, 1], [2],
-            features_and_labels,
             #learning_rate_init=0.0001,
             solver='lbfgs',
             validation_fraction=0,
@@ -194,4 +205,4 @@ class TestSkModel(TestAbstractModel):
             random_state=10
         )
 
-        return model
+        return model, dict(batch_size=None, epochs=1)

@@ -64,7 +64,8 @@ class Fittable(Model):
             cross_validation=fitting_parameter.cross_validation,
             epochs=fitting_parameter.epochs,
             fold_epochs=fitting_parameter.fold_epochs,
-            batch_size=fitting_parameter.batch_size
+            batch_size=fitting_parameter.batch_size,
+            partition_row_multi_index_batch=fitting_parameter.partition_row_multi_index_batch
         )
 
         # remember min required samples and label names
@@ -97,7 +98,7 @@ class Fittable(Model):
 
         # extract the used test data
         test_data = frames.features_with_required_samples.loc[sampler.get_out_of_sample_features_index]
-        if len(test_data) > 0:
+        if len(test_data.common_index) > 0:
             df_test_prediction = \
                 to_pandas(self.predict(test_data, **merged_kwargs), test_data.common_index, self.label_names)
         else:
