@@ -7,7 +7,7 @@ import pandas as pd
 from ..sampling.cross_validation import PartitionedOnRowMultiIndexCV
 from ..typing import MlTypes
 from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, \
-    none_as_empty_list, GetItem
+    none_as_empty_list, GetItem, unique_level_rows
 
 _log = logging.getLogger(__name__)
 
@@ -27,21 +27,28 @@ class XYWeight(NamedTuple):
     weight: Optional[Union[MlTypes.PatchedDataFrame, List[MlTypes.PatchedDataFrame]]] = None
 
     def with_common_index(self, sort_index=False) -> Tuple['XYWeight', MlTypes.PdIndex]:
-        ci = intersection_of_index(
-            *none_as_empty_list(self.x), *none_as_empty_list(self.y), *none_as_empty_list(self.weight)
-        )
-
+        ci = self.common_index
         return (
             XYWeight(*[loc_if_not_none(f, ci) for f in [self.x, self.y, self.weight]]),
             ci.sort_values() if sort_index else ci
         )
 
     @property
-    def loc(self) -> GetItem['XYWeight']:
+    def has_multi_index(self):
+        return isinstance(self.common_index, pd.MultiIndex)
+
+    @property
+    def common_index(self):
+        return intersection_of_index(
+            *none_as_empty_list(self.x), *none_as_empty_list(self.y), *none_as_empty_list(self.weight)
+        )
+
+    @property
+    def loc(self) -> 'XYWeight':
         return GetItem(lambda idx: XYWeight(*[loc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
 
     @property
-    def iloc(self) -> GetItem['XYWeight']:
+    def iloc(self) -> 'XYWeight':
         return GetItem(lambda idx: XYWeight(*[iloc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
 
     def to_dict(self, loc=None):
@@ -63,6 +70,7 @@ class Sampler(object):
             epochs: int = 1,
             batch_size: int = None,
             fold_epochs: int = 1,
+            partition_row_multi_index: bool = False,
             on_start: Callable = None,
             on_epoch: Callable = None,
             on_batch: Callable = None,
@@ -80,6 +88,7 @@ class Sampler(object):
         self.fold_epochs = fold_epochs
         self.splitter = splitter
         self.filter = filter
+        self.partition_row_multi_index = partition_row_multi_index
 
         # callbacks
         self.on_start = on_start
@@ -141,6 +150,7 @@ class Sampler(object):
             self.epochs,
             self.batch_size,
             self.fold_epochs,
+            self.partition_row_multi_index,
             on_start,
             on_epoch,
             on_batch,
@@ -209,7 +219,14 @@ class Sampler(object):
                     batch_iter = range(0, nr_instances, bs)
                     for i in batch_iter:
                         call_callable_dynamic_args(self.on_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
-                        yield FoldXYWeight(epoch, fold, fold_epoch, *cv_train_frames.iloc[i if i < nice_i else i - 1:i + bs])
+                        training_frames_batch = cv_train_frames.iloc[i if i < nice_i else i - 1:i + bs]
+
+                        if self.partition_row_multi_index and training_frames_batch.has_multi_index:
+                            for group in unique_level_rows(training_frames_batch.common_index):
+                                yield FoldXYWeight(epoch, fold, fold_epoch, *training_frames_batch.loc[[group]])
+                        else:
+                            yield FoldXYWeight(epoch, fold, fold_epoch, *training_frames_batch)
+
                         call_callable_dynamic_args(self.after_batch, epoch=epoch, fold=fold, fold_epoch=fold_epoch, batch=i)
 
                     # end of fold epoch

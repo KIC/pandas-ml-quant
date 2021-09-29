@@ -30,7 +30,7 @@ def stratified_random_splitter(test_size=0.3, partition_row_multi_index=False, s
     return _multi_index_splitter(splitter) if partition_row_multi_index else splitter
 
 
-def random_splitter(test_size=0.3, youngest_size: float = None, partition_row_multi_index=False, seed=42) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
+def random_splitter(test_size=0.3, youngest_size: float = None, partition_row_multi_index: bool = False, seed=42) -> Callable[[pd.Index], Tuple[pd.Index, pd.Index]]:
     from sklearn.model_selection import train_test_split
 
     youngest_split_size = test_size * youngest_size if youngest_size is not None else 0

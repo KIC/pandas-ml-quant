@@ -23,7 +23,7 @@ class MLCompatibleValues(object):
         """
         return self.get_values()
 
-    def get_values(self, split_multi_index_rows=True, squeeze=False, dtype=None):
+    def get_values(self, split_multi_index_rows=False, squeeze=False, dtype=None):
         # get raw values
         values = unpack_nested_arrays(self.df, split_multi_index_rows, dtype)
 

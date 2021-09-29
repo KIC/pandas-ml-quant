@@ -15,6 +15,7 @@ def sampling(df: MlTypes.PatchedDataFrame,
              epochs: int = 1,
              batch_size: int = None,
              fold_epochs: int = 1,
+             partition_row_multi_index_batch: bool = False,
              **kwargs) -> Tuple[FeaturesWithLabels, Sampler]:
     """
     This is all you need to get a training loop based on a single dataframe
@@ -28,6 +29,8 @@ def sampling(df: MlTypes.PatchedDataFrame,
     :param epochs: nr of epochs the generator will yield batches of the training data
     :param batch_size: size of the batches
     :param fold_epochs: nr of epochs the generator will loop batches of one cross-fold within the loop of overall epochs
+    :param partition_row_multi_index_batch: in cases of timeseries or stationary data it may be necessary to split batches
+        further into the level 0 parts of the multi index
     :param kwargs: keyword arguments to be passed to the extraction functions
     :return: returns a Sampler which yields batches of training data
     """
@@ -45,5 +48,6 @@ def sampling(df: MlTypes.PatchedDataFrame,
         cross_validation=cross_validation,
         epochs=epochs,
         fold_epochs=fold_epochs,
-        batch_size=batch_size
+        batch_size=batch_size,
+        partition_row_multi_index=partition_row_multi_index_batch
     )
