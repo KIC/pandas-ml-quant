@@ -178,9 +178,6 @@ class Extractor(object):
         # calculate the common index over all frames
         common_index = intersection_of_index(*features, recon_tgt)
 
-        if len(common_index) <= 0:
-            raise ValueError("not enough data!")
-
         return FeaturesWithReconstructionTargets(
             [f.loc[common_index] for f in features],
             loc_if_not_none(recon_tgt, common_index),
@@ -200,9 +197,6 @@ class Extractor(object):
 
         # calculate the common index over all frames
         common_index = intersection_of_index(*labels, *none_as_empty_list(weights), *none_as_empty_list(gross_loss))
-
-        if len(common_index) <= 0:
-            raise ValueError("not enough data!")
 
         # set label types could be single element or list with same length as labels
         if label_types is not None:

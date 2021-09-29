@@ -93,15 +93,15 @@ class Fittable(Model):
         # extract the used training data
         training_data = frames.features_with_required_samples.loc[sampler.get_in_sample_features_index]
         df_training_prediction = \
-            to_pandas(self.train_predict(training_data, **merged_kwargs), training_data.common_index, self.label_names())
+            to_pandas(self.train_predict(training_data, **merged_kwargs), training_data.common_index, self.label_names)
 
         # extract the used test data
         test_data = frames.features_with_required_samples.loc[sampler.get_out_of_sample_features_index]
         if len(test_data) > 0:
             df_test_prediction = \
-                to_pandas(self.predict(test_data, **merged_kwargs), test_data.common_index, self.label_names())
+                to_pandas(self.predict(test_data, **merged_kwargs), test_data.common_index, self.label_names)
         else:
-            df_test_prediction = pd.DataFrame({}, columns=self.label_names())
+            df_test_prediction = pd.DataFrame({}, columns=self.label_names)
 
         # assemble the result frames and return the result
         feature_frames = frames.features_with_required_samples

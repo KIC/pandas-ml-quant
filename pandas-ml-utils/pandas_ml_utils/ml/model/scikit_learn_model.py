@@ -10,6 +10,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.neural_network import MLPRegressor
 
 from pandas_ml_common import XYWeight, MlTypes
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets
 from pandas_ml_common.utils import call_callable_dynamic_args, unpack_nested_arrays, to_pandas
 from pandas_ml_common.utils.logging_utils import LogOnce
 from .base_model import ModelProvider
@@ -82,7 +83,7 @@ class SkModelProvider(ModelProvider):
         pass
 
     def predict(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
-        _x = np.concatenate([reshape_rnn_as_ar(frame.ML.values) for frame in features], axis=-1)
+        _x = list_of_frames_to_numpy(features)
         return self._predict(_x, samples, **kwargs)
 
     def _predict(self, x: np.ndarray, samples: int, **kwargs) -> np.ndarray:
@@ -117,7 +118,7 @@ class SkAutoEncoderProvider(SkModelProvider):
         self.decoder_layers = decode_layers
         self.layers = [*encode_layers, *decode_layers]
 
-    def encode(self, features: MlTypes.PatchedDataFrame, samples: int = 1, **kwargs) -> np.ndarray:
+    def encode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
         skm = self.sk_model
         if not hasattr(skm, 'coefs_'):
             raise ValueError("Model needs to be 'fit' first!")
@@ -126,12 +127,12 @@ class SkAutoEncoderProvider(SkModelProvider):
         encoder.coefs_ = skm.coefs_[:len(self.encoder_layers)].copy()
         encoder.intercepts_ = skm.intercepts_[:len(self.encoder_layers)].copy()
         encoder.n_layers_ = len(encoder.coefs_) + 1
-        encoder.n_outputs_ = len(self.features_and_labels.latent_names)
+        encoder.n_outputs_ = self.encoder_layers[-1]
         encoder.out_activation_ = skm.activation
 
-        return encoder.predict(reshape_rnn_as_ar(features.ML.values))
+        return encoder.predict(list_of_frames_to_numpy(features))
 
-    def decode(self, features: MlTypes.PatchedDataFrame, samples: int = 1, **kwargs) -> np.ndarray:
+    def decode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
         skm = self.sk_model
         if not hasattr(skm, 'coefs_'):
             raise ValueError("Model needs to be 'fit' first!")
@@ -140,10 +141,10 @@ class SkAutoEncoderProvider(SkModelProvider):
         decoder.coefs_ = skm.coefs_[len(self.encoder_layers):].copy()
         decoder.intercepts_ = skm.intercepts_[len(self.encoder_layers):].copy()
         decoder.n_layers_ = len(decoder.coefs_) + 1
-        decoder.n_outputs_ = self.layers[-1]
+        decoder.n_outputs_ = self.decoder_layers[-1]
         decoder.out_activation_ = skm.out_activation_
 
-        return decoder.predict(reshape_rnn_as_ar(features.ML.values))
+        return decoder.predict(list_of_frames_to_numpy(features))
 
 
 def reshape_rnn_as_ar(arr3d):
@@ -154,8 +155,12 @@ def reshape_rnn_as_ar(arr3d):
 
 
 def reshapeXYWeight(xyw: XYWeight) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    _x = np.concatenate([reshape_rnn_as_ar(frame.ML.values) for frame in xyw.x], axis=-1)
-    _y = np.concatenate([reshape_rnn_as_ar(frame.ML.values) for frame in xyw.y], axis=-1)
-    _w = np.concatenate([reshape_rnn_as_ar(frame.ML.values) for frame in xyw.weight], axis=-1) if xyw.weight is not None else None
+    return (
+        list_of_frames_to_numpy(xyw.x),
+        list_of_frames_to_numpy(xyw.y),
+        list_of_frames_to_numpy(xyw.weight),
+    )
 
-    return _x, _y, _w
+
+def list_of_frames_to_numpy(frames: List[MlTypes.PatchedDataFrame]):
+    return np.concatenate([reshape_rnn_as_ar(f.ML.values) for f in frames], axis=-1) if frames is not None else None

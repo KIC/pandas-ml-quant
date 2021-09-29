@@ -4,6 +4,7 @@ from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.datasets import make_regression, make_classification
 from pandas_ml_common import np, pd, naive_splitter, stratified_random_splitter, FeaturesLabels
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
 from pandas_ml_utils import SkModelProvider, SkAutoEncoderProvider, FittableModel, ClassificationSummary, RegressionSummary, FittingParameter
@@ -48,15 +49,15 @@ class TestSkModel(TestAbstractModel):
 
         with df.model() as m:
             fit = m.fit(
-                FittableModel(
+                AutoEncoderModel(
                     SkAutoEncoderProvider([2, 1], [2],),
                     FeaturesLabels(
                         features=[
-                            lambda df: df["variance"],
-                            lambda df: (df["skewness"] / df["kurtosis"]).rename("engineered")
+                            "variance",
+                            "skewness"
                         ],
                         labels=[
-                            'authentic'
+                            'compressed'
                         ]
                     )
                 ),
@@ -68,11 +69,35 @@ class TestSkModel(TestAbstractModel):
 
         print(fit)
 
-        prediction = df.model.predict(fit.model)
-        print(prediction)
+        autoencoded = df.model.predict(fit.model)
+        print(autoencoded.columns.tolist())
 
         backtest = df.model.backtest(fit.model)
-        # self.assertLess(backtest.model._cross_validation_models[0].sk_model.coef_[0], 1e-5)
+        print(backtest.df.columns.tolist())
+
+        encoded = df.model.predict(fit.model.as_encoder())
+        print(encoded.columns.tolist())
+
+        decoded = encoded[PREDICTION_COLUMN_NAME].model.predict(fit.model.as_decoder())
+        print(decoded.columns.tolist())
+
+        self.assertListEqual(
+            [('prediction', 'variance'), ('prediction', 'skewness'), ('feature', 'variance'), ('feature', 'skewness')],
+            autoencoded.columns.tolist()
+        )
+        self.assertListEqual(
+            [('prediction', 'variance'), ('prediction', 'skewness'), ('label', 'variance'), ('label', 'skewness'), ('feature', 'variance'), ('feature', 'skewness')],
+            backtest.df.columns.tolist()
+        )
+        self.assertListEqual(
+            [('prediction', 'compressed'), ('feature', 'variance'), ('feature', 'skewness')],
+            encoded.columns.tolist()
+        )
+        self.assertListEqual(
+            [('prediction', 'variance'), ('prediction', 'skewness'), ('feature', 'compressed')],
+            decoded.columns.tolist()
+        )
+
 
     #def test_partial_fit_regression(self):
     #    data = make_regression(100, 2, 1)

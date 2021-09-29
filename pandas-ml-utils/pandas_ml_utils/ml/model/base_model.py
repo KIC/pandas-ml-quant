@@ -96,7 +96,7 @@ class FittableModel(Fittable):
             m.init_fit(fitting_parameter, **kwargs)
 
     def fit_batch(self, xyw: FoldXYWeight, **kwargs):
-        self._cross_validation_models[xyw.fold].fit_batch(xyw)
+        self._cross_validation_models[xyw.fold].fit_batch(xyw, **kwargs)
 
     def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         self._cross_validation_models[fold].after_epoch(epoch, fold_epoch, train_data, test_data)
@@ -153,16 +153,28 @@ class AutoEncoderModel(Fittable):
                 gross_loss_postprocessor=None,
                 reconstruction_targets=None,
                 reconstruction_targets_postprocessor=None,
-                # ??? label_type=features_and_labels_definition.label_type,
+                label_type=features_and_labels_definition.label_type[0] if features_and_labels_definition.label_type is not None else None
             ),
             **kwargs
         )
+
+        # the primary goal of an AutoEncoder is to encode features, this is how the features and labels should be
+        # defined in the first place
         self.encoder_features_and_labels_definition = FeaturesLabels(
-                # Note that for the AutoEncoder encoding we make Features -> Labels
-                features=features_and_labels_definition.features,
-                features_postprocessor=features_and_labels_definition.features_postprocessor,
-                ## ??? label_type=features_and_labels_definition.label_type,
-            )
+            features=features_and_labels_definition.features,
+            features_postprocessor=features_and_labels_definition.features_postprocessor,
+            labels=features_and_labels_definition.labels,
+            labels_postprocessor=features_and_labels_definition.labels_postprocessor,
+            sample_weights=features_and_labels_definition.sample_weights,
+            sample_weights_postprocessor=features_and_labels_definition.sample_weights_postprocessor,
+            gross_loss=features_and_labels_definition.gross_loss,
+            gross_loss_postprocessor=features_and_labels_definition.gross_loss_postprocessor,
+            reconstruction_targets=features_and_labels_definition.reconstruction_targets,
+            reconstruction_targets_postprocessor=features_and_labels_definition.reconstruction_targets_postprocessor,
+            label_type=features_and_labels_definition.label_type[1] if features_and_labels_definition.label_type is not None else None
+        )
+
+        # decoding is the secondary target and needs to reverse the features and labels definition
         self.decoder_features_and_labels_definition = FeaturesLabels(
                 # Note that for the AutoEncoder decoding we make Labels -> Features
                 features=features_and_labels_definition.labels,
@@ -171,15 +183,18 @@ class AutoEncoderModel(Fittable):
                 gross_loss_postprocessor=features_and_labels_definition.gross_loss_postprocessor,
                 reconstruction_targets=features_and_labels_definition.reconstruction_targets,
                 reconstruction_targets_postprocessor=features_and_labels_definition.reconstruction_targets_postprocessor,
-                ## ??? label_type=features_and_labels_definition.label_type,
+                label_type=features_and_labels_definition.label_type[0] if features_and_labels_definition.label_type is not None else None
             )
+
+        # define the mode of the AutoEncoder initially as AutoEncoding because initially we need to train the AE first
+        self.mode = AutoEncoderModel.AUTOENCODE
+
+        # the the rest of the fields
         self.model_provider = model_provider
         self.cross_validation_aggregator = cross_validation_aggregator
         self._cross_validation_models: Dict[int, ModelProvider] = defaultdict(
             lambda: call_callable_dynamic_args(self.model_provider, **self.kwargs)
         )
-
-        self.mode = AutoEncoderModel.AUTOENCODE
 
     @property
     def features_and_labels_definition(self) -> FeaturesLabels:
@@ -190,10 +205,10 @@ class AutoEncoderModel(Fittable):
         else:
             return self._features_and_labels_definition
 
-    def label_names(self, df: MlTypes.PatchedDataFrame = None) -> List[Any]:
+    @property
+    def label_names(self) -> List[Any]:
         if self.mode == AutoEncoderModel.ENCODE:
-            label_frames = df.ML.extract(self.features_and_labels_definition).extract_labels().labels
-            return [(i, col) if len(label_frames) > 1 else col for i, l in enumerate(label_frames) for col in l]
+            return self.features_and_labels_definition.labels
         else:
             return self._label_names
 
@@ -214,7 +229,7 @@ class AutoEncoderModel(Fittable):
             m.init_fit(fitting_parameter, **kwargs)
 
     def fit_batch(self, xyw: FoldXYWeight, **kwargs):
-        self._cross_validation_models[xyw.fold].fit_batch(xyw.x, xyw.y, xyw.weight)
+        self._cross_validation_models[xyw.fold].fit_batch(xyw)
 
     def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         self._cross_validation_models[fold].after_epoch(epoch, fold_epoch, train_data, test_data)
@@ -231,12 +246,12 @@ class AutoEncoderModel(Fittable):
 
     def predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
         def encode_decode_autoencode(mp: ModelProvider, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
-            if self.mode == AutoEncoderModel.ENCODE:
-                return mp.predict(features, samples, **kwargs)
-            elif self.mode == AutoEncoderModel.DECODE:
-                return mp.encode(features, samples, **kwargs)
+            if self.mode == AutoEncoderModel.AUTOENCODE:
+                return mp.predict(features.features, samples, **kwargs)
+            elif self.mode == AutoEncoderModel.ENCODE:
+                return mp.encode(features.features, samples, **kwargs)
             else:
-                return mp.decode(features, samples, **kwargs)
+                return mp.decode(features.features, samples, **kwargs)
 
         return self.cross_validation_aggregator(
             np.stack(
@@ -246,6 +261,12 @@ class AutoEncoderModel(Fittable):
 
     def train_predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
         return self.predict(features=features, samples=samples, **kwargs)
+
+    def init_fold(self, epoch: int, fold: int):
+        pass
+
+    def after_epoch(self, epoch: int):
+        pass
 
 
 class ConcatenatedMultiModel(Model):
