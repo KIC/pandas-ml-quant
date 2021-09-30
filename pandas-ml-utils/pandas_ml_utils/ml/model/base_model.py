@@ -6,11 +6,13 @@ from functools import partial
 from typing import Callable, Tuple, List, Dict, Optional, Any, Set, Union
 
 import numpy as np
+import pandas as pd
 
 from pandas_ml_common import MlTypes, FeaturesLabels, call_callable_dynamic_args
-from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets, FeaturesWithLabels
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets, FeaturesWithLabels, \
+    LabelsWithSampleWeights
 from pandas_ml_common.sampling.sampler import XYWeight, FoldXYWeight
-from pandas_ml_common.utils import merge_kwargs
+from pandas_ml_common.utils import merge_kwargs, pd_concat, safe_max
 from pandas_ml_utils.ml.fitting.fitting_parameter import FittingParameter
 from pandas_ml_utils.ml.model.fittable import Fittable
 from pandas_ml_utils.ml.model.predictable import Model
@@ -296,89 +298,79 @@ class ConcatenatedMultiModel(Fittable):
             zip(*[m.fit_to_df(df, fitting_parameter, verbose, callbacks, **kwargs) for m in self.models])
         )
 
-        return None
+        join_args = dict(axis=1, names=range(len(self.models)))
+        return pd.concat(train_frames, **join_args), pd.concat(test_frames, **join_args)
 
     def predict_of_df(self,
                       df: MlTypes.PatchedDataFrame,
                       tail: int = None,
                       samples: int = 1,
                       include_labels: bool = False, **kwargs) -> Tuple[Union[FeaturesWithLabels, FeaturesWithReconstructionTargets], MlTypes.PatchedDataFrame]:
+        # frames: Union[FeaturesWithLabels, FeaturesWithReconstructionTargets]
         frames, predictions_df = list(
-            [m.predict_of_df(df, tail, samples, include_labels, **kwargs) for m in self.models]
+            zip(*[m.predict_of_df(df, tail, samples, include_labels, **kwargs) for m in self.models])
         )
 
-        return None
-
-class __ConcatenatedMultiModel(Model):
-    # FIXME now we still need to fix the way how the features and labels get extracted by providing the kwargs to the extractor!!
-    def __init__(self,
-                 model_provider: Callable[..., ModelProvider],
-                 features_and_labels_definition: FeaturesLabels,
-                 range_arguments: List[Dict[str, Any]],
-                 cross_validation_aggregator: Callable[[np.ndarray], np.ndarray] = partial(np.mean, axis=0),
-                 **kwargs):
-        super().__init__(features_and_labels_definition, **kwargs)
-        self.model_provider = model_provider
-        self.cross_validation_aggregator = cross_validation_aggregator
-        self.range_arguments = range_arguments
-        self._cross_validation_models: Dict[int, List[ModelProvider]] = defaultdict(
-            lambda: [call_callable_dynamic_args(self.model_provider, **self.kwargs, **kwa) for kwa in range_arguments]
-        )
+        join_args = dict(axis=1, names=range(len(self.models)))
+        if isinstance(frames[0], FeaturesWithLabels):
+            return (
+                FeaturesWithLabels(
+                    FeaturesWithReconstructionTargets(
+                        [pd_concat(f.features_with_required_samples.features) for f in frames],
+                        pd_concat([f.features_with_required_samples.reconstruction_targets for f in frames]),
+                        safe_max([f.features_with_required_samples.min_required_samples for f in frames])
+                    ),
+                    LabelsWithSampleWeights(
+                        [pd_concat(f.labels_with_sample_weights.labels) for f in frames],
+                        [pd_concat(f.labels_with_sample_weights.sample_weights) for f in frames],
+                        pd_concat([f.labels_with_sample_weights.gross_loss for f in frames]),
+                    )
+                ),
+                pd.concat(predictions_df, **join_args)
+            )
+        else:
+            return (
+                FeaturesWithReconstructionTargets(
+                    [pd_concat(f.features) for f in frames],
+                    pd_concat([f.reconstruction_targets for f in frames]),
+                    safe_max([f.min_required_samples for f in frames])
+                ),
+                pd.concat(predictions_df, **join_args)
+            )
 
     def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
-        for key in self._cross_validation_models.keys():
-            for m, range_kwargs in zip(self._cross_validation_models[key], self.range_arguments):
-                m.init_fit(fitting_parameter, **kwargs, **range_kwargs)
-
-    def fit_batch(self, xyw: FoldXYWeight, **kwargs):
-        for m, range_kwargs in zip(self._cross_validation_models[xyw.fold], self.range_arguments):
-            m.fit_batch(xyw, **kwargs, **range_kwargs)
-
-    def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
-        for m in self._cross_validation_models[fold]:
-            m.after_epoch(epoch, fold_epoch, train_data, test_data)
-
-    def finish_learning(self, **kwargs):
-        for key in self._cross_validation_models.keys():
-            for m, range_kwargs in zip(self._cross_validation_models[key], self.range_arguments):
-                m.finish_learning(**kwargs, **range_kwargs)
-
-    def predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
-        # after stacking we have one prediction per batch in the shape of [batch_dim, prediction_dim]
-        aggregated = np.array([self.cross_validation_aggregator(
-            np.stack(
-                [mp.predict(features.features, samples, **kwargs) for mp in self._cross_validation_models.values()],
-                axis=0
-            )
-        ) for i, _ in enumerate(self.range_arguments)])
-
-        # the aggregated values will then have the shape [len_range_param, batch_dim, prediction_dim]
-        # therefore we have to swap the axis 0 and 1 such that we get [batch_dim, len_range_param, prediction_dim]
-        return aggregated.swapaxes(0, 1)
-
-    def train_predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
-        # after stacking we have one prediction per batch in the shape of [batch_dim, prediction_dim]
-        aggregated = np.array([self.cross_validation_aggregator(
-            np.stack(
-                [mp.train_predict(features.features, samples, **kwargs) for mp in self._cross_validation_models.values()],
-                axis=0
-            )
-        ) for i, _ in enumerate(self.range_arguments)])
-
-        # the aggregated values will then have the shape [len_range_param, batch_dim, prediction_dim]
-        # therefore we have to swap the axis 0 and 1 such that we get [batch_dim, len_range_param, prediction_dim]
-        return aggregated.swapaxes(0, 1)
-
-    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight]) -> MlTypes.Loss:
-        return (
-            np.mean([m.calculate_loss(train_data) for m in self._cross_validation_models[fold]]),
-            [np.mean([m.calculate_loss(td) for m in self._cross_validation_models[fold]]) for td in test_data],
-        )
+        # invoked by `fit_to_df`
+        pass
 
     def init_fold(self, epoch: int, fold: int):
+        # invoked by `fit_to_df`
+        pass
+
+    def fit_batch(self, xyw: FoldXYWeight, **kwargs):
+        # invoked by `fit_to_df`
+        pass
+
+    def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
+        # invoked by `fit_to_df`
         pass
 
     def after_epoch(self, epoch: int):
+        # invoked by `fit_to_df`
         pass
 
+    def train_predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
+        # invoked by `fit_to_df`
+        pass
+
+    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight]) -> MlTypes.Loss:
+        # invoked by `fit_to_df`
+        pass
+
+    def finish_learning(self, **kwargs):
+        # invoked by `fit_to_df`
+        pass
+
+    def predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
+        # invoked by `predict_of_df`
+        pass
 

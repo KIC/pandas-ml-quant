@@ -65,7 +65,8 @@ class Fittable(Model):
             epochs=fitting_parameter.epochs,
             fold_epochs=fitting_parameter.fold_epochs,
             batch_size=fitting_parameter.batch_size,
-            partition_row_multi_index_batch=fitting_parameter.partition_row_multi_index_batch
+            partition_row_multi_index_batch=fitting_parameter.partition_row_multi_index_batch,
+            **merged_kwargs
         )
 
         # remember min required samples and label names

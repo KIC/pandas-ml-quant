@@ -16,3 +16,9 @@ def make_same_length(item, reference_list):
     else:
         raise ValueError(f"incompatible length {len(item)}, {len(reference_list)}")
 
+
+def safe_max(l):
+    if l is None:
+        return None
+    l = [e for e in l if e is not None]
+    return max(l) if len(l) > 0 else None

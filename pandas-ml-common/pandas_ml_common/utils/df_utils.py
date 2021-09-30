@@ -1,10 +1,39 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
 from pandas.util import hash_pandas_object
+from .index_utils import add_multi_index, flatten_multi_column_index
 
 
-def pd_concat(frames: pd.DataFrame, default=None, *args, **kwargs):
-    return pd.concat(frames, *args, **kwargs) if len(frames) > 0 else default
+#def pd_concat(frames: pd.DataFrame, default=None, *args, **kwargs):
+#    return pd.concat(frames, *args, **kwargs) if len(frames) > 0 else default
+
+
+def pd_concat(frames, multiindex_columns=True, join='outer', **kwargs):
+    if frames is None:
+        return None
+
+    if not isinstance(frames, List):
+        return frames
+
+    if len(frames) <= 0:
+        return None
+
+    valid_frames = \
+        [flatten_multi_column_index(f, as_string=True, prefix=None if multiindex_columns else i) for i, f in
+         enumerate(frames) if f is not None]
+
+    if len(valid_frames) <= 0:
+        return None
+
+    return pd.concat(
+        valid_frames,
+        axis=1,
+        join=join,
+        names=list(range(len(frames))) if multiindex_columns else None,
+        **kwargs
+    ) if len(frames) > 1 else frames[0]
 
 
 def fix_multiindex_row_asymetry(df, default=np.NaN, sort=False):

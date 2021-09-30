@@ -2,12 +2,11 @@ import logging
 from typing import NamedTuple, List, TypeVar, Type, Optional, Dict, Tuple, Set, Union, Iterable, Callable
 
 import numpy as np
-import pandas as pd
 
 from ..typing import MlTypes
 from ..utils import call_if_not_none, get_pandas_object, intersection_of_index, loc_if_not_none, is_in_index, \
     make_same_length, call_callable_dynamic_args, none_as_empty_list, flatten_nested_list, none_as_empty_dict, GetItem, \
-    add_multi_index, flatten_multi_column_index
+    pd_concat
 
 _log = logging.getLogger(__name__)
 
@@ -40,11 +39,7 @@ class FeaturesWithReconstructionTargets(NamedTuple):
 
     @property
     def joint_feature_frame(self):
-        return pd.concat(
-            [add_multi_index(flatten_multi_column_index(f, as_string=True), i) for i, f in enumerate(self.features)],
-            axis=1,
-            join='outer'
-        ) if len(self.features) > 1 else self.features[0]
+        return pd_concat(self.features, multiindex_columns=True)
 
     @property
     def common_index(self):
@@ -78,20 +73,11 @@ class LabelsWithSampleWeights(NamedTuple):
 
     @property
     def joint_label_frame(self):
-        return pd.concat(
-            [add_multi_index(flatten_multi_column_index(f, as_string=True), i) for i, f in enumerate(self.labels)],
-            axis=1,
-            join='outer'
-        ) if len(self.labels) > 1 else self.labels[0]
+        return pd_concat(self.labels)
 
     @property
     def joint_sample_weights_frame(self):
-        if self.sample_weights is None: return None
-        return pd.concat(
-            [add_multi_index(flatten_multi_column_index(f, as_string=True), i) for i, f in enumerate(self.sample_weights)],
-            axis=1,
-            join='outer'
-        ) if len(self.sample_weights) > 1 else self.sample_weights[0]
+        return pd_concat(self.sample_weights)
 
     @property
     def shape(self) -> Dict:
@@ -108,7 +94,11 @@ class FeaturesWithLabels(NamedTuple):
 
     @property
     def common_index(self):
-        return intersection_of_index(*self.features, *self.labels)
+        return intersection_of_index(self.common_features_index, *self.labels)
+
+    @property
+    def common_features_index(self):
+        return intersection_of_index(*self.features)
 
     @property
     def features(self) -> List[MlTypes.PatchedDataFrame]:

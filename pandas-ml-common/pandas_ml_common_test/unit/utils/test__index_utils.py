@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pandas_ml_common import pd
+from pandas_ml_common import pd, flatten_multi_column_index
 from pandas_ml_common.utils import intersection_of_index, loc_if_not_none, add_multi_index, get_pandas_object, Constant, \
     same_columns_after_level
 
@@ -58,3 +58,22 @@ class TestDfIndexUtils(TestCase):
 
         self.assertTrue(same_columns_after_level(df1))
         self.assertFalse(same_columns_after_level(df2))
+
+    def test_flatten_multiindex(self):
+        df = pd.DataFrame({}, index=range(4), columns=pd.MultiIndex.from_product([["a", "b"], range(3)]))
+        self.assertListEqual(
+            [('a', 0), ('a', 1), ('a', 2), ('b', 0), ('b', 1), ('b', 2)],
+            flatten_multi_column_index(df.copy()).columns.tolist()
+        )
+        self.assertListEqual(
+            ['a, 0', 'a, 1', 'a, 2', 'b, 0', 'b, 1', 'b, 2'],
+            flatten_multi_column_index(df.copy(), as_string=True).columns.tolist()
+        )
+        self.assertListEqual(
+            [(12, 'a', 0), (12, 'a', 1), (12, 'a', 2), (12, 'b', 0), (12, 'b', 1), (12, 'b', 2)],
+            flatten_multi_column_index(df.copy(), prefix=12).columns.tolist()
+        )
+        self.assertListEqual(
+            ['12, a, 0', '12, a, 1', '12, a, 2', '12, b, 0', '12, b, 1', '12, b, 2'],
+            flatten_multi_column_index(df.copy(), as_string=True, prefix=12).columns.tolist()
+        )

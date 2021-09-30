@@ -174,6 +174,12 @@ class TestSkModel(TestAbstractModel, TestCase):
     def test_multindex_row_multi_samples(self):
         super().test_multindex_row_multi_samples()
 
+    def test_stacked_models(self):
+        super().test_stacked_models()
+
+    def test_concatenated_multi_models(self):
+        super().test_concatenated_multi_models()
+
     def provide_classification_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         model = SkModelProvider(
             MLPClassifier(activation='logistic', max_iter=1000, hidden_layer_sizes=(3,), alpha=0.001, solver='lbfgs', random_state=42),

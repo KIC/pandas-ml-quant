@@ -97,7 +97,12 @@ class Model(metaclass=ABCMeta):
             frames = extractor.extract_features(tail=tail)
             predictions = self.predict(frames, samples=samples, **merged_kwargs)
 
-        predictions_df = to_pandas(predictions, frames.common_index, self.label_names)
+        predictions_df = to_pandas(
+            predictions,
+            frames.common_features_index if isinstance(frames, FeaturesWithLabels) else frames.common_index,
+            self.label_names
+        )
+
         return frames, predictions_df
 
     @abstractmethod

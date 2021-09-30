@@ -297,9 +297,13 @@ class TestAbstractModel(object):
                         FeaturesLabels(
                             features=[
                                 "a",
-                                SubModelFeature("b", self.provide_classification_model(
-                                    FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
-                                ))
+                                SubModelFeature(
+                                    "b",
+                                    FittableModel(
+                                        self.provide_classification_model()[0],
+                                        FeaturesLabels(features=["a", "b"], labels=["c"], label_type=int)
+                                    )
+                                )
                             ],
                             labels=["c"],
                             label_type=int
@@ -308,10 +312,10 @@ class TestAbstractModel(object):
                     FittingParameter(**params)
                 )
 
-            self.assertIn("INFO:pandas_ml_utils.ml.model.base_model:fitting submodel: b", cm.output[1])
+            self.assertIn('INFO:pandas_ml_utils.ml.model.predictable:fitting submodel: b', cm.output[1])
             self.assertIn(
-                "INFO:pandas_ml_utils.ml.model.base_model:fitted submodel",
-                [s for s in cm.output if s.startswith("INFO:pandas_ml_utils.ml.model.base_model:fitted")][0]
+                "INFO:pandas_ml_utils.ml.model.predictable:fitted submodel:",
+                [s for s in cm.output if s.startswith("INFO:pandas_ml_utils.ml.model.predictable:fitted")][0]
             )
 
         prediction = df.model.predict(fit.model)
@@ -325,19 +329,23 @@ class TestAbstractModel(object):
             "b": np.linspace(0.1, 0.6, 50),
         })
 
-        model = ConcatenatedMultiModel(
-            model_provider=self.provide_regression_model,
-            kwargs_list=[{'period': x} for x in range(4)],
-            features_and_labels=FeaturesLabels(
-                features=["a"],
-                labels=[lambda df, period: (df["b"].shift(period) - df["a"]).rename(f'b_{period}')]
-            )
-        )
-
+        model, params = self.provide_regression_model()
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 
         with df.model(temp) as m:
-            fit = m.fit(model)
+            fit = m.fit(
+                ConcatenatedMultiModel(
+                    [FittableModel(
+                        model,
+                        FeaturesLabels(
+                            features=["a"],
+                            labels=[lambda df, period: (df["b"].shift(period) - df["a"]).rename(f'b_{period}')]
+                        ),
+                        period=x,
+                    ) for x in range(4)],
+                ),
+                FittingParameter(**params)
+            )
 
         bt = df.model.backtest(fit.model)
         #print(bt.df[LABEL_COLUMN_NAME])
