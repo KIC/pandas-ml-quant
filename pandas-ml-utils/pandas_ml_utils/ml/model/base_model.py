@@ -3,17 +3,19 @@ from abc import abstractmethod, ABCMeta
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
-from typing import Callable, Tuple, List, Dict, Optional, Any
+from typing import Callable, Tuple, List, Dict, Optional, Any, Set, Union
 
 import numpy as np
 
 from pandas_ml_common import MlTypes, FeaturesLabels, call_callable_dynamic_args
-from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets, FeaturesWithLabels
 from pandas_ml_common.sampling.sampler import XYWeight, FoldXYWeight
 from pandas_ml_common.utils import merge_kwargs
 from pandas_ml_utils.ml.fitting.fitting_parameter import FittingParameter
 from pandas_ml_utils.ml.model.fittable import Fittable
 from pandas_ml_utils.ml.model.predictable import Model
+from ..forecast import Forecast
+from ..summary import Summary
 
 _log = logging.getLogger(__name__)
 
@@ -83,8 +85,10 @@ class FittableModel(Fittable):
                  model_provider: Callable[..., ModelProvider],
                  features_and_labels_definition: FeaturesLabels,
                  cross_validation_aggregator: Callable[[np.ndarray], np.ndarray] = partial(np.mean, axis=0),
+                 summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
                  **kwargs):
-        super().__init__(features_and_labels_definition, **kwargs)
+        super().__init__(features_and_labels_definition, summary_provider, forecast_provider, **kwargs)
         self.model_provider = model_provider
         self.cross_validation_aggregator = cross_validation_aggregator
         self._cross_validation_models: Dict[int, ModelProvider] = defaultdict(
@@ -139,6 +143,8 @@ class AutoEncoderModel(Fittable):
                  model_provider: Callable[..., ModelProvider],
                  features_and_labels_definition: FeaturesLabels,
                  cross_validation_aggregator: Callable[[np.ndarray], np.ndarray] = partial(np.mean, axis=0),
+                 summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
                  **kwargs):
         super().__init__(
             FeaturesLabels(
@@ -155,6 +161,8 @@ class AutoEncoderModel(Fittable):
                 reconstruction_targets_postprocessor=None,
                 label_type=features_and_labels_definition.label_type[0] if features_and_labels_definition.label_type is not None else None
             ),
+            summary_provider,
+            forecast_provider,
             **kwargs
         )
 
@@ -269,8 +277,108 @@ class AutoEncoderModel(Fittable):
         pass
 
 
-class ConcatenatedMultiModel(Model):
+class ConcatenatedMultiModel(Fittable):
 
-    pass
+    def __init__(self,
+                 models: List[Fittable],
+                 summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
+                 **kwargs):
+        super().__init__(None, summary_provider, forecast_provider, **kwargs)
+        self.models = models
+
+    def fit_to_df(self,
+                  df: MlTypes.PatchedDataFrame,
+                  fitting_parameter: FittingParameter,
+                  verbose: int = 0,
+                  callbacks: Optional[Callable[..., None]] = None, **kwargs) -> Tuple[MlTypes.PatchedDataFrame, MlTypes.PatchedDataFrame]:
+        train_frames, test_frames = list(
+            zip(*[m.fit_to_df(df, fitting_parameter, verbose, callbacks, **kwargs) for m in self.models])
+        )
+
+        return None
+
+    def predict_of_df(self,
+                      df: MlTypes.PatchedDataFrame,
+                      tail: int = None,
+                      samples: int = 1,
+                      include_labels: bool = False, **kwargs) -> Tuple[Union[FeaturesWithLabels, FeaturesWithReconstructionTargets], MlTypes.PatchedDataFrame]:
+        frames, predictions_df = list(
+            [m.predict_of_df(df, tail, samples, include_labels, **kwargs) for m in self.models]
+        )
+
+        return None
+
+class __ConcatenatedMultiModel(Model):
+    # FIXME now we still need to fix the way how the features and labels get extracted by providing the kwargs to the extractor!!
+    def __init__(self,
+                 model_provider: Callable[..., ModelProvider],
+                 features_and_labels_definition: FeaturesLabels,
+                 range_arguments: List[Dict[str, Any]],
+                 cross_validation_aggregator: Callable[[np.ndarray], np.ndarray] = partial(np.mean, axis=0),
+                 **kwargs):
+        super().__init__(features_and_labels_definition, **kwargs)
+        self.model_provider = model_provider
+        self.cross_validation_aggregator = cross_validation_aggregator
+        self.range_arguments = range_arguments
+        self._cross_validation_models: Dict[int, List[ModelProvider]] = defaultdict(
+            lambda: [call_callable_dynamic_args(self.model_provider, **self.kwargs, **kwa) for kwa in range_arguments]
+        )
+
+    def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
+        for key in self._cross_validation_models.keys():
+            for m, range_kwargs in zip(self._cross_validation_models[key], self.range_arguments):
+                m.init_fit(fitting_parameter, **kwargs, **range_kwargs)
+
+    def fit_batch(self, xyw: FoldXYWeight, **kwargs):
+        for m, range_kwargs in zip(self._cross_validation_models[xyw.fold], self.range_arguments):
+            m.fit_batch(xyw, **kwargs, **range_kwargs)
+
+    def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
+        for m in self._cross_validation_models[fold]:
+            m.after_epoch(epoch, fold_epoch, train_data, test_data)
+
+    def finish_learning(self, **kwargs):
+        for key in self._cross_validation_models.keys():
+            for m, range_kwargs in zip(self._cross_validation_models[key], self.range_arguments):
+                m.finish_learning(**kwargs, **range_kwargs)
+
+    def predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
+        # after stacking we have one prediction per batch in the shape of [batch_dim, prediction_dim]
+        aggregated = np.array([self.cross_validation_aggregator(
+            np.stack(
+                [mp.predict(features.features, samples, **kwargs) for mp in self._cross_validation_models.values()],
+                axis=0
+            )
+        ) for i, _ in enumerate(self.range_arguments)])
+
+        # the aggregated values will then have the shape [len_range_param, batch_dim, prediction_dim]
+        # therefore we have to swap the axis 0 and 1 such that we get [batch_dim, len_range_param, prediction_dim]
+        return aggregated.swapaxes(0, 1)
+
+    def train_predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
+        # after stacking we have one prediction per batch in the shape of [batch_dim, prediction_dim]
+        aggregated = np.array([self.cross_validation_aggregator(
+            np.stack(
+                [mp.train_predict(features.features, samples, **kwargs) for mp in self._cross_validation_models.values()],
+                axis=0
+            )
+        ) for i, _ in enumerate(self.range_arguments)])
+
+        # the aggregated values will then have the shape [len_range_param, batch_dim, prediction_dim]
+        # therefore we have to swap the axis 0 and 1 such that we get [batch_dim, len_range_param, prediction_dim]
+        return aggregated.swapaxes(0, 1)
+
+    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight]) -> MlTypes.Loss:
+        return (
+            np.mean([m.calculate_loss(train_data) for m in self._cross_validation_models[fold]]),
+            [np.mean([m.calculate_loss(td) for m in self._cross_validation_models[fold]]) for td in test_data],
+        )
+
+    def init_fold(self, epoch: int, fold: int):
+        pass
+
+    def after_epoch(self, epoch: int):
+        pass
 
 
