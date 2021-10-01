@@ -18,7 +18,7 @@ def stratified_random_splitter(test_size=0.3, partition_row_multi_index=False, s
         return np.random.choice(arr, math.ceil(len(x[0]) * test_size)).tolist(),
 
     def splitter(index: pd.Index, y: List[MlTypes.PatchedDataFrame], *args, **kwargs) -> Tuple[pd.Index, pd.Index]:
-        df = y[0].copy()  # TODO eventually we need to check the uniqueness of each label frame
+        df = y.copy()
         columns_to_group = df.columns.to_list()
         df["index"] = df.index.to_list()  # we want tuples in case of multi index
         indices_per_class = df.groupby(columns_to_group).agg(lambda x: list(x))
