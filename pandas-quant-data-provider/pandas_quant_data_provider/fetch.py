@@ -52,9 +52,10 @@ class QuantDataFetcher(object):
                             *symbols: Union[Union[str, Symbol], List[Union[str, Symbol]]],
                             join: str = 'inner',
                             force_lowercase_header: bool = False,
+                            ignore_error: bool = False,
                             **kwargs):
         symbols_array = self._init_shape(*symbols)
-        frames = self._load(symbols_array, force_lowercase_header, **kwargs)
+        frames = self._load(symbols_array, force_lowercase_header, ignore_error, **kwargs)
         row_frames = [pd.concat(row, join=join, axis=1) for row in frames]
         return row_frames[0] if len(row_frames) == 1 else pd.concat(row_frames, axis=0, join='outer')
 
@@ -89,13 +90,13 @@ class QuantDataFetcher(object):
 
         return symbols
 
-    def _load(self, symbols: np.ndarray, force_lowercase: bool, **kwargs):
+    def _load(self, symbols: np.ndarray, force_lowercase: bool, ignore_error:bool = False, **kwargs):
         # also we want to control multi indexes i.e. we could pass [[AAPL, SPY], [ZM, QQQ]]
         frames = np.empty(symbols.shape, dtype=object)
 
         for i, row_symbols in enumerate(symbols):
             for j, symbol in enumerate(row_symbols):
-                frames[i, j] = self._fetch_time_series(symbol, **kwargs)
+                frames[i, j] = self._fetch_time_series(symbol, ignore_error, **kwargs)
 
                 if force_lowercase:
                     frames[i, j].columns = [c.lower() for c in frames[i, j].columns]
@@ -115,6 +116,12 @@ class QuantDataFetcher(object):
 
         return frames
 
-    def _fetch_time_series(self, symbol, **kwargs) -> pd.DataFrame:
+    def _fetch_time_series(self, symbol, ignore_error=False, **kwargs) -> pd.DataFrame:
         symbol_implementation = symbol if isinstance(symbol, Symbol) else self.provider_map[type(symbol)](symbol)
-        return call_callable_dynamic_args(symbol_implementation.fetch_price_history, **kwargs)
+        try:
+            return call_callable_dynamic_args(symbol_implementation.fetch_price_history, **kwargs)
+        except Exception as e:
+            if ignore_error:
+                return pd.DataFrame({})
+
+            raise e

@@ -23,7 +23,7 @@ class TestYahoo(TestCase):
             chains.columns.to_list()
         )
 
-        self.assertEqual(3, len(chains[['call_ask']].T._.values.shape))
+        self.assertEqual(3, len(chains[['call_ask']].T.ML.values.shape))
 
         print(chains)
 
@@ -31,3 +31,10 @@ class TestYahoo(TestCase):
         greeks = calc_greeks(chains, ['put_bid'], ['call_bid'], cut_tails_after=0.15)
         strikes = greeks['dist_pct_spot'].groupby(level=[1]).count()
         self.assertEqual(strikes.min(), strikes.max())
+
+    def test_ignore_error(self):
+        df = pd.fetch(["AAPL", "BF.A"], ignore_error=True)
+        self.assertListEqual(
+            [('AAPL', 'Open'), ('AAPL', 'High'), ('AAPL', 'Low'), ('AAPL', 'Close'), ('AAPL', 'Volume'), ('AAPL', 'Dividends'), ('AAPL', 'Stock Splits')],
+            df.columns.to_list()
+        )

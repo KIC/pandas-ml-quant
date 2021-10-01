@@ -30,5 +30,5 @@ class TestYFinance(TestCase):
         df = dp.fetch("AAPL", start=datetime(2020, 1, 1))
 
         self.assertGreater(len(df), 1)
-        self.assertEqual("2019-12-31 00:00:00", str(df.index[0]))
+        self.assertEqual("2020-01-02 00:00:00", str(df.index[0]))
 
