@@ -82,3 +82,17 @@ class TestFeaturesLabels(TestCase):
         self.assertEqual(labels[0].max().max(), 4)
         self.assertEqual(labels[1].max().max(), 4)
 
+    def test__extract_inf(self):
+        with self.assertLogs(level='WARN') as cm:
+            flw = Extractor(
+                pd.DataFrame({"a": [1, 2, 4, np.nan, np.inf]}),
+                FeaturesLabels(
+                    features=["a"],
+                    labels=["a"]
+                )
+            ).extract_features_labels_weights()
+
+            self.assertIn("frames containing infinit numbers", cm.output[0])
+
+        self.assertEqual(3, len(flw.features[0]))
+

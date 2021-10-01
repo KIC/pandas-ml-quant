@@ -10,6 +10,13 @@ from pandas_ml_common.sampling.cross_validation import KEquallyWeightEvents, KFo
 
 class TestCrossValidation(TestCase):
 
+    def test__sklearn_kfold(self):
+        x = np.array([0, 0, 0, 1])
+        cv = KFold(2)
+        indices = list(cv.split(x, x))
+
+        self.assertEqual(len(indices), 2)
+
     def test__boost_rare_event(self):
         x = np.array([0, 0, 0, 1])
         cv = KFoldBoostRareEvents(n_splits=2)

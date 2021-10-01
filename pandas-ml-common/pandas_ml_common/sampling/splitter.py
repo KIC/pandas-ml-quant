@@ -1,11 +1,12 @@
 import logging
 import math
-from typing import Tuple, Callable
+from typing import Tuple, Callable, List
 
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.utils import temp_seed, unique_level_rows, concat_indices
+from ..typing import MlTypes
+from ..utils import temp_seed, unique_level_rows, concat_indices
 
 _log = logging.getLogger(__name__)
 
@@ -16,14 +17,17 @@ def stratified_random_splitter(test_size=0.3, partition_row_multi_index=False, s
         arr[:] = x[0]
         return np.random.choice(arr, math.ceil(len(x[0]) * test_size)).tolist(),
 
-    def splitter(index: pd.Index, y, *args, **kwargs) -> Tuple[pd.Index, pd.Index]:
-        df = y.copy()
+    def splitter(index: pd.Index, y: List[MlTypes.PatchedDataFrame], *args, **kwargs) -> Tuple[pd.Index, pd.Index]:
+        df = y[0].copy()  # TODO eventually we need to check the uniqueness of each label frame
+        columns_to_group = df.columns.to_list()
         df["index"] = df.index.to_list()  # we want tuples in case of multi index
-        indices_per_class = df.groupby(y.columns.to_list()).agg(lambda x: list(x))
+        indices_per_class = df.groupby(columns_to_group).agg(lambda x: list(x))
 
         with temp_seed(seed):
-            test_idx = concat_indices(
-                [i[0] for i in indices_per_class.apply(choose, axis=1, result_type='reduce').to_list()])
+            # take the same portion of test data for each class
+            test_idx = np.array(concat_indices(
+                [i[0] for i in indices_per_class.apply(choose, axis=1, result_type='reduce').to_list()]), dtype=object)
+            np.random.shuffle(test_idx)
 
         return index.difference(test_idx), test_idx
 

@@ -1,9 +1,10 @@
 from unittest import TestCase
 
+import numpy as np
 import pandas as pd
 
 from pandas_ml_common.trainingloop import sampling
-from pandas_ml_common import MlTypes, FeaturesLabels, naive_splitter
+from pandas_ml_common import MlTypes, FeaturesLabels, naive_splitter, stratified_random_splitter
 from pandas_ml_common_test.config import TEST_DF
 
 
@@ -76,4 +77,14 @@ class TestTrainingLoop(TestCase):
         for b in batches:
             self.assertEqual(1, len(set(b.x[0].index.get_level_values(0))))
 
+    def test_loop_with_stratified_splitter(self):
+        """given a patched dataframe and a features and labels definition for multiple features sets"""
+        df = pd.DataFrame({"a": [True] * 100 + [False] * 900})
+        fl = FeaturesLabels(features=["a"], labels=["a"])
 
+        """when sampling from a sampler of the given dataframe and features"""
+        _, sampler = sampling(df, fl, splitter=stratified_random_splitter(), batch_size=500, epochs=1)
+        batches = [batch for batch in sampler.sample_for_training()]
+
+        self.assertAlmostEqual(0.1, sum([b.y[0].sum().item() for b in batches]) / sum([len(b.y[0]) for b in batches]), places=2)
+        self.assertAlmostEqual(0.1, df.loc[sampler.get_out_of_sample_features_index].sum().item() / len(sampler.get_out_of_sample_features_index), places=2)
