@@ -55,6 +55,7 @@ class TestSampler(TestCase):
         self.assertEqual(2, len(batches[1].x))  # in case of one single instance add the 2nd last as well
 
     def test_multiple_test_data(self):
+        # we can have multiple cross validation data sets for each cross fold
         def check_test(test_data):
             self.assertEqual(3, len(test_data))
             self.assertEqual('19930203', test_data[0].x.index[0].strftime("%Y%m%d"))

@@ -215,6 +215,7 @@ class Sampler(object):
                 # build our test data sets
                 if cv_test_i is not None:
                     if cv_test_i.ndim > 1:
+                        # we can have multiple cross validation data sets for each cross fold
                         cv_test_frames = [self.xyw_frames.loc[train_idx[cv_test_i[:, i]]] for i in range(cv_test_i.shape[1])]
                     else:
                         cv_test_frames = [self.xyw_frames.loc[train_idx[cv_test_i]]]

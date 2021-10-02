@@ -1,4 +1,9 @@
-class LazyInit(object):
+from typing import TypeVar, Generic
+
+T = TypeVar("T")
+
+
+class LazyInit(Generic[T]):
 
     def __init__(self, supplier):
         self.supplier = supplier
