@@ -5,8 +5,8 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import naive_splitter, random_splitter, stratified_random_splitter
-from pandas_ml_utils import FeaturesAndLabels, SkModel, FittingParameter
+from pandas_ml_common import naive_splitter, random_splitter, stratified_random_splitter, FeaturesLabels
+from pandas_ml_utils import SkModelProvider, FittingParameter, FittableModel
 from pandas_ml_utils.constants import *
 from pandas_ml_utils_test.config import DF_NOTES
 
@@ -18,9 +18,11 @@ class TestModel(TestCase):
 
         with df.model() as m:
             fit = m.fit(
-                SkModel(
-                    MLPClassifier(activation='tanh', hidden_layer_sizes=(20, 12), random_state=42, max_iter=2),
-                    FeaturesAndLabels(
+                FittableModel(
+                    SkModelProvider(
+                        MLPClassifier(activation='tanh', hidden_layer_sizes=(20, 12), random_state=42, max_iter=2),
+                    ),
+                    FeaturesLabels(
                         features=["variance", "skewness", "kurtosis", "entropy"],
                         labels=["authentic"],
                         label_type=bool
@@ -52,9 +54,11 @@ class TestModel(TestCase):
 
         with df.model() as m:
             fit = m.fit(
-                SkModel(
-                    MLPClassifier(activation='tanh', hidden_layer_sizes=(20, 12), random_state=42, max_iter=2),
-                    FeaturesAndLabels(
+                FittableModel(
+                    SkModelProvider(
+                        MLPClassifier(activation='tanh', hidden_layer_sizes=(20, 12), random_state=42, max_iter=2),
+                    ),
+                    FeaturesLabels(
                         features=["variance", "skewness", "kurtosis", "entropy"],
                         labels=["authentic"],
                         label_type=bool
@@ -78,13 +82,14 @@ class TestModel(TestCase):
 
         with df.model() as m:
             fit = m.fit(
-                SkModel(
-                    MLPClassifier(activation='tanh', hidden_layer_sizes=(20, 12), random_state=42, max_iter=2),
-                    FeaturesAndLabels(
+                FittableModel(
+                    SkModelProvider(
+                        MLPClassifier(activation='tanh', hidden_layer_sizes=(20, 12), random_state=42, max_iter=2)),
+                    FeaturesLabels(
                         features=["variance", "skewness", "kurtosis", "entropy"],
                         sample_weights=["variance"],
                         gross_loss=["kurtosis"],
-                        targets=["entropy"],
+                        reconstruction_targets=["entropy"],
                         labels=["authentic"],
                         label_type=bool
                     )

@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 from sklearn.metrics import confusion_matrix
 
-from pandas_ml_utils import FeaturesAndLabels, LambdaModel
+from pandas_ml_utils import FeaturesLabels, LambdaModel, FittableModel
 from pandas_ml_utils.constants import *
 from pandas_ml_utils_test.config import DF_NOTES
 
@@ -15,9 +15,9 @@ class TestLambdaModel(TestCase):
 
         with df.model() as m:
             fit = m.fit(
-                LambdaModel(
-                    lambda f: np.abs(f.values) > 3.5,
-                    FeaturesAndLabels(features=["variance"], labels=["authentic"])
+                FittableModel(
+                    LambdaModel(lambda f: np.abs(f[0].values) > 3.5),
+                    FeaturesLabels(features=["variance"], labels=["authentic"])
                 )
             )
 

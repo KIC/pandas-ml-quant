@@ -38,7 +38,7 @@ class Fittable(Model):
         return self._summary_provider
 
     @property
-    def fit_statistics(self):
+    def fit_statistics(self) -> FitStatistics:
         return self._fit_statistics
 
     def fit_to_df(self,
@@ -69,8 +69,13 @@ class Fittable(Model):
             **merged_kwargs
         )
 
+        # extract the used training and test data
+        training_data = frames.features_with_required_samples.loc[sampler.get_in_sample_features_index]
+        test_data = frames.features_with_required_samples.loc[sampler.get_out_of_sample_features_index]
+
         # remember min required samples and label names
         self.min_required_samples = frames.features_with_required_samples.min_required_samples
+        # TODO we can have multiple labes so we have a list of list like List[List[column_names]]
         self._label_names = [(i, col) if len(frames.labels) > 1 else col for i, l in enumerate(frames.labels) for col in l]
         self._fit_statistics = FitStatistics(fitting_parameter)
 
@@ -78,7 +83,7 @@ class Fittable(Model):
         sampler = sampler.with_callbacks(
             on_start=partial(self._init_fit, fitting_parameter=fitting_parameter),
             on_fold=self.init_fold,
-            after_fold_epoch=partial(self._after_fold_epoch, callbacks=callbacks, verbose=verbose),
+            after_fold_epoch=partial(self._after_fold_epoch, callbacks=callbacks, verbose=verbose, training_data=training_data, testing_data=test_data),
             after_epoch=partial(self._after_epoch, callbacks=callbacks, verbose=verbose),
             after_end=self.finish_learning
         )
@@ -92,13 +97,10 @@ class Fittable(Model):
         if processed_batches <= 0:
             raise ValueError(f"Not enough data {[len(f) for f in sampler.frames[0]]}")
 
-        # extract the used training data
-        training_data = frames.features_with_required_samples.loc[sampler.get_in_sample_features_index]
+        # reconstruct the used training and test DataFrmes
         df_training_prediction = \
             to_pandas(self.train_predict(training_data, **merged_kwargs), training_data.common_index, self.label_names)
 
-        # extract the used test data
-        test_data = frames.features_with_required_samples.loc[sampler.get_out_of_sample_features_index]
         if len(test_data.common_index) > 0:
             df_test_prediction = \
                 to_pandas(self.predict(test_data, **merged_kwargs), test_data.common_index, self.label_names)
@@ -122,7 +124,7 @@ class Fittable(Model):
     def _init_fit(self, fitting_parameter: FittingParameter, **kwargs):
         self.init_fit(fitting_parameter, **kwargs)
 
-    def _after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], verbose, callbacks):
+    def _after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], training_data: FeaturesWithReconstructionTargets, testing_data: FeaturesWithReconstructionTargets, verbose, callbacks, **kwargs):
         # calculate the training and test losses
         train_loss, test_loss = self.calculate_train_test_loss(fold, train_data, test_data)
         if verbose:
@@ -136,8 +138,8 @@ class Fittable(Model):
             callbacks,
             epoch=epoch, fold=fold, fold_epoch=fold_epoch, loss=train_loss, test_loss=test_loss, val_loss=test_loss,
             y_train=train_data.y, y_test=[td.y for td in test_data],
-            y_hat_train=LazyInit(lambda: self.predict(train_data.x)),
-            y_hat_test=[LazyInit(lambda: self.predict(td.x)) for td in test_data]
+            y_hat_train=LazyInit(lambda: self.predict(training_data)),
+            y_hat_test=LazyInit(lambda: self.predict(testing_data))
         )
 
     def _after_epoch(self, epoch: int, verbose, callbacks):

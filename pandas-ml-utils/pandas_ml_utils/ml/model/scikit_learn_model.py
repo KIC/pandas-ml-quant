@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Tuple
 
 import numpy as np
 from sklearn import metrics
@@ -10,8 +10,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.neural_network import MLPRegressor
 
 from pandas_ml_common import XYWeight, MlTypes
-from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets
-from pandas_ml_common.utils import call_callable_dynamic_args, unpack_nested_arrays, to_pandas
+from pandas_ml_common.utils import call_callable_dynamic_args
 from pandas_ml_common.utils.logging_utils import LogOnce
 from .base_model import ModelProvider
 from ..fitting import FittingParameter

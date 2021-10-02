@@ -26,17 +26,21 @@ class TestConfidenceInterval(object):
         self.early_stopping = early_stopping
         self._history = []
 
-    def __call__(self, epoch, y_train: pd.DataFrame, y_test: List, y_hat_train: LazyInit, y_hat_test: List[LazyInit]):
+    def __call__(self, epoch, y_train: pd.DataFrame, y_test: List, y_hat_train: LazyInit[np.ndarray], y_hat_test: LazyInit[np.ndarray]):
         self.call_counter += 1
         if self.mod is not None and self.call_counter % self.mod != 0:
             return
 
-        train_ci = self.ci.apply(y_hat_train().join(y_train, lsuffix="params"))
-        test_ci = mean([self.ci.apply(y_hat_test[i]().join(y_test[i], lsuffix="params")) for i in range(len(y_test))])
+        # create the required dataframes for the CdfConfidenceInterval provider which needs 2 columns
+        #  the distribution parameters (as list) and the true value
+        train_ci_df = pd.DataFrame(y_hat_train()).agg(lambda x: list(x), axis=1).to_frame().join(y_train, lsuffix="params")
+        test_ci_dfs = [pd.DataFrame(y_hat_test()).agg(lambda x: list(x), axis=1).to_frame().join(yt, lsuffix="params") for yt in y_test]
+        train_ci = self.ci.apply(train_ci_df)
+        test_ci = mean([self.ci.apply(f) for f in test_ci_dfs])
 
         if self.variance_provider is not None:
-            train_var = y_hat_train().apply(self.variance_provider).mean().item()
-            test_var = mean([y_hat_test[i]().apply(self.variance_provider).mean().item() for i in range(len(y_test))])
+            train_var = train_ci_df.apply(self.variance_provider, axis=1).mean().item()
+            test_var = mean([f.apply(self.variance_provider, axis=1).mean().item() for f in test_ci_dfs])
         else:
             train_var = np.nan
             test_var = np.nan
@@ -44,7 +48,9 @@ class TestConfidenceInterval(object):
         self._history.append([train_ci, test_ci, train_var, test_var])
 
         if self.print:
-            print(f"train tail: {train_ci:.6f}, var: {train_var:.6f},test tail: {test_ci:.6f}, var: {test_var:.6f}\t(epoch: {epoch})")
+            print(f"train confidence: {train_ci:.6f}, variance: {train_var:.6f}, "
+                  f"test confidence: {test_ci:.6f}, variance: {test_var:.6f}"
+                  f"\t(epoch: {epoch})")
 
         if self.early_stopping:
             if test_ci > self.ci.max_tail_events:

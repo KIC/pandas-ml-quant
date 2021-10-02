@@ -3,8 +3,8 @@ from unittest import TestCase
 
 from sklearn.model_selection import KFold
 
-from pandas_ml_common import dummy_splitter
-from pandas_ml_utils import Model, FittingParameter
+from pandas_ml_common import dummy_splitter, FeaturesLabels
+from pandas_ml_utils import Model, FittingParameter, ModelProvider, FittableModel
 from pandas_ml_utils.constants import *
 import pandas as pd
 import numpy as np
@@ -29,7 +29,7 @@ def create_sine_data(n=300):
     return x / x[-1], y
 
 
-class TestModelAccuracy(TestCase):
+class TestModelAccuracy(object):
 
     def test_linear_regression(self):
         models = self.provide_linear_regression_model()
@@ -39,13 +39,17 @@ class TestModelAccuracy(TestCase):
         df = pd.DataFrame(np.array(create_line_data(300)).T, columns=["x", "y"])
         for model, fp in  models:
             with df.model() as m:
-                fit = m.fit(model, fp.with_splitter(splitter=dummy_splitter).with_cross_validation(None))
+                fit = m.fit(
+                    FittableModel(model, FeaturesLabels(features=["x"], labels=["y"])),
+                    fp.with_splitter(splitter=dummy_splitter).with_cross_validation(None)
+                )
+
                 y = fit.training_summary.df[LABEL_COLUMN_NAME].values
                 y_hat = fit.training_summary.df[PREDICTION_COLUMN_NAME].values
                 dist = np.sqrt(np.sum((y - y_hat) ** 2))
 
             print(fp.context, dist)
-            losses = list(fit.model._history[("train", 0)].values())
+            losses = list(fit.model.fit_statistics._history[("train", 0)].values())
 
             self.assertLessEqual(dist, 1.22, fp.context)
             if len(losses) > 1:
@@ -59,7 +63,11 @@ class TestModelAccuracy(TestCase):
         df = pd.DataFrame(np.array(create_line_data(300)).T, columns=["x", "y"])
         for model, fp in models:
             with df.model() as m:
-                fit = m.fit(model, fp.with_splitter(splitter=dummy_splitter).with_cross_validation(KFold(4)))
+                fit = m.fit(
+                    FittableModel(model, FeaturesLabels(features=["x"], labels=["y"])),
+                    fp.with_splitter(splitter=dummy_splitter).with_cross_validation(KFold(4))
+                )
+
                 y = fit.training_summary.df[LABEL_COLUMN_NAME].values
                 y_hat = fit.training_summary.df[PREDICTION_COLUMN_NAME].values
                 dist = np.sqrt(np.sum((y - y_hat) ** 2))
@@ -75,17 +83,21 @@ class TestModelAccuracy(TestCase):
         df = pd.DataFrame(np.array(create_sine_data(300)).T, columns=["x", "y"])
         for model, fp in models:
             with df.model() as m:
-                fit = m.fit(model, fp.with_splitter(splitter=dummy_splitter).with_cross_validation(None))
+                fit = m.fit(
+                    FittableModel(model, FeaturesLabels(features=["x"], labels=["y"])),
+                    fp.with_splitter(splitter=dummy_splitter).with_cross_validation(None)
+                )
+
                 y = fit.training_summary.df[LABEL_COLUMN_NAME].values
                 y_hat = fit.training_summary.df[PREDICTION_COLUMN_NAME].values
                 dist = np.sqrt(np.sum((y - y_hat) ** 2))
 
-            print(fp.context, dist, len(fit.model._history[("train", 0)]))
+            print(fp.context, dist, len(fit.model.fit_statistics._history[("train", 0)]))
             self.assertLessEqual(dist, 10, fp.context)
 
-    def provide_linear_regression_model(self) -> List[Tuple[Model, FittingParameter]]:
+    def provide_linear_regression_model(self) -> List[Tuple[ModelProvider, FittingParameter]]:
         return None
 
-    def provide_non_linear_regression_model(self) -> List[Tuple[Model, FittingParameter]]:
+    def provide_non_linear_regression_model(self) -> List[Tuple[ModelProvider, FittingParameter]]:
         return None
 

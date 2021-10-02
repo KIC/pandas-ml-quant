@@ -13,8 +13,9 @@ class FitStatistics(object):
 
     def record_loss(self, epoch, fold, fold_epoch, train_loss, test_loss):
         # loss_history_key or fold
-        self._history["train", ][(epoch, fold_epoch)] = train_loss
-        self._history["test",fold][(epoch, fold_epoch)] = test_loss
+        self._history["train", "train", "train"][(epoch, fold_epoch)] = train_loss
+        for i, cv_test_loss in enumerate(test_loss):
+            self._history["test", f"cv {fold}", f"set {i}"][(epoch, fold_epoch)] = cv_test_loss
 
     def plot_loss(self, figsize=(8, 6), **kwargs):
         """

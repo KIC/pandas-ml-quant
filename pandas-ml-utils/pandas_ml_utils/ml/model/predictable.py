@@ -105,7 +105,7 @@ class Model(metaclass=ABCMeta):
 
         return frames, predictions_df
 
-    @abstractmethod
+    @abstractmethod  # FIXME one model can predict multiple labels !!   -> List[np.ndarray]:
     def predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
         raise NotImplementedError()
 

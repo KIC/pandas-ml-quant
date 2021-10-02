@@ -47,5 +47,8 @@ class LambdaModel(ModelProvider):
     def fit_batch(self, xyw: XYWeight, **kwargs):
         return 0
 
+    def calculate_loss(self, xyw: XYWeight) -> float:
+        return 0
+
     def predict(self, features: List[MlTypes.PatchedDataFrame], samples=1, **kwargs) -> np.ndarray:
         return call_callable_dynamic_args(self.model, features, **self.kwargs)

@@ -3,7 +3,7 @@ from typing import Union, Tuple
 import numpy as np
 import scipy.stats as st
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 
 
 class NormalConfidence(object):
@@ -22,17 +22,17 @@ class NormalConfidence(object):
     def lower(self, value, std=None):
         value, std = self._extract_args(value, std)
         l = (value - std * self.confidence[0])
-        return l.values.squeeze() if isinstance(l, Typing.AnyPandasObject) else l
+        return l.values.squeeze() if isinstance(l, MlTypes.AnyPandasObject) else l
 
     def upper(self, value, std=None):
         value, std = self._extract_args(value, std)
         u = (value + std * self.confidence[1])
-        return u.values.squeeze() if isinstance(u, Typing.AnyPandasObject) else u
+        return u.values.squeeze() if isinstance(u, MlTypes.AnyPandasObject) else u
 
     def _extract_args(self, value, std):
         if std is None:
             if value.ndim >= 1:
-                if isinstance(value, Typing.AnyPandasObject):
+                if isinstance(value, MlTypes.AnyPandasObject):
                     value = value._.values.squeeze()
 
                 return value[0], value[1]

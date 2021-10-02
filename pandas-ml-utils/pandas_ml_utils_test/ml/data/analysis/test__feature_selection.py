@@ -3,7 +3,7 @@ import unittest
 from sklearn.datasets import make_classification
 
 from pandas_ml_common import stratified_random_splitter
-from pandas_ml_utils import pd, FeaturesAndLabels
+from pandas_ml_utils import pd, FeaturesLabels
 
 
 class TestFeatureSelection(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestFeatureSelection(unittest.TestCase):
         df["label"] = data[1]
 
         report = df.model.feature_selection(
-            features_and_labels=FeaturesAndLabels(
+            features_and_labels=FeaturesLabels(
                 features=list(range(5)),
                 labels=["label"],
                 label_type=int

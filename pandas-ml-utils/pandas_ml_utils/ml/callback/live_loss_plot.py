@@ -8,7 +8,7 @@ from pandas_ml_common import LazyInit
 class NbLiveLossPlot(object):
 
     def __init__(self,
-                 figsize: Tuple[int] = None,
+                 figsize: Tuple[int, int] = None,
                  frequency: int = 10,
                  plot_reconstruction: bool = False,
                  reconstruction_preprocessor: Callable[[pd.DataFrame], pd.DataFrame] = None,
@@ -32,7 +32,7 @@ class NbLiveLossPlot(object):
         # from IPython.display import display
         # display(self.fig)
 
-    def __call__(self, epoch, fold, fold_epoch, loss, val_loss, y_train, y_test: List, y_hat_train: LazyInit, y_hat_test: List[LazyInit]):
+    def __call__(self, epoch, fold, fold_epoch, loss, val_loss, y_train, y_test, y_hat_train: LazyInit, y_hat_test: LazyInit):
         # print(epoch, fold, fold_epoch, loss, val_loss)
         self.count += 1
         self.x.append(self.x[-1] + 1 if len(self.x) > 0 else 0)
@@ -49,9 +49,9 @@ class NbLiveLossPlot(object):
             if len(self.ax) > 2:
                 self.ax[2].plot(self.reconstruction_preprocessor(y_train))
                 self.ax[2].plot(self.reconstruction_preprocessor(y_hat_train()))
-                if len(y_test) > 0:
-                    self.ax[3].plot(self.reconstruction_preprocessor(y_test[0]))
-                    self.ax[3].plot(self.reconstruction_preprocessor(y_hat_test[0]()))
+                if y_test is not None:
+                    self.ax[3].plot(self.reconstruction_preprocessor(y_test))
+                    self.ax[3].plot(self.reconstruction_preprocessor(y_hat_test()))
 
                 self.ax[2].title.set_text('Training Reconstruction')
                 self.ax[3].title.set_text('Test Reconstruction')

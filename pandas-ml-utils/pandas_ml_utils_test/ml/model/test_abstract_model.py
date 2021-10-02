@@ -1,19 +1,22 @@
 import os
 import tempfile
 import uuid
+from abc import ABCMeta
 from typing import Tuple, Any, Dict
-from unittest import TestCase
 
 from pandas_ml_common import pd, np, naive_splitter, random_splitter, FeaturesLabels
-from pandas_ml_utils import Model, SubModelFeature, FittingParameter, ConcatenatedMultiModel, FittableModel, ModelProvider
-from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, LABEL_COLUMN_NAME
+from pandas_ml_utils import Model, SubModelFeature, FittingParameter, ConcatenatedMultiModel, FittableModel, \
+    ModelProvider
+from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME
 from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
 
 
-class TestAbstractModel(object):
+class TestAbstractModel(metaclass=ABCMeta):
 
     def test_classifier(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy classification data"""
         df = pd.DataFrame({
             "a": [1, 0, 1, 0, 1, 0, 1, 0,],
@@ -59,6 +62,8 @@ class TestAbstractModel(object):
             os.remove(temp)
 
     def test_regressor(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy regression data"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -94,6 +99,8 @@ class TestAbstractModel(object):
             os.remove(temp)
 
     def test_auto_encoder(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given the implementation can handle auto encoders"""
         model, params = self.provide_auto_encoder_model()
 
@@ -162,6 +169,8 @@ class TestAbstractModel(object):
             os.remove(temp)
 
     def test_multi_sample_regressor(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy regression data"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -186,6 +195,8 @@ class TestAbstractModel(object):
         np.testing.assert_array_almost_equal(prediction.iloc[:, 0].ML.values, np.concatenate([df[["b"]].values, df[["b"]].values], axis=1), 1)
 
     def test_multindex_row(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy regression data while we provide a multiindex for the rows"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -222,6 +233,8 @@ class TestAbstractModel(object):
         np.testing.assert_array_almost_equal(prediction.iloc[:, 0].values, df["b"].values, 1)
 
     def test_multindex_row_multi_samples(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy regression data while we provide a multiindex for the rows"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -252,6 +265,8 @@ class TestAbstractModel(object):
         self.assertEqual((6, 2), prediction.loc["B"].iloc[:, 0].ML.values.shape)
 
     def test_no_test_data(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy regression data"""
         df = pd.DataFrame({
             "a": [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0],
@@ -277,6 +292,8 @@ class TestAbstractModel(object):
         self.assertEqual(len(fit.test_summary.df), 0)
 
     def test_stacked_models(self):
+        if self.__class__ == TestAbstractModel: return
+
         """given some toy classification data"""
         df = pd.DataFrame({
             "a": [1, 0, 1, 0, 1, 0, 1, 0, ],
@@ -324,6 +341,8 @@ class TestAbstractModel(object):
         os.remove(temp)
 
     def test_concatenated_multi_models(self):
+        if self.__class__ == TestAbstractModel: return
+
         df = pd.DataFrame({
             "a": np.linspace(0, 0.5, 50),
             "b": np.linspace(0.1, 0.6, 50),

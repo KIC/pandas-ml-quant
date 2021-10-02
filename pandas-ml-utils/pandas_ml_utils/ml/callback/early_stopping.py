@@ -1,4 +1,5 @@
 from collections import defaultdict
+import numpy as np
 
 
 class EarlyStopping(object):
@@ -13,7 +14,7 @@ class EarlyStopping(object):
 
     def __call__(self, fold, val_loss):
         self.call_counter += 1
-        if val_loss - self.last_best_losses[fold] < self.tolerance:
+        if np.max(val_loss) - self.last_best_losses[fold] < self.tolerance:
             self.last_best_losses[fold] = val_loss
         else:
             self.counts[fold] += 1

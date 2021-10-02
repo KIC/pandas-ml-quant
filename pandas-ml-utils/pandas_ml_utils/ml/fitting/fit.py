@@ -77,7 +77,7 @@ class Fit(object):
             import matplotlib
             backend = matplotlib.get_backend()
             matplotlib.use('module://drawilleplot')
-            fig = self.model.plot_loss()
+            fig = self.model.fit_statistics.plot_loss()
             return f"{fig}\n{summaries}"
         except:
             return summaries
@@ -93,5 +93,5 @@ class Fit(object):
         template = Template(filename=html.FIT_TEMPLATE, lookup=TemplateLookup(directories=['/']))
         return template.render(
             fit=self,
-            loss_plot=plot_to_html_img(self.model.plot_loss, **self._kwargs) if not self._hide_loss_plot else None
+            loss_plot=plot_to_html_img(self.model.fit_statistics.plot_loss, **self._kwargs) if not self._hide_loss_plot else None
         )
