@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from ..preprocessing.features_labels import FeaturesLabels, Extractor
-from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
 from ..typing import MlTypes
+from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
 
 
 class MLCompatibleValues(object):

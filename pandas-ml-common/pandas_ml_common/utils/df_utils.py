@@ -3,7 +3,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 from pandas.util import hash_pandas_object
-from .index_utils import add_multi_index, flatten_multi_column_index
+
+from .index_utils import flatten_multi_column_index
 
 
 #def pd_concat(frames: pd.DataFrame, default=None, *args, **kwargs):
