@@ -22,3 +22,10 @@ def safe_max(l):
         return None
     l = [e for e in l if e is not None]
     return max(l) if len(l) > 0 else None
+
+
+def safe_first(l):
+    if l is None or not isinstance(l, List):
+        return l
+
+    return l[0] if len(l) > 0 else None

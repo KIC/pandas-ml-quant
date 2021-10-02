@@ -7,18 +7,9 @@ import pandas as pd
 from ..sampling.cross_validation import PartitionedOnRowMultiIndexCV
 from ..typing import MlTypes
 from ..utils import call_callable_dynamic_args, intersection_of_index, loc_if_not_none, iloc_if_not_none, \
-    none_as_empty_list, GetItem, unique_level_rows, pd_concat
+    none_as_empty_list, GetItem, unique_level_rows, pd_concat, safe_first
 
 _log = logging.getLogger(__name__)
-
-
-class FoldXYWeight(NamedTuple):
-    epoch: int
-    fold: int
-    epoch_fold: int
-    x: List[MlTypes.PatchedDataFrame]
-    y: Optional[List[MlTypes.PatchedDataFrame]]
-    weight: Optional[List[MlTypes.PatchedDataFrame]]
 
 
 class XYWeight(NamedTuple):
@@ -51,11 +42,32 @@ class XYWeight(NamedTuple):
     def iloc(self) -> 'XYWeight':
         return GetItem(lambda idx: XYWeight(*[iloc_if_not_none(f, idx) for f in [self.x, self.y, self.weight]]))
 
-    def to_dict(self, loc=None, joined=False):
+    def to_dict(self, loc=None, joined=False, only_first=False):
         d = {
-            "x": pd_concat(self.x) if joined else self.x,
-            "y": pd_concat(self.y) if joined else self.y,
-            "weight": pd_concat(self.weight) if joined else self.weight
+            "x": pd_concat(self.x) if joined else safe_first(self.x) if only_first else self.x,
+            "y": pd_concat(self.y) if joined else safe_first(self.y) if only_first else self.y,
+            "weight": pd_concat(self.weight) if joined else safe_first(self.weight) if only_first else self.weight
+        }
+
+        if loc is not None:
+            d = {k: loc_if_not_none(v, loc) for k, v in d.items()}
+
+        return d
+
+
+class FoldXYWeight(NamedTuple):
+    epoch: int
+    fold: int
+    epoch_fold: int
+    x: List[MlTypes.PatchedDataFrame]
+    y: Optional[List[MlTypes.PatchedDataFrame]]
+    weight: Optional[List[MlTypes.PatchedDataFrame]]
+
+    def to_dict(self, loc=None, joined=False, only_first=False):
+        d = {
+            "x": pd_concat(self.x) if joined else safe_first(self.x) if only_first else self.x,
+            "y": pd_concat(self.y) if joined else safe_first(self.y) if only_first else self.y,
+            "weight": pd_concat(self.weight) if joined else safe_first(self.weight) if only_first else self.weight
         }
 
         if loc is not None:
@@ -114,7 +126,7 @@ class Sampler(object):
                              "`partition_row_multi_index` parameter in your splitter")
 
             self.train_idx, self.test_idx = call_callable_dynamic_args(
-                self.splitter, self.common_index, **self.xyw_frames.to_dict(joined=True))
+                self.splitter, self.common_index, **self.xyw_frames.to_dict(only_first=True), xyweight=xyw_frames)
         else:
             self.train_idx, self.test_idx = self.common_index, pd.Index([])
 
@@ -190,7 +202,10 @@ class Sampler(object):
         # generate samples
         for epoch in (range(self.epochs) if self.epochs is not None else iter(int, 1)):
             call_callable_dynamic_args(self.on_epoch, epoch=epoch)
-            fold_iter = enumerate(call_callable_dynamic_args(cross_validation, train_idx, **train_frames.to_dict(joined=True)))
+            fold_iter = enumerate(
+                call_callable_dynamic_args(
+                    cross_validation, train_idx, **train_frames.to_dict(only_first=True), xyweight=train_frames))
+
             for fold, (cv_train_i, cv_test_i) in fold_iter:
                 call_callable_dynamic_args(self.on_fold, epoch=epoch, fold=fold)
 
