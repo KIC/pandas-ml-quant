@@ -16,7 +16,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
@@ -37,15 +37,15 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         )
 
         print(fl.features_with_required_samples.features, fl.labels, fl.sample_weights, fl.targets, fl.gross_loss)
-        print(fl.features_with_required_samples.features._.values.shape, fl.labels._.values.shape)
+        print(fl.features_with_required_samples.features.ML.values.shape, fl.labels.ML.values.shape)
         print(len(df))
 
         # we need RNN shape to be [row, time_step, feature]
-        self.assertEqual((6463, 280, 2), fl.features_with_required_samples.features._.values.shape)
+        self.assertEqual((6463, 280, 2), fl.features_with_required_samples.features.ML.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 4), fl.labels._.values.shape)
-        self.assertEqual((6463, 4), fl.labels._.values.squeeze().shape)
+        self.assertEqual((6463, 4), fl.labels.ML.values.shape)
+        self.assertEqual((6463, 4), fl.labels.ML.values.squeeze().shape)
 
         self.assertEqual(len(fl.features_with_required_samples.features), len(fl.labels))
         self.assertLess(len(fl.features_with_required_samples.features), len(df))
@@ -55,7 +55,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
     def test_extract_in_rnn_shape_two_labels(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             FeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.rsi(14).ta.rnn(280),
@@ -78,11 +78,11 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
 
         # we need RNN shape to be [row, time_step, feature]
         self.assertEqual(294, fl.features_with_required_samples.min_required_samples)
-        self.assertEqual((6463, 280, 2), fl.features_with_required_samples.features._.values.shape)
+        self.assertEqual((6463, 280, 2), fl.features_with_required_samples.features.ML.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 2, 3), fl.labels._.values.shape)
-        self.assertEqual((6463, 2, 3), fl.labels._.values.squeeze().shape)
+        self.assertEqual((6463, 2, 3), fl.labels.ML.values.shape)
+        self.assertEqual((6463, 2, 3), fl.labels.ML.values.squeeze().shape)
 
         self.assertEqual(len(fl.features_with_required_samples.features), len(fl.labels))
         self.assertLess(len(fl.features_with_required_samples.features), len(df))
@@ -109,7 +109,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             file
         )
 
-        fl: FeaturesWithLabels  = df._.extract(
+        fl: FeaturesWithLabels  = df.ML.extract(
             deserialize(file, FeaturesAndLabels),
             # kwargs of call
             forecasting_time_steps=7,
@@ -117,15 +117,15 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         )
 
         # we need RNN shape to be [row, time_step, feature]
-        self.assertEqual((6463, 280, 2), fl.features_with_required_samples.features._.values.shape)
+        self.assertEqual((6463, 280, 2), fl.features_with_required_samples.features.ML.values.shape)
 
         # we have 2 labels each one hot encoded to 10 values
-        self.assertEqual((6463, 2, 3), fl.labels._.values.shape)
+        self.assertEqual((6463, 2, 3), fl.labels.ML.values.shape)
 
     def test_feature_post_processing_pipeline(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     lambda df: df._["Close"].ta.log_returns()
@@ -141,5 +141,5 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
             )
         )
 
-        self.assertEqual((6760, 2, 1), fl.features_with_required_samples.features._.values.shape)
+        self.assertEqual((6760, 2, 1), fl.features_with_required_samples.features.ML.values.shape)
         np.testing.assert_array_almost_equal(fl.features_with_required_samples.features[-1:].values, np.array([[1.5, 1.0]]))

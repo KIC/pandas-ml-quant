@@ -254,9 +254,9 @@ class PriceSampledSummary(Summary):
 
             x = pandas_matplot_dates(price_data)
             price_label = price_data.iloc[:, -1]
-            price_band = price_data.iloc[:, -2]._.values
-            bar_edges = price_data.iloc[:, 0]._.values
-            bar_colors = price_data.iloc[:, 1]._.values
+            price_band = price_data.iloc[:, -2].ML.values
+            bar_edges = price_data.iloc[:, 0].ML.values
+            bar_colors = price_data.iloc[:, 1].ML.values
 
             plot(ax[0], x, price_label, price_band, bar_edges, bar_colors, cmap=cm.YlOrRd, alpha=0.4)
 
@@ -268,9 +268,9 @@ class PriceSampledSummary(Summary):
 
             x = pandas_matplot_dates(return_data)
             return_label = return_data.iloc[:, -1]
-            return_band = return_data.iloc[:, -2]._.values
-            bar_edges = return_data.iloc[:, 0]._.values
-            bar_colors = return_data.iloc[:, 1]._.values
+            return_band = return_data.iloc[:, -2].ML.values
+            bar_edges = return_data.iloc[:, 0].ML.values
+            bar_colors = return_data.iloc[:, 1].ML.values
 
             plot(ax[1], x, return_label, return_band, bar_edges, bar_colors, cmap=cm.YlOrRd, alpha=0.4)
         except Exception as e:

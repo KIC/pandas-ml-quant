@@ -176,7 +176,7 @@ class TaPlot(object):
 #from moviepy.video.VideoClip import DataVideoClip
 #from moviepy.video.io.bindings import mplfig_to_npimage
 #
-#samples = gaf._.values[:, -1][-20:]
+#samples = gaf.ML.values[:, -1][-20:]
 #
 #
 #def make_frame(sample):

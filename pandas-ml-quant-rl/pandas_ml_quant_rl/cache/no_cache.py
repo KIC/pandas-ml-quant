@@ -18,6 +18,6 @@ class NoCache(Cache):
     def get_feature_frames_or_fetch(self, df, symbol, features_and_labels) -> Tuple[np.ndarray, pd.Index]:
         features, self._targets, _ = extract_features(df, features_and_labels)
         features_index = features.index
-        features = features._.values
+        features = features.ML.values
 
         return features, features_index

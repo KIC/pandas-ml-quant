@@ -12,7 +12,7 @@ class TestGAF(TestCase):
         timesteps = ta_rnn(s, [1, 2, 3])
 
         gaf = ta_gaf(timesteps)
-        shape = gaf._.values.shape
+        shape = gaf.ML.values.shape
         np.testing.assert_almost_equal(0.37, gaf.iloc[-1][0][0][0], 2)
         self.assertEqual((6760, 1, 3, 3), shape)
 
@@ -21,7 +21,7 @@ class TestGAF(TestCase):
         timesteps = ta_rnn(df, [1, 2, 3])
 
         gaf = ta_gaf(timesteps)
-        shape = gaf._.values.shape
+        shape = gaf.ML.values.shape
         self.assertEqual((6760, 2, 3, 3), shape)
 
     def test_gasf_encode_decode(self):
@@ -29,13 +29,13 @@ class TestGAF(TestCase):
         timesteps = ta_rnn(s, [1, 2, 3]).ta.rescale((0, 1), axis=1)
 
         gasf = ta_gaf(timesteps, type='invertible', rescale=True)
-        shape = gasf._.values.shape
+        shape = gasf.ML.values.shape
 
         print(shape)
         print(gasf.tail())
 
-        print(timesteps._.values[-2:])
-        print(np_inverse_gaf(gasf._.values[-2:]))
+        print(timesteps.ML.values[-2:])
+        print(np_inverse_gaf(gasf.ML.values[-2:]))
 
         df = ta_inverse_gasf(gasf)
         print(df.tail())

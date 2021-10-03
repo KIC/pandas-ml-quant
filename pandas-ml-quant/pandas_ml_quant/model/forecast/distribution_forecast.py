@@ -102,8 +102,8 @@ class DistributionForecast(Forecast):
 
         # plot distribution (with invisible bars)
         fc = fc.loc[fc.iloc[:, 0].dropna().index[-1]:]
-        bar_colors = fc["hist"]._.values
-        bar_edges = fc["edges"]._.values
+        bar_colors = fc["hist"].ML.values
+        bar_edges = fc["edges"].ML.values
         bars = ax.bar(fc.index, bottom=bar_edges[:, 0], height=bar_edges[:, -1] - bar_edges[:, 0], width=1.0, color=None)
 
         # fill bars with heat like color

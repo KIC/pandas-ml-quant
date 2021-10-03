@@ -21,7 +21,7 @@ class WeightedClassificationSummary(ClassificationSummary):
         self.targets = df[TARGET_COLUMN_NAME]
 
         # calculate confusion indices
-        tv, pv = clean_one_hot_classification(self.df[LABEL_COLUMN_NAME]._.values, self.df[PREDICTION_COLUMN_NAME]._.values)
+        tv, pv = clean_one_hot_classification(self.df[LABEL_COLUMN_NAME].ML.values, self.df[PREDICTION_COLUMN_NAME].ML.values)
 
         # confusion matrix needs integer encoding
         tv = np.apply_along_axis(np.argmax, 1, tv)
@@ -38,7 +38,7 @@ class WeightedClassificationSummary(ClassificationSummary):
         #  therefore we need to pass the true price as gross loss such that we calculate the real loss
         self.df_gross_loss = pd.DataFrame({
             "bucket": df[[TARGET_COLUMN_NAME]].apply(get_buckets, axis=1, raw=True),
-            "pidx": df.apply(lambda r: int(r[PREDICTION_COLUMN_NAME]._.values.argmax()), axis=1, raw=False),
+            "pidx": df.apply(lambda r: int(r[PREDICTION_COLUMN_NAME].ML.values.argmax()), axis=1, raw=False),
             "price": df[GROSS_LOSS_COLUMN_NAME].values[:,0]
         }, index=df.index)
 
@@ -75,7 +75,7 @@ class WeightedClassificationSummary(ClassificationSummary):
         _df = _df.loc[self.df_gross_loss["loss"].sort_values().index[:worst]]
 
         ax.imshow(
-            _df[PREDICTION_COLUMN_NAME]._.values.T,
+            _df[PREDICTION_COLUMN_NAME].ML.values.T,
             cmap='afmhot',
             interpolation='nearest',
             aspect='auto'

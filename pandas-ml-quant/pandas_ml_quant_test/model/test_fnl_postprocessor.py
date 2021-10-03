@@ -11,7 +11,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_feature_post_processing(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
@@ -31,12 +31,12 @@ class TestFeaturePostProcesor(TestCase):
 
         self.assertEqual((6674, 10), fl.features_with_required_samples.features.shape)
         self.assertEqual((6674, 1), fl.labels.shape)
-        self.assertEqual((6674, 5, 2), fl.features_with_required_samples.features._.values.shape)
+        self.assertEqual((6674, 5, 2), fl.features_with_required_samples.features.ML.values.shape)
 
     def test_feature_and_label_post_processing(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     "Close",
@@ -60,12 +60,12 @@ class TestFeaturePostProcesor(TestCase):
 
         self.assertEqual((6672, 30), fl.features_with_required_samples.features.shape)
         self.assertEqual((6672, 4), fl.labels.shape)
-        # FIXME implement chained lagging: self.assertEqual((6674, 3, 5, 2), fl.features_with_required_samples.features._.values.shape)
+        # FIXME implement chained lagging: self.assertEqual((6674, 3, 5, 2), fl.features_with_required_samples.features.ML.values.shape)
 
     def test_empty_post_prcessor(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.log_returns(),
@@ -83,7 +83,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_post_row_standardisation(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
                     lambda df: df["Close"].ta.log_returns(),
@@ -113,7 +113,7 @@ class TestFeaturePostProcesor(TestCase):
     def test_multiple_features_post_processing(self):
         df = DF_TEST.copy()
 
-        fl: FeaturesWithLabels = df._.extract(
+        fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=(
                     [lambda df: df["Close"].ta.log_returns(), lambda df: df["Close"].ta.trix(), lambda df: df["Close"].ta.rsi()],

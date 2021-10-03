@@ -57,7 +57,7 @@ class TestMultiFeatureSet(TestCase):
             lambda params: Adam(params, lr=0.03)
         )
 
-        fl: FeaturesWithLabels = df._.extract(model.features_and_labels)
+        fl: FeaturesWithLabels = df.ML.extract(model.features_and_labels)
         self.assertIsInstance(fl.features_with_required_samples.features, MultiFrameDecorator)
         print(fl.features_with_required_samples.features)
 

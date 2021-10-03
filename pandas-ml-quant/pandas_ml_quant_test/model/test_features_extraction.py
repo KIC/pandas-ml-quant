@@ -17,5 +17,5 @@ class TestFeaturePostProcesor(TestCase):
             ]
         )
 
-        DF_TEST_MULTI._.extract(fl)
+        DF_TEST_MULTI.ML.extract(fl)
 

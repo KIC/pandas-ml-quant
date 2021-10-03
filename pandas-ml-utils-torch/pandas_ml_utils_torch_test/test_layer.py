@@ -30,7 +30,7 @@ class TestPytorchLayer(TestCase):
     def test_time2vec(self):
         df = DF_TEST.copy()
 
-        x = lag_columns(df["Volume"].pct_change(), 5).dropna()._.values[:-2]
+        x = lag_columns(df["Volume"].pct_change(), 5).dropna().ML.values[:-2]
         y = df["Volume"].pct_change().shift(-1).dropna()[6:]
 
         class MyModule(nn.Module):

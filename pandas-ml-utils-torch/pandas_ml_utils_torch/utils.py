@@ -17,7 +17,7 @@ def from_pandas(df: pd.DataFrame, cuda: bool = False, default: t.Tensor = None) 
     if isinstance(df, MultiFrameDecorator):
         return tuple([from_pandas(f, cuda, default) for f in df.frames()])
 
-    val = (t.from_numpy(df._.get_values(split_multi_index_rows=False, squeeze=True)) if df is not None else default).float()
+    val = (t.from_numpy(df.ML.get_values(split_multi_index_rows=False, squeeze=True)) if df is not None else default).float()
     return val.cuda() if cuda else val.cpu()
 
 

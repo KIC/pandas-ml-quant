@@ -58,10 +58,10 @@ for batches in sampler.sample_for_training():
 ```
 
 
-* access to nested numpy arrays in data frame columns (`df._.values`)
+* access to nested numpy arrays in data frame columns (`df.ML.values`)
 ```python
 df3 = pd.DataFrame({"a": [[1, 2], [3, 4], [5, 6]]})
-df3._.values
+df3.ML.values
 
 array([[1, 2],
        [3, 4],

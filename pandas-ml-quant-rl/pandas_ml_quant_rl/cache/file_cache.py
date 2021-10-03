@@ -45,5 +45,5 @@ class FileCache(Cache):
                 features, _, _ = extract_features(df, features_and_labels)
                 self.file_cache[fkey] = features
 
-        return features._.values, features.index
+        return features.ML.values, features.index
 

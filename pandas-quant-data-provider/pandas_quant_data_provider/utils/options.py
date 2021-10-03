@@ -17,7 +17,7 @@ def plot_surface(df_chain: pd.DataFrame, put_columns: List, call_columns: List, 
 
     #iv = fix_multiindex_column_asymetry(trimmed_chain[["put_IV"]].T).sort_index(axis=1)
     #x, y, z = np.array(list(set(trimmed_chain.index.get_level_values(1)))), np.array(
-    #    list(set(trimmed_chain.index.get_level_values(0)))), iv._.values[0]
+    #    list(set(trimmed_chain.index.get_level_values(0)))), iv.ML.values[0]
     #y = np.linspace(0, 1, len(y))
     #
     #fig = plt.figure(figsize=(20, 10))
