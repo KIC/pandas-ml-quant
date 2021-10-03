@@ -36,10 +36,10 @@ class ModelContext(object):
     def extract(self, model_or_fnl: Union[Model, FeaturesLabels], **kwargs) -> FeaturesWithLabels:
         if isinstance(model_or_fnl, Model):
             kwargs = {**model_or_fnl.features_and_labels.kwargs, **model_or_fnl.kwargs, **kwargs}
-            return self.df._.extract(model_or_fnl.features_and_labels, **kwargs)
+            return self.df.ML.extract(model_or_fnl.features_and_labels, **kwargs)
         else:
             kwargs = {**model_or_fnl.kwargs, **kwargs}
-            return self.df._.extract(model_or_fnl, **kwargs)
+            return self.df.ML.extract(model_or_fnl, **kwargs)
 
     @wraps(DfModelPatch.predict)
     def predict(self, *args, **kwargs) -> Union[MlTypes.PatchedDataFrame, Forecast]:

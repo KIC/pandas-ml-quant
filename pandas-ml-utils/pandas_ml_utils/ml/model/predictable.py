@@ -28,6 +28,7 @@ class Model(metaclass=ABCMeta):
         self._forecast_provider = forecast_provider
         self.kwargs = kwargs
         self.min_required_samples = None
+        self.file_name = None
         self._label_names = []
 
     @property
@@ -115,6 +116,7 @@ class Model(metaclass=ABCMeta):
         :param filename: filename inclusive file extension
         :return: None
         """
+        self.file_name = filename
         with open(filename, 'wb') as file:
             pickle.dump(self, file)
 

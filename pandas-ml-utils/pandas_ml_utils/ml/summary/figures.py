@@ -40,7 +40,7 @@ def plot_receiver_operating_characteristic(df, figsize=(6, 6), **kwargs):
     import matplotlib.pyplot as plt
 
     # get true and prediction data. It needs to be a one hot encoded 2D array [samples, class] where nr_classes >= 2
-    tv, pv = clean_one_hot_classification(df[LABEL_COLUMN_NAME]._.values, df[PREDICTION_COLUMN_NAME]._.values)
+    tv, pv = clean_one_hot_classification(df[LABEL_COLUMN_NAME].ML.values, df[PREDICTION_COLUMN_NAME].ML.values)
 
     # calculate legends
     legend = [(col[1] if isinstance(col, tuple) else col) for col in df[LABEL_COLUMN_NAME].columns.tolist()]
@@ -77,7 +77,7 @@ def plot_confusion_matrix(df, figsize=(6, 6), **kwargs):
     from mlxtend.evaluate import confusion_matrix
 
     # get true and prediction data. It needs to be a one hot encoded 2D array [samples, class] where nr_classes >= 2
-    tv, pv = clean_one_hot_classification(df[LABEL_COLUMN_NAME]._.values, df[PREDICTION_COLUMN_NAME]._.values)
+    tv, pv = clean_one_hot_classification(df[LABEL_COLUMN_NAME].ML.values, df[PREDICTION_COLUMN_NAME].ML.values)
 
     # confusion matrix needs integer encoding
     tv = np.apply_along_axis(np.argmax, 1, tv)
@@ -176,8 +176,8 @@ def df_regression_scores(df, model, **kwargs):
     ]
 
     def score_regression(df):
-        y_true = df[LABEL_COLUMN_NAME]._.values
-        y_pred = df[PREDICTION_COLUMN_NAME]._.values
+        y_true = df[LABEL_COLUMN_NAME].ML.values
+        y_pred = df[PREDICTION_COLUMN_NAME].ML.values
         sample_weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
         scores = defaultdict(lambda: [])
 
@@ -247,8 +247,8 @@ def df_classification_scores(df, model, **kwargs):
     }
 
     def score_classification(df):
-        y_true = df[LABEL_COLUMN_NAME]._.values
-        y_pred = df[PREDICTION_COLUMN_NAME]._.values
+        y_true = df[LABEL_COLUMN_NAME].ML.values
+        y_pred = df[PREDICTION_COLUMN_NAME].ML.values
         sample_weights = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
         scores = defaultdict(lambda: [])
 

@@ -33,7 +33,7 @@ class NormalConfidence(object):
         if std is None:
             if value.ndim >= 1:
                 if isinstance(value, MlTypes.AnyPandasObject):
-                    value = value._.values.squeeze()
+                    value = value.ML.values.squeeze()
 
                 return value[0], value[1]
             else:

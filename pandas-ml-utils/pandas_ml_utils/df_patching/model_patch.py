@@ -24,68 +24,6 @@ class DfModelPatch(object):
     def __init__(self, df: MlTypes.PatchedDataFrame):
         self.df = df
 
-    def feature_selection(self,
-                          features_and_labels: FeaturesLabels,
-                          training_data_splitter: Callable = naive_splitter(0.2),
-                          correlated_features_th: float = 0.75,
-                          rfecv_splits: int = 4,
-                          forest_splits: int = 7,
-                          min_features_to_select: int = 1,
-                          is_time_series: bool = False,
-                          **kwargs):
-        assert features_and_labels.label_type in ('regression', 'classification', int, float, bool), \
-            "label_type need to be specified: 'regression' | 'classification' !"
-
-        # find best parameters
-        with self() as m:
-            # extract features and labels
-            ext = m.extract(features_and_labels)
-
-            # first perform a correlation analysis and remove correlating features !!!
-            if correlated_features_th > 0:
-                _, pairs = get_correlation_pairs(ext.features)
-                redundant_correlated_features = {i[0]: p for i, p in pairs.items() if p > correlated_features_th}
-                _log.warning(f"drop redundant features: {redundant_correlated_features}")
-
-                features_and_labels = PostProcessedFeaturesAndLabels.from_features_and_labels(
-                    features_and_labels,
-                    feature_post_processor=lambda df: df.drop(redundant_correlated_features.keys(), axis=1)
-                )
-
-            # estimate model type and sample properties
-            is_classification = 'float' not in (str(features_and_labels.label_type))
-            nr_samples = len(self.df)
-
-            if is_classification:
-                nr_classes = len(ext.labels.value_counts())
-            else:
-                nr_classes = max(len(self.df) / 3, 100)
-
-            # estimate grid search parameters
-            grid = {
-                "estimator__n_estimators": sp_randint(10, 500),
-                "estimator__max_depth": [2, None],
-                "estimator__min_samples_split": sp_randint(2, nr_samples / nr_classes),
-                "estimator__min_samples_leaf": sp_randint(2, nr_samples / nr_classes),
-                "estimator__bootstrap": [True, False],
-                "estimator__criterion": ["gini", "entropy"] if is_classification else ["mse", "mae"]
-            }
-
-            # build model
-            cross_validation = TimeSeriesSplit if is_time_series else StratifiedKFold if is_classification else KFold
-            estimator = RandomForestClassifier() if is_classification else RandomForestRegressor()
-            selector = RFECV(estimator, step=1, cv=cross_validation(rfecv_splits), min_features_to_select=min_features_to_select)
-            skm = RandomizedSearchCV(selector, param_distributions=grid, cv=cross_validation(forest_splits), n_jobs=-1)
-
-            # fit model
-            fit = m.fit(
-                SkModel(skm, features_and_labels=features_and_labels, summary_provider=FeatureSelectionSummary),
-                FittingParameter(splitter=training_data_splitter)
-            )
-
-        # we hide the loss plot from this summary
-        return fit.with_hidden_loss_plot()
-
     def fit(self,
             model: Fittable,
             fitting_parameter: FittingParameter = FittingParameter(),

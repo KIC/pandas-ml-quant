@@ -1,18 +1,13 @@
-import math
-from typing import Tuple, Callable, Any
+from typing import Callable, Any
 
 import numpy as np
 from matplotlib.axis import Axis
-from matplotlib.figure import Figure
-from mlxtend.evaluate import confusion_matrix
-from sklearn.metrics import roc_curve, auc
 
 from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
 from pandas_ml_utils.ml.model.base_model import Model
-
 from pandas_ml_utils.ml.summary import Summary
 
 
@@ -29,8 +24,8 @@ class ReconstructionSummary(Summary):
     def reconstruction_plot(self):
         import matplotlib.pyplot as plt
 
-        _y = self.df[LABEL_COLUMN_NAME]._.values
-        _y_hat = self.df[PREDICTION_COLUMN_NAME]._.values
+        _y = self.df[LABEL_COLUMN_NAME].ML.values
+        _y_hat = self.df[PREDICTION_COLUMN_NAME].ML.values
         fig, ax = plt.subplots(2, 5, figsize=(20, 10))
         ax = ax.flatten()
 

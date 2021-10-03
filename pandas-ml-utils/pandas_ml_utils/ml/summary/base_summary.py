@@ -117,7 +117,7 @@ class ClassificationSummary(Summary):
         from mlxtend.evaluate import confusion_matrix
 
         # get true and prediction data. It needs to be a one hot encoded 2D array [samples, class] where nr_classes >= 2
-        tv, pv = clean_one_hot_classification(self.df[LABEL_COLUMN_NAME]._.values, self.df[PREDICTION_COLUMN_NAME]._.values)
+        tv, pv = clean_one_hot_classification(self.df[LABEL_COLUMN_NAME].ML.values, self.df[PREDICTION_COLUMN_NAME].ML.values)
 
         # confusion matrix needs integer encoding
         tv = np.apply_along_axis(np.argmax, 1, tv)

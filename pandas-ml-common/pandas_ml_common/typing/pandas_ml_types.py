@@ -1,4 +1,4 @@
-from typing import List, Callable, TypeVar, TYPE_CHECKING, Tuple
+from typing import List, Callable, TypeVar, TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -53,13 +53,13 @@ class PatchedSeries(pd.Series, Patch):
 class MlTypes(object):
     PatchedDataFrame = PatchedFrame
     PatchedSeries = PatchedSeries
-    PatchedPandas = TypeVar('PatchedPandas', PatchedDataFrame, PatchedSeries)
-    AnyPandasObject = TypeVar('AnyPandasObject', PandasObject, PatchedPandas)
+    PatchedPandas = Union[PatchedDataFrame, PatchedSeries]
+    AnyPandasObject = PandasObject
 
     DataFrame = pd.DataFrame
     Series = pd.Series
     PdIndex = pd.Index
     Array = np.ndarray
-    DataSelector = TypeVar('DataSelector', str, List['MlGetItem'], PandasObject, Constant, Callable[..., PandasObject])
+    DataSelector = Union[str, List['MlGetItem'], PandasObject, Constant, Callable[..., PandasObject]]
 
     Loss = Tuple[float, List[float]]
