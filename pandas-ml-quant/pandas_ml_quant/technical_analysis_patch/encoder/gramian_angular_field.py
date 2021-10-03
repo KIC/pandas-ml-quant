@@ -4,7 +4,7 @@ import numpy as _np
 import pandas as _pd
 from pyts.image import GramianAngularField as _GAF
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils import ReScaler
 from pandas_ta_quant._decorators import *
 
@@ -40,7 +40,7 @@ def invertible_gaf_encoder(time_steps, **kwargs):
 
 # technical analysis function
 @for_each_top_level_row
-def ta_gaf(df: Typing.PatchedPandas, columm_index_level=1, type='pyts', **kwargs):
+def ta_gaf(df: MlTypes.PatchedPandas, columm_index_level=1, type='pyts', **kwargs):
     """
     :param df:
     :param columm_index_level:
@@ -82,7 +82,7 @@ def ta_gaf(df: Typing.PatchedPandas, columm_index_level=1, type='pyts', **kwargs
 
 @for_each_top_level_row
 @for_each_column
-def ta_inverse_gasf(df: Typing.PatchedPandas):
+def ta_inverse_gasf(df: MlTypes.PatchedPandas):
     inv = np_inverse_gaf(df.ML.values)
     if inv.ndim == 2:
         return _pd.DataFrame(inv, index=df.index)

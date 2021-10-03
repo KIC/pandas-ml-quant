@@ -4,7 +4,7 @@ from typing import Union as _Union
 import numpy as _np
 import pandas as _pd
 
-from pandas_ml_common import Typing as _t
+from pandas_ml_common import MlTypes as _t
 from pandas_ml_common.utils import inner_join, add_multi_index
 from pandas_ta_quant._decorators import *
 from pandas_ta_quant._utils import wilders_smoothing as _ws, with_column_suffix as _wcs

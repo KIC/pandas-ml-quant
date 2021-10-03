@@ -1,7 +1,7 @@
 import pandas as _pd
 
 # create convenient type hint
-from pandas_ml_common import Typing as _t
+from pandas_ml_common import MlTypes as _t
 from pandas_ta_quant._decorators import *
 
 

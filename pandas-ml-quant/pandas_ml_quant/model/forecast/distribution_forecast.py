@@ -3,7 +3,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.time_utils import make_timeindex
 from pandas_ml_quant.empirical import ECDF
 from pandas_ml_utils.constants import PREDICTION_COLUMN_NAME, TARGET_COLUMN_NAME
@@ -13,13 +13,13 @@ from pandas_ml_utils.ml.forecast import Forecast
 class DistributionForecast(Forecast):
 
     @staticmethod
-    def with_sampler(sampler: Callable[[Typing.PatchedSeries, int], np.ndarray], samples: int = 1000, *args, **kwargs):
+    def with_sampler(sampler: Callable[[MlTypes.PatchedSeries, int], np.ndarray], samples: int = 1000, *args, **kwargs):
         return lambda df: DistributionForecast(df, sampler, samples, *args, **kwargs)
 
-    def __init__(self, df: Typing.PatchedDataFrame, sampler: Callable[[Typing.PatchedSeries, int], np.ndarray], samples: int = 1000, *args, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, sampler: Callable[[MlTypes.PatchedSeries, int], np.ndarray], samples: int = 1000, *args, **kwargs):
         super().__init__(self._sample(df, sampler, samples), *args, **kwargs)
 
-    def hist(self, bins='sqrt') -> Typing.PatchedDataFrame:
+    def hist(self, bins='sqrt') -> MlTypes.PatchedDataFrame:
         dfh = pd.concat([
             self.df[[('cdf', col)]]\
                 .apply(lambda cdf: cdf.item().hist(bins=bins), axis=1, result_type='expand')
@@ -38,7 +38,7 @@ class DistributionForecast(Forecast):
         dfh.columns = columns
         return dfh
 
-    def confidence_interval(self, lower: float = 0.1, upper: float = 0.9) -> Typing.PatchedDataFrame:
+    def confidence_interval(self, lower: float = 0.1, upper: float = 0.9) -> MlTypes.PatchedDataFrame:
         ci_raw = pd.concat([
             self.df[[('cdf', col)]]\
                 .apply(lambda cdf: cdf.item().confidence_interval(lower, upper), axis=1, result_type='expand')\

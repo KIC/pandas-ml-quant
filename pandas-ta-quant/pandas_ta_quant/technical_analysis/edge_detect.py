@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common import Typing as _t
+from pandas_ml_common import MlTypes as _t
 from pandas_ta_quant._decorators import *
 from pandas_ta_quant._utils import rolling_apply
 

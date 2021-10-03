@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.widgets import SpanSelector, MultiCursor
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ta_quant_plot.plot_container import PlotContainer
 from pandas_ta_quant_plot.plot_utils import color_positive_negative
 
@@ -16,7 +16,7 @@ from pandas_ta_quant_plot.plot_utils import color_positive_negative
 class PlotContext(object):
 
     def __init__(self,
-                 df: Typing.PatchedDataFrame,
+                 df: MlTypes.PatchedDataFrame,
                  range_slider_price: str = "Close",
                  width: int = 20,
                  main_height: int = 11,

@@ -2,12 +2,12 @@ from typing import Any, Callable, Iterable
 
 import pandas as pd
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 
 
 def ta_repeat(
-        df: Typing.PatchedPandas,
-        func: Callable[[Typing.PatchedPandas, Any], Typing.PatchedPandas],
+        df: MlTypes.PatchedPandas,
+        func: Callable[[MlTypes.PatchedPandas, Any], MlTypes.PatchedPandas],
         repetition: Iterable,
         multiindex=None,
         *args,

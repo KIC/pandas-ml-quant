@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas_ml_common import Typing, np_nans
+from pandas_ml_common import MlTypes, np_nans
 from pandas_ta_quant._decorators import *
 from pandas_ta_quant._utils import with_column_suffix as _wcs, _rescale
 from pandas_ta_quant.technical_analysis import filters as _f
@@ -12,17 +12,17 @@ def ta_rescale(df: pd.DataFrame, range=(-1, 1), digits=None, axis=None):
 
 
 @for_each_top_level_row
-def ta_performance(df: Typing.PatchedPandas):
+def ta_performance(df: MlTypes.PatchedPandas):
     return _wcs("performance", (1 + df.pct_change()).cumprod())
 
 
 @for_each_top_level_row
-def ta_returns(df: Typing.PatchedPandas, period=1):
+def ta_returns(df: MlTypes.PatchedPandas, period=1):
     return _wcs("return", df.pct_change(periods=period))
 
 
 @for_each_top_level_row
-def ta_cumret(df: Typing.PatchedPandas, period=1):
+def ta_cumret(df: MlTypes.PatchedPandas, period=1):
     if period == 1:
         return (1 + df).cumprod()
     else:
@@ -38,24 +38,24 @@ def ta_cumret(df: Typing.PatchedPandas, period=1):
 
 
 @for_each_top_level_row
-def ta_log_returns(df: Typing.PatchedPandas, period=1):
+def ta_log_returns(df: MlTypes.PatchedPandas, period=1):
     current = df
     lagged = df.shift(period)
 
     return _wcs("log_return", np.log(current) - np.log(lagged))
 
 
-def ta_logret_as_return(df: Typing.PatchedPandas):
+def ta_logret_as_return(df: MlTypes.PatchedPandas):
     return np.exp(df) - 1
 
 
 @for_each_top_level_row
-def ta_cumlogret(df: Typing.PatchedPandas, period=1):
+def ta_cumlogret(df: MlTypes.PatchedPandas, period=1):
     return ta_cumret(ta_logret_as_return(df), period)
 
 
 @for_each_top_level_row
-def ta_ma_ratio(df: Typing.PatchedPandas, period=12, lag=0, ma='sma', **kwargs):
+def ta_ma_ratio(df: MlTypes.PatchedPandas, period=12, lag=0, ma='sma', **kwargs):
     mafunc = getattr(_f, f'ta_{ma}')
     return _wcs(f"{ma}({period}) x 1/", df / mafunc(df, period=period, **kwargs).shift(lag).values - 1, df)
 

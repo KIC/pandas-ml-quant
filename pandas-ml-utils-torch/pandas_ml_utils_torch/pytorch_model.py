@@ -10,7 +10,7 @@ import pandas as pd
 import torch as t
 import torch.nn as nn
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils import to_pandas
 from pandas_ml_common.utils.logging_utils import LogOnce
 from pandas_ml_utils.ml.data.extraction import FeaturesAndLabels
@@ -30,8 +30,8 @@ class _AbstractPytorchModel(Model):
                  features_and_labels: FeaturesAndLabels,
                  criterion_provider: Type[nn.modules.loss._Loss],
                  optimizer_provider: Type[t.optim.Optimizer],
-                 summary_provider: Callable[[Typing.PatchedDataFrame], Summary] = Summary,
-                 forecast_provider: Callable[[Typing.PatchedDataFrame], Forecast] = None,
+                 summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary,
+                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
                  restore_best_weights: bool = False,
                  merge_cross_folds: Callable[[Dict[int, PytochBaseModel]], PytochBaseModel] = None,
                  callbacks: Dict[str, List[Callable]] = {},
@@ -85,7 +85,7 @@ class _AbstractPytorchModel(Model):
     def module(self):
         return self._current_model if self._current_model is None else self._current_model.net
 
-    def _predict(self, features: pd.DataFrame, col_names, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+    def _predict(self, features: pd.DataFrame, col_names, samples=1, cuda=False, **kwargs) -> MlTypes.PatchedDataFrame:
         if cuda:
             self._current_model = self._current_model.cuda()
         else:
@@ -100,7 +100,7 @@ class PytorchModel(_AbstractPytorchModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+    def predict(self, features: pd.DataFrame, targets: pd.DataFrame = None, latent: pd.DataFrame = None, samples=1, cuda=False, **kwargs) -> MlTypes.PatchedDataFrame:
         self._current_model.eval()
         return self._predict(features, self._labels_columns, samples, cuda, **kwargs)
 
@@ -111,15 +111,15 @@ class PytorchAutoEncoderModel(_AbstractPytorchModel, AutoEncoderModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _auto_encode(self, features: pd.DataFrame, samples, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+    def _auto_encode(self, features: pd.DataFrame, samples, cuda=False, **kwargs) -> MlTypes.PatchedDataFrame:
         self._current_model.eval()
         return self._predict(features, self._labels_columns, samples, cuda, **kwargs)
 
-    def _encode(self, features: pd.DataFrame, samples, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+    def _encode(self, features: pd.DataFrame, samples, cuda=False, **kwargs) -> MlTypes.PatchedDataFrame:
         self._current_model.eval()
         return self._predict(features, self._features_and_labels.latent_names, samples, cuda, **kwargs)
 
-    def _decode(self, latent_features: pd.DataFrame, samples, cuda=False, **kwargs) -> Typing.PatchedDataFrame:
+    def _decode(self, latent_features: pd.DataFrame, samples, cuda=False, **kwargs) -> MlTypes.PatchedDataFrame:
         self._current_model.eval()
         return self._predict(latent_features,  self._labels_columns, samples, cuda, **kwargs)
 

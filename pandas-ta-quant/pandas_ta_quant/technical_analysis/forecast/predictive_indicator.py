@@ -5,7 +5,7 @@ from typing import Iterable
 import numpy as np
 import logging
 from pandas_ta_quant._decorators import *
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 warnings.simplefilter('ignore', ConvergenceWarning)
@@ -15,7 +15,7 @@ _log = logging.getLogger(__name__)
 
 @for_each_top_level_row
 @for_each_column
-def ta_hmm(df: Typing.PatchedSeries, nr_components, means_estimator, period=250, forecast_period=1, n_iter=500):
+def ta_hmm(df: MlTypes.PatchedSeries, nr_components, means_estimator, period=250, forecast_period=1, n_iter=500):
     from hmmlearn import hmm
 
     X = df.to_frame().pct_change(forecast_period).dropna().values
@@ -50,7 +50,7 @@ def ta_hmm(df: Typing.PatchedSeries, nr_components, means_estimator, period=250,
 
 @for_each_top_level_row
 @for_each_column
-def ta_sarimax(df: Typing.PatchedSeries, period=60, forecast=1, order=(1, 0, 1), alpha=0.5):
+def ta_sarimax(df: MlTypes.PatchedSeries, period=60, forecast=1, order=(1, 0, 1), alpha=0.5):
     assert forecast > 0, "forecast need to be > 0"
     forecast = forecast if isinstance(forecast, Iterable) else [forecast]
     res = pd.DataFrame({}, index=df.index)

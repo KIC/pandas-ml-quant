@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score, mean_squared_error
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_quant.empirical import ECDF
 from pandas_ml_utils import Summary, Model, call_callable_dynamic_args
 from pandas_ml_utils.constants import *
@@ -37,7 +37,7 @@ class PricePredictionSummary(Summary):
 
     def __init__(
             self,
-            df: Typing.PatchedDataFrame,
+            df: MlTypes.PatchedDataFrame,
             model: Model,
             label_returns: Callable[[pd.DataFrame], pd.DataFrame],
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
@@ -158,7 +158,7 @@ class PriceSampledSummary(Summary):
 
     def __init__(
             self,
-            df: Typing.PatchedDataFrame,
+            df: MlTypes.PatchedDataFrame,
             model: Model,
             label_returns: Callable[[pd.DataFrame], pd.DataFrame],
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],

@@ -2,17 +2,16 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler
 
-from pandas_ml_common import Typing
-from pandas_ml_common.utils import ReScaler, get_pandas_object, intersection_of_index, unpack_nested_arrays
+from pandas_ml_common import MlTypes
+from pandas_ml_common.utils import get_pandas_object, intersection_of_index, unpack_nested_arrays
 from pandas_ml_common.utils.normalization import ecdf
-from pandas_ta_quant.technical_analysis import filters as _f, ta_log_returns
 from pandas_ta_quant._decorators import *
-from pandas_ta_quant._utils import with_column_suffix as _wcs
+from pandas_ta_quant.technical_analysis import ta_log_returns
 
 
 @for_each_top_level_row
 @for_each_column
-def ta_ncdf_compress(df: Typing.PatchedPandas, period=200, lower_percentile=25, upper_percentile=75) -> Typing.PatchedPandas:
+def ta_ncdf_compress(df: MlTypes.PatchedPandas, period=200, lower_percentile=25, upper_percentile=75) -> MlTypes.PatchedPandas:
     f50 = df.rolling(period).mean().rename("f50")
     fup = df.rolling(period).apply(lambda x: np.percentile(x, upper_percentile)).rename("fup")
     flo = df.rolling(period).apply(lambda x: np.percentile(x, lower_percentile)).rename("flo")
@@ -22,7 +21,7 @@ def ta_ncdf_compress(df: Typing.PatchedPandas, period=200, lower_percentile=25, 
 
 @for_each_top_level_row
 @for_each_column
-def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
+def ta_z_norm(df: MlTypes.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
     # (value - mean) / std
     s = df.rolling(period).std(ddof=ddof)
     a = (df - df.rolling(period).mean().shift(lag)) if demean else df
@@ -30,7 +29,7 @@ def ta_z_norm(df: Typing.PatchedPandas, period=200, ddof=1, demean=True, lag=0):
 
 
 @for_each_top_level_row
-def ta_sma_price_ratio(df: Typing.Series, period=14, log=False):
+def ta_sma_price_ratio(df: MlTypes.Series, period=14, log=False):
     from .labels.continuous import ta_future_pct_to_current_mean
     return ta_future_pct_to_current_mean(df, 0, period, log)
 
@@ -42,7 +41,7 @@ def _ta_adaptive_normalisation():
 
 
 @for_each_top_level_row
-def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform", level=None):
+def ta_normalize_row(df: MlTypes.PatchedDataFrame, normalizer: str = "uniform", level=None):
     # normalizer can be one of minmax01, minmax-11, uniform, standard or callable
     if isinstance(df.columns, pd.MultiIndex) and level is not None:
         return for_each_top_level_column(ta_normalize_row, level=level)(df, normalizer)
@@ -69,14 +68,14 @@ def ta_normalize_row(df: Typing.PatchedDataFrame, normalizer: str = "uniform", l
 
 
 @for_each_top_level_row
-def ta_delta_hedged_price(df: Typing.PatchedDataFrame, benchmark):
+def ta_delta_hedged_price(df: MlTypes.PatchedDataFrame, benchmark):
     df_bench = get_pandas_object(df, benchmark)
     idx = intersection_of_index(df, df_bench)
 
     df = df.loc[idx]
     df_bench = df_bench.loc[idx]
 
-    if hasattr(df, "columns") and not isinstance(benchmark, Typing.AnyPandasObject) and benchmark in df.columns:
+    if hasattr(df, "columns") and not isinstance(benchmark, MlTypes.AnyPandasObject) and benchmark in df.columns:
         df = df.drop(benchmark, axis=1)
 
     bench_returns = ta_log_returns(df_bench)

@@ -3,11 +3,11 @@ from typing import Tuple
 import numpy as np
 from sortedcontainers import SortedKeyList
 from pandas_ta_quant._decorators import *
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 
 
 @for_each_top_level_row
-def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
+def ta_fibbonaci_retracement(df: MlTypes.PatchedPandas, period=200, patience=3):
     current_min_max = [0, 0]
     most_recent_min_max = [0, 0]
     count = [0, 0]
@@ -54,7 +54,7 @@ def ta_fibbonaci_retracement(df: Typing.PatchedPandas, period=200, patience=3):
 
 
 @for_each_top_level_row
-def ta_trend_lines(df: Typing.PatchedSeries,
+def ta_trend_lines(df: MlTypes.PatchedSeries,
                    edge_periods=3,
                    rescale_digits=4,
                    degrees=(-90, 90),
@@ -145,7 +145,7 @@ def ta_trend_lines(df: Typing.PatchedSeries,
 
 
 @for_each_top_level_row
-def ta_ohl_trend_lines(df: Typing.PatchedPandas, close="Close", high=None, low=None):
+def ta_ohl_trend_lines(df: MlTypes.PatchedPandas, close="Close", high=None, low=None):
     # TODO implement this paper: http://www.meacse.org/ijcar/archives/128.pdf
     #   analog ta_trend_lines
     if df.ndim > 1:

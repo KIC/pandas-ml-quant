@@ -2,16 +2,16 @@ from typing import Callable, Dict
 
 from airflow.operators.python_operator import PythonOperator
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_utils import Model
 
 
 class MlModelOperator(PythonOperator):
 
     def __init__(self,
-                 dataframe_provider: Callable[[Dict], Typing.PatchedDataFrame],
+                 dataframe_provider: Callable[[Dict], MlTypes.PatchedDataFrame],
                  model: Model,
-                 post_processor: Callable[[Dict, Typing.PatchedDataFrame, Typing.PatchedDataFrame], Typing.Pandas] = None,
+                 post_processor: Callable[[Dict, MlTypes.PatchedDataFrame, MlTypes.PatchedDataFrame], MlTypes.Pandas] = None,
                  predictions: int = 1,
                  **kwargs):
         super().__init__(**kwargs, provide_context=True, python_callable=self.predict)
@@ -29,4 +29,4 @@ class MlModelOperator(PythonOperator):
         if self.post_processor is not None:
             pdf = self.post_processor(context, df, pdf)
 
-        return pdf.to_dict() if isinstance(pdf, (Typing.DataFrame, Typing.Series)) else pdf
+        return pdf.to_dict() if isinstance(pdf, (MlTypes.DataFrame, MlTypes.Series)) else pdf

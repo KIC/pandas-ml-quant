@@ -3,7 +3,7 @@ from typing import Any, NamedTuple, Callable
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils import hexplode
 from pandas_ml_utils import Summary, Model
 from pandas_ml_utils.constants import TARGET_COLUMN_NAME, PREDICTION_COLUMN_NAME
@@ -21,7 +21,7 @@ class _Portfolio(NamedTuple):
 class PortfolioWeightsSummary(Summary):
 
     def __init__(self,
-                 df: Typing.PatchedDataFrame,
+                 df: MlTypes.PatchedDataFrame,
                  model: Model,
                  rebalancing_lag: int = 1,
                  rebalance_after_distance: float = 0,

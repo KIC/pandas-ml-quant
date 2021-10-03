@@ -1,7 +1,7 @@
 from arch import arch_model  # alternatively https://pyflux.readthedocs.io/en/latest/garch.html
 
 import pandas_ta_quant.technical_analysis.normalizer as _norm
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ta_quant._decorators import *
 from functools import partial
 import scipy.special as scsp
@@ -10,7 +10,7 @@ import numpy as np
 
 @for_each_top_level_row
 @for_each_column
-def ta_garch11(df: Typing.PatchedPandas, period=200, forecast=1, returns='returns'):
+def ta_garch11(df: MlTypes.PatchedPandas, period=200, forecast=1, returns='returns'):
     r = getattr(_norm, f'ta_{returns}')(df) if returns is not None else df
 
     def model(x):
@@ -26,7 +26,7 @@ def ta_garch11(df: Typing.PatchedPandas, period=200, forecast=1, returns='return
 
 
 # rough stochastic fractional volatility
-def ta_rsfv(df: Typing.PatchedDataFrame, period=255*2, lags=30, delta=1, open="Open", high="High", low="Low", close="Close") -> Typing.PatchedPandas:
+def ta_rsfv(df: MlTypes.PatchedDataFrame, period=255*2, lags=30, delta=1, open="Open", high="High", low="Low", close="Close") -> MlTypes.PatchedPandas:
     from pandas_ta_quant.technical_analysis import ta_gkyz_volatility, ta_vola_hurst
     rv = ta_gkyz_volatility(df, period=1, open=open, high=high, low=low, close=close)
     dfh = ta_vola_hurst(df, period=period, lags=lags)

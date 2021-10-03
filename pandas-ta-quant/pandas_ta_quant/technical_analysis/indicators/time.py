@@ -4,7 +4,7 @@ import numpy as _np
 import pandas as _pd
 import pandas as pd
 from dateutil.relativedelta import relativedelta
-from pandas_ml_common import Typing as _t
+from pandas_ml_common import MlTypes as _t
 from pandas_ta_quant._decorators import *
 from pandas_ta_quant._utils import opex_date_of_month, opex_date_of_date
 

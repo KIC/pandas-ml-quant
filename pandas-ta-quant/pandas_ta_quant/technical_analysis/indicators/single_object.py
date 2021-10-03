@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.stats import zscore
 
 import pandas_ta_quant.technical_analysis.bands as _bands
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils import cumcount
 from pandas_ta_quant._decorators import *
 from pandas_ta_quant.technical_analysis.filters import ta_ema as _ema, ta_wilders as _wilders, ta_sma as _sma
@@ -19,13 +19,13 @@ _PANDAS = _Union[_pd.DataFrame, _pd.Series]
 
 
 @for_each_top_level_row
-def ta_mean_returns(df: Typing.PatchedPandas, period=20) -> _PANDAS:
+def ta_mean_returns(df: MlTypes.PatchedPandas, period=20) -> _PANDAS:
     return _wcs(f"mean_return_{period}", df.pct_change().rolling(period).mean())
 
 
 @for_each_column
 @for_each_top_level_row
-def ta_macd(df: Typing.PatchedPandas, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
+def ta_macd(df: MlTypes.PatchedPandas, fast_period=12, slow_period=26, signal_period=9, relative=True) -> _PANDAS:
     fast = _ema(df, fast_period)
     slow = _ema(df, slow_period)
 
@@ -95,7 +95,7 @@ def ta_zscore(df: _PANDAS, period=20, ddof=1, downscale=True):
 
 @for_each_top_level_row
 @for_each_column
-def ta_up_down_volatility_ratio(df: Typing.PatchedSeries, period=60, normalize=True, setof_date=False):
+def ta_up_down_volatility_ratio(df: MlTypes.PatchedSeries, period=60, normalize=True, setof_date=False):
     returns = df.pct_change() if normalize else df
     std = _pd.DataFrame({
         "std+": returns[returns > 0].rolling(period).std(),
@@ -188,19 +188,19 @@ def ta_draw_down(s: _PANDAS, return_dates=False, return_duration=False):
 
 
 @for_each_top_level_row
-def ta_ma_decompose(df: Typing.PatchedPandas, period=50, boost_ma=10):
+def ta_ma_decompose(df: MlTypes.PatchedPandas, period=50, boost_ma=10):
     ma = _sma(df, period=period)
     base = ma.pct_change() * boost_ma
     ratio = df / ma - 1
 
-    if isinstance(ratio, Typing.Series):
+    if isinstance(ratio, MlTypes.Series):
         ratio.name = f'{df.name}_ma_ratio'
 
     return base.to_frame().join(ratio)
 
 
 @for_each_top_level_row
-def ta_ma_ratio(df: Typing.PatchedPandas, period=12, exponential='wilder') -> _PANDAS:
+def ta_ma_ratio(df: MlTypes.PatchedPandas, period=12, exponential='wilder') -> _PANDAS:
     if exponential is True:
         return (1 / _ema(df)) * df.values - 1
     if exponential == 'wilder':

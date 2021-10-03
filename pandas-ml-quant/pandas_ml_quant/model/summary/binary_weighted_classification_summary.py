@@ -4,7 +4,7 @@ import os
 import numpy as np
 from matplotlib.figure import Figure
 
-from pandas_ml_common import Typing
+from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import Model
 from pandas_ml_utils.constants import *
@@ -15,7 +15,7 @@ _log = logging.getLogger(__name__)
 
 class BinaryWeightedClassificationSummary(ClassificationSummary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, model: Model, probability_cutoff=0.5, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: Model, probability_cutoff=0.5, **kwargs):
         super().__init__(df, model, **kwargs)
         pc = self.probability_cutoff = probability_cutoff
 
@@ -100,7 +100,7 @@ class BinaryWeightedClassificationSummary(ClassificationSummary):
 # TODO create a generic MultiModelMultiSummary(summary_provider, ...)
 class MultipleBinaryWeightedClassificationSummary(ClassificationSummary):
 
-    def __init__(self, df: Typing.PatchedDataFrame, probability_cutoff=0.5, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, probability_cutoff=0.5, **kwargs):
         super().__init__(df)
         if GROSS_LOSS_COLUMN_NAME in df:
             df = df[[LABEL_COLUMN_NAME, PREDICTION_COLUMN_NAME, GROSS_LOSS_COLUMN_NAME]]
