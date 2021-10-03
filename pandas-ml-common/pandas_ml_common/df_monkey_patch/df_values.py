@@ -59,8 +59,8 @@ class MLCompatibleValues(object):
         This is a magic way to access columns in a DataFrame. We can use regex and even lambdas to select and
         calculate columns.
 
-        df._[".*Close$"]  # gets all close columns
-        df._[lambda df: df["Close"] * 2  # get a column and calculates something
+        df.ML[".*Close$"]  # gets all close columns
+        df.ML[lambda df: df["Close"] * 2  # get a column and calculates something
 
         :param item:
         :return:

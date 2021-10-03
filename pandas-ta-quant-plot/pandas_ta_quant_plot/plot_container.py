@@ -21,10 +21,10 @@ class PlotContainer(object):
             ax = ax[0] if isinstance(ax, np.ndarray) else ax
             colors = color_positive_negative(df, open, close, pos_color, neg_color).iloc[index_slice]
 
-            fhl = df._[[low, high]].iloc[index_slice]
+            fhl = df.ML[[low, high]].iloc[index_slice]
             ax.vlines(fhl.index, fhl.iloc[:, 0], fhl.iloc[:, 1], colors=colors, **kwargs)
 
-            foc  = df._[[open, close]].iloc[index_slice]
+            foc  = df.ML[[open, close]].iloc[index_slice]
             ax.vlines(foc.index, foc.iloc[:, 0], foc.iloc[:, 1], lw=4, colors=colors,**kwargs)
 
         self.plots.append(plot)
@@ -34,7 +34,7 @@ class PlotContainer(object):
     def line(self, *columns, **kwargs):
         def plot(df, ax, index_slice):
             ax = ax[0] if isinstance(ax, np.ndarray) else ax
-            ax.plot(df._[list(columns)].iloc[index_slice], **kwargs)
+            ax.plot(df.ML[list(columns)].iloc[index_slice], **kwargs)
 
         self.plots.append(plot)
         self.potential_hist_source = columns[0]
@@ -43,7 +43,7 @@ class PlotContainer(object):
     def bar(self, column, **kwargs):
         def plot(df, ax, index_slice):
             ax = ax[0] if isinstance(ax, np.ndarray) else ax
-            f = df._[list(column)].iloc[index_slice]
+            f = df.ML[list(column)].iloc[index_slice]
             for col in f.columns:
                 ax.vlines(f.index, np.zeros(len(f)), f[col], **_slice_kwargs(kwargs, index_slice))
 
@@ -68,7 +68,7 @@ class PlotContainer(object):
 
         def plot(df, ax, index_slice):
             ax = ax[1]
-            f = df._[col].iloc[index_slice]
+            f = df.ML[col].iloc[index_slice]
             ax.hist(f, orientation='horizontal', bins=other.buckets)
 
         self.plots.append(plot)

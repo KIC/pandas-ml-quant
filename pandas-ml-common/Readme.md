@@ -28,7 +28,7 @@ print(df1.inner_join(df1, prefix_left='A', prefix='B', force_multi_index=True).t
 * access columns with regex
 ```python
 df4 = pd.DataFrame({"a_22_a": np.random.random(1), "b_21_b": np.random.random(1)})
-df4._[r'.*\d+_.']
+df4.ML[r'.*\d+_.']
 ```
 |    |   a_22_a |    b_21_b |
 |---:|---------:|----------:|

@@ -8,7 +8,7 @@ from pandas_ta_quant_test.config import DF_TEST_MULTI_ROW, DF_TEST_MULTI
 class TestCovariances(TestCase):
 
     def test_ewma_covariance(self):
-        df = DF_TEST_MULTI._["Close"]
+        df = DF_TEST_MULTI.ML["Close"]
         cov = ta_ewma_covariance(df)
         # print(cov.tail())
 
@@ -18,7 +18,7 @@ class TestCovariances(TestCase):
         pd.testing.assert_frame_equal(cov.loc["A"], cov.loc["B"])
 
     def test_mgarch_covariance(self):
-        df = DF_TEST_MULTI[-40:]._["Close"]
+        df = DF_TEST_MULTI[-40:].ML["Close"]
         cov = ta_mgarch_covariance(df)
         # print(cov)
 

@@ -128,7 +128,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
         fl: FeaturesWithLabels = df.ML.extract(
             PostProcessedFeaturesAndLabels(
                 features=[
-                    lambda df: df._["Close"].ta.log_returns()
+                    lambda df: df.ML["Close"].ta.log_returns()
                 ],
                 feature_post_processor=[
                     lambda df: df.flatten_columns(),
@@ -136,7 +136,7 @@ class TestExtractionOfFeaturesAndLabels(TestCase):
                     lambda df: df.ta.normalize_row(normalizer='uniform'),
                 ],
                 labels=[
-                    lambda df: df._["Close"].ta.log_returns().shift(-1)
+                    lambda df: df.ML["Close"].ta.log_returns().shift(-1)
                 ]
             )
         )

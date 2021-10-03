@@ -11,13 +11,13 @@ pd.set_option('display.max_columns', None)
 
 
 class TestSummary(TestCase):
-    # df = DF_TEST_MULTI[-50:]._["Close"].copy()
+    # df = DF_TEST_MULTI[-50:].ML["Close"].copy()
     # df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
     # df[PREDICTION_COLUMN_NAME, "spy"] = np.random.random(len(df))
     # df[PREDICTION_COLUMN_NAME, "gld"] = 1 - df[PREDICTION_COLUMN_NAME, "spy"]
 
     def test_portfolio_weights_summary_simple(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = 1
         df[PREDICTION_COLUMN_NAME, "gld"] = 0
@@ -37,7 +37,7 @@ class TestSummary(TestCase):
         )
 
     def test_portfolio_weights_summary_equal_weights(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = 0.5
         df[PREDICTION_COLUMN_NAME, "gld"] = 0.5
@@ -55,7 +55,7 @@ class TestSummary(TestCase):
         )
 
     def test_portfolio_weights_summary_equal_weights_with_distance(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = 0.5
         df[PREDICTION_COLUMN_NAME, "gld"] = 0.5
@@ -84,7 +84,7 @@ class TestSummary(TestCase):
             )).max(), 0.0001)
 
     def test_portfolio_weights_summary_equal_weights_with_distance_and_fee(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = 0.5
         df[PREDICTION_COLUMN_NAME, "gld"] = 0.5
@@ -101,7 +101,7 @@ class TestSummary(TestCase):
         )
 
     def test_portfolio_weights_summary_changing_weights_lag(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = np.linspace(0.1, 1, 10)
         df[PREDICTION_COLUMN_NAME, "gld"] = 1 - np.linspace(0.1, 1, 10)
@@ -118,7 +118,7 @@ class TestSummary(TestCase):
         )
 
     def test_portfolio_weights_summary_changing_weights_lag_with_distance(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = np.linspace(0.1, 1, 10)
         df[PREDICTION_COLUMN_NAME, "gld"] = 1 - np.linspace(0.1, 1, 10)
@@ -135,7 +135,7 @@ class TestSummary(TestCase):
         )
 
     def test_cash_fallback(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = 0.5
         df[PREDICTION_COLUMN_NAME, "gld"] = 0.0
@@ -149,7 +149,7 @@ class TestSummary(TestCase):
         np.testing.assert_equal(np.repeat([0.5], 9), portfolio["weights", "$"][1:])
 
     def test_rebalance_draw_down(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = 1
         df[PREDICTION_COLUMN_NAME, "gld"] = 0
@@ -161,7 +161,7 @@ class TestSummary(TestCase):
         self.assertEqual(1, portfolio["agg", "rebalance"][2:].values.sum())
 
     def test_short(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = -1
         df[PREDICTION_COLUMN_NAME, "gld"] = 0
@@ -179,7 +179,7 @@ class TestSummary(TestCase):
         )
 
     def test_portfolio_weights_summary_equal_weights_short(self):
-        df = DF_TEST_MULTI[-10:]._["Close"].copy()
+        df = DF_TEST_MULTI[-10:].ML["Close"].copy()
         df.columns = pd.MultiIndex.from_product([[TARGET_COLUMN_NAME], df.columns.tolist()])
         df[PREDICTION_COLUMN_NAME, "spy"] = -0.5
         df[PREDICTION_COLUMN_NAME, "gld"] = -0.5

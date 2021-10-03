@@ -11,7 +11,7 @@ allows to deal with MultiIndex easily:
 
 ```
 df = pd.read_pickle("../pandas_ta_quant_test/.data/spy_gld.pickle")
-df._[["Close", df._["Close"].ta.sma(200)]].plot(figsize=(20,10))
+df.ML[["Close", df.ML["Close"].ta.sma(200)]].plot(figsize=(20,10))
 ```
 
 ![Plot][ghi1]
