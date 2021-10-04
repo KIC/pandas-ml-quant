@@ -55,7 +55,7 @@ class MarkowitzModel(Model):
             w = cvx.Variable(n)
 
             # define optimization problem
-            objective = cvx.Minimize(cvx.quad_form(w, sigma) + (self.l1 * cvx.norm(w, 1)) - self.riskaversion * w.T @ mu)
+            objective = cvx.Minimize(cvx.quad_form(w, sigma) + (self.l1 * cvx.norm(w, 1)) - (self.riskaversion * w.T @ mu))
             constraints = [w >= self.max_short_weight, w <= self.max_long_weight, cvx.sum(w) == 1]
             prob = cvx.Problem(objective, constraints)
 
