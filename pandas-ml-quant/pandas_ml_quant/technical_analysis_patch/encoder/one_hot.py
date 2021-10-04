@@ -1,5 +1,6 @@
 from typing import Union, Iterable
 
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelBinarizer
 
@@ -29,3 +30,12 @@ def ta_one_hot_encode_discrete(po: Union[pd.Series, pd.DataFrame], drop_na=True,
     else:
         return pd.Series(label_binarizer.transform(values).tolist(), index=po.index, name=po.name)
 
+
+def ta_one_hot_argmax(df: pd.DataFrame):
+    argmax = df.apply(np.argmax, axis=1).values
+    res = np.zeros(df.shape)
+    res[np.arange(argmax.size), argmax] = 1
+    resdf = pd.DataFrame(res, index=df.index, columns=df.columns)
+
+    resdf.loc[pd.isna(df).any(1), :] = np.NaN
+    return resdf

@@ -17,22 +17,28 @@ def _normalize(df, convert_to):
     return data
 
 
+def _reduce(df):
+    return df.apply(lambda r: r.to_list(), axis=1).groupby(level=0).agg(lambda x: list(x)).rename("CovarianceMatrix")
+
+
 @for_each_top_level_row
-def ta_ewma_covariance(df: MlTypes.PatchedPandas, alpha=0.97, convert_to='returns', **kwargs):
+def ta_ewma_covariance(df: MlTypes.PatchedPandas, alpha=0.97, convert_to='returns', reduce=False, **kwargs):
     data = _normalize(df, convert_to)
     data.columns = data.columns.to_list()
-    return data.ewm(com=alpha).cov()
+    cmx = data.ewm(com=alpha).cov()
+    return _reduce(cmx) if reduce else cmx
 
 
 @for_each_top_level_row
-def ta_moving_covariance(df: MlTypes.PatchedPandas, period=30, convert_to='returns', **kwargs):
+def ta_moving_covariance(df: MlTypes.PatchedPandas, period=30, convert_to='returns', reduce=False, **kwargs):
     data = _normalize(df, convert_to)
     data.columns = data.columns.to_list()
-    return data.rolling(period).cov()
+    cmx = data.rolling(period).cov()
+    return _reduce(cmx) if reduce else cmx
 
 
 @for_each_top_level_row
-def ta_mgarch_covariance(df: MlTypes.PatchedPandas, period=30, convert_to='returns', forecast=1, dist='t', **kwargs):
+def ta_mgarch_covariance(df: MlTypes.PatchedPandas, period=30, convert_to='returns', reduce=False, forecast=1, dist='t', **kwargs):
     assert period >= df.shape[1], f"period need to be > {df.shape[1]}"
     data = _normalize(df, convert_to)
     data.columns = data.columns.to_list()
@@ -47,11 +53,12 @@ def ta_mgarch_covariance(df: MlTypes.PatchedPandas, period=30, convert_to='retur
             columns=window.columns.to_list()
         )
 
-    return _pd.concat([mgarch_cov(data.iloc[i - period: i]) for i in range(period, len(data) + 1)], axis=0)
+    cmx = _pd.concat([mgarch_cov(data.iloc[i - period: i]) for i in range(period, len(data) + 1)], axis=0)
+    return _reduce(cmx) if reduce else cmx
 
 
 @for_each_top_level_row
-def ta_sparse_covariance(df: MlTypes.PatchedPandas, convert_to='returns', covariance='ewma', cov_arg=0.97, rho=0.1, inverse=False, **kwargs):
+def ta_sparse_covariance(df: MlTypes.PatchedPandas, convert_to='returns', covariance='ewma', cov_arg=0.97, rho=0.1, inverse=False, reduce=False, **kwargs):
     from sklearn.covariance import graphical_lasso
 
     if covariance in ['ewma', 'weighted']:
@@ -63,13 +70,13 @@ def ta_sparse_covariance(df: MlTypes.PatchedPandas, convert_to='returns', covari
     else:
         raise ValueError("unknown covariance expected one of [ewma, moving]")
 
-    return \
+    cmx = \
         cov_func(df, cov_arg, convert_to) \
         .groupby(level=0) \
         .apply(lambda x: x if x.isnull().values.any() else \
                          _pd.DataFrame(graphical_lasso(x.values, rho, **kwargs)[int(inverse)], index=x.index, columns=x.columns))
 
-
+    return _reduce(cmx) if reduce else cmx
 
 
 
