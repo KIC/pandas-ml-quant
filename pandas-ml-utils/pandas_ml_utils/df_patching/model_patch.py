@@ -15,6 +15,7 @@ from pandas_ml_utils.ml.forecast import Forecast
 from pandas_ml_utils.ml.model import Fittable, AutoEncoderModel, FittableModel
 from pandas_ml_utils.ml.summary import Summary
 from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
+from ..ml.model.predictable import Model
 
 _log = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class DfModelPatch(object):
         return call_silent(assemble_fit, lambda e: FitException(e, model)) if fail_silent else assemble_fit()
 
     def backtest(self,
-                 model: Fittable,
+                 model: Model,
                  summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = None,
                  tail: int = None,
                  **kwargs) -> Summary:
@@ -70,7 +71,7 @@ class DfModelPatch(object):
         return call_callable_dynamic_args(summary_provider or model.summary_provider, df=df_backtest, model=model, **kwargs)
 
     def predict(self,
-                model: Fittable,
+                model: Model,
                 tail: int = None,
                 samples: int = 1,
                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,

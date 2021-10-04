@@ -7,7 +7,7 @@ from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from pandas_ml_utils import html
 from pandas_ml_utils.constants import *
-from pandas_ml_utils.ml.model.base_model import Model
+from pandas_ml_utils.ml.model import Model
 from pandas_ml_utils.ml.summary import Summary
 
 

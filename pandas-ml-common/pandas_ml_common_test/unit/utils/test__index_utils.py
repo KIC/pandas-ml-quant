@@ -11,6 +11,7 @@ class TestDfIndexUtils(TestCase):
         df = pd.DataFrame({"hallo": [1, 2, 3]})
         dfmi = df.copy()
         dfmi.columns = pd.MultiIndex.from_product([["a"], dfmi.columns])
+        # print(dfmi)
 
         self.assertIsNone(get_pandas_object(df, None))
         self.assertListEqual([1, 2, 3], get_pandas_object(df, "hallo").to_list())
@@ -24,6 +25,8 @@ class TestDfIndexUtils(TestCase):
         self.assertListEqual([1, 2, 3], get_pandas_object(dfmi, "a").iloc[:,0].to_list())
         self.assertListEqual([1, 2, 3], get_pandas_object(dfmi, ".*ll.*").iloc[:, 0].to_list())
         self.assertEqual((3, 0), get_pandas_object(dfmi, "allo").shape)
+        self.assertEqual((3, 1), get_pandas_object(dfmi, r"ha..o").shape)
+        # print(get_pandas_object(dfmi, r"ha..o"))
 
     def test_intersection_of_index(self):
         df1 = pd.DataFrame({}, index=[1, 2, 3, 4])

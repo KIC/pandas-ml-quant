@@ -252,7 +252,7 @@ def get_pandas_object(po: PandasObject, item, type_map: Optional[Dict[Type, Call
 
                         if len(cols) <= 0:
                             # try regex
-                            cols = {col: i for col in po.columns.tolist() for i, part in enumerate(col) if re.compile(item).match(part)}
+                            cols = {col: i for col in po.columns.tolist() for i, part in enumerate(col) if isinstance(part, str) and re.compile(item).match(part)}
 
                         levels = set(cols.values())
                         if len(levels) == 1:
@@ -261,7 +261,8 @@ def get_pandas_object(po: PandasObject, item, type_map: Optional[Dict[Type, Call
                             return po[cols.keys()]
                     elif isinstance(item, str):
                         # try regex
-                        return po[list(filter(re.compile(item).match, po.columns))]
+                        cols = [c for c in po.columns if isinstance(c, str) and re.compile(item).match(c)]
+                        return po[cols]
                     else:
                         raise KeyError("should never get here ?")(f"key {item} not found in {po.columns if has_indexed_columns(po) else po.index}")
                 else:

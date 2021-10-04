@@ -11,6 +11,16 @@ from .index_utils import flatten_multi_column_index
 #    return pd.concat(frames, *args, **kwargs) if len(frames) > 0 else default
 
 
+def pd_dropna(frame: pd.DataFrame):
+    if frame is None:
+        return None
+
+    if isinstance(frame, list):
+        return [pd_dropna(f) for f in frame]
+
+    return frame.dropna()
+
+
 def pd_concat(frames, multiindex_columns=True, join='outer', **kwargs):
     if frames is None:
         return None

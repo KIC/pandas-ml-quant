@@ -3,7 +3,7 @@ from abc import abstractmethod, ABCMeta
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
-from typing import Callable, Tuple, List, Dict, Optional, Any, Set, Union
+from typing import Callable, Tuple, List, Dict, Optional, Any, Union
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,6 @@ from pandas_ml_common.sampling.sampler import XYWeight, FoldXYWeight
 from pandas_ml_common.utils import merge_kwargs, pd_concat, safe_max
 from pandas_ml_utils.ml.fitting.fitting_parameter import FittingParameter
 from pandas_ml_utils.ml.model.fittable import Fittable
-from pandas_ml_utils.ml.model.predictable import Model
 from ..forecast import Forecast
 from ..summary import Summary
 

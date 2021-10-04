@@ -6,7 +6,7 @@ import numpy as np
 from ..typing import MlTypes
 from ..utils import call_if_not_none, get_pandas_object, intersection_of_index, loc_if_not_none, is_in_index, \
     make_same_length, call_callable_dynamic_args, none_as_empty_list, flatten_nested_list, none_as_empty_dict, GetItem, \
-    pd_concat
+    pd_concat, pd_dropna
 
 _log = logging.getLogger(__name__)
 
@@ -165,6 +165,10 @@ class Extractor(object):
         features = self._apply_post_processor(features, self.features_and_labels_definition.features_postprocessor)
         recon_tgt = self._apply_post_processor(recon_tgt, self.features_and_labels_definition.reconstruction_targets_postprocessor)
 
+        # drop nans
+        features = pd_dropna(features)
+        recon_tgt = pd_dropna(recon_tgt)
+
         # calculate the common index over all frames
         common_index = intersection_of_index(*features, recon_tgt)
 
@@ -184,6 +188,11 @@ class Extractor(object):
         labels = self._apply_post_processor(labels, self.features_and_labels_definition.labels_postprocessor)
         weights = self._apply_post_processor(weights, self.features_and_labels_definition.sample_weights_postprocessor)
         gross_loss = self._apply_post_processor(gross_loss, self.features_and_labels_definition.gross_loss_postprocessor)
+
+        # drop nans
+        labels = pd_dropna(labels)
+        weights = pd_dropna(weights)
+        gross_loss = pd_dropna(gross_loss)
 
         # calculate the common index over all frames
         common_index = intersection_of_index(*labels, *none_as_empty_list(weights), *none_as_empty_list(gross_loss))
