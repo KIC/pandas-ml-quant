@@ -29,9 +29,6 @@ class LambdaModel(ModelProvider):
     def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
         pass
 
-    def init_fold(self, epoch: int, fold: int):
-        pass
-
     def after_epoch(self, epoch, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         pass
 

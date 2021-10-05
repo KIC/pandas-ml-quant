@@ -49,10 +49,6 @@ class ModelProvider(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def init_fold(self, epoch: int, fold: int):
-        pass
-
-    @abstractmethod
     def after_epoch(self, epoch, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         pass
 

@@ -72,9 +72,6 @@ class SkModelProvider(ModelProvider):
             # calculate: metrics.mean_squared_error
             return metrics.mean_squared_error(_y, y_pred, sample_weight=w)
 
-    def init_fold(self, epoch: int, fold: int):
-        pass
-
     def after_epoch(self, epoch, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         pass
 

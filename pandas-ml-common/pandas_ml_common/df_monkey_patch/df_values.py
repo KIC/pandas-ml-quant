@@ -14,6 +14,15 @@ class MLCompatibleValues(object):
         self.df = df
 
     def cumapply(self, func: callable, start_value=None, **kwargs):
+        """
+        allows to apply custom cumulative functions
+
+        :param func: callable which receives the current cumulative value and whatever is the series/frame and
+        returns the new cumulative value
+        :param start_value: the initial value of the current cumulative value
+        :param kwargs: args passed to pandas apply
+        :return: pandas series or frame as if for the regula apply function
+        """
         return pd_cumapply(self.df, func, start_value, **kwargs)
 
     @property
