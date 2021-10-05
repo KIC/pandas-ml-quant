@@ -47,6 +47,17 @@ def pd_concat(frames, multiindex_columns=True, join='outer', **kwargs):
     ) if len(frames) > 1 else frames[0]
 
 
+def pd_cumapply(df, func: callable, start_value=None, **kwargs):
+    last = [start_value]
+
+    def exec(x):
+        val = func(last[0], x)
+        last[0] = val
+        return val
+
+    return df.apply(exec, **kwargs)
+
+
 def fix_multiindex_row_asymetry(df, default=np.NaN, sort=False):
     return fix_multiindex_asymetry(df, default, False, axis=0, sort=sort)
 

@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from pandas_ml_common.utils import pd_hash, fix_multiindex_asymetry
+from pandas_ml_common.utils import pd_hash, fix_multiindex_asymetry, pd_cumapply
 
 
 class TestDFUtils(TestCase):
@@ -26,3 +26,12 @@ class TestDFUtils(TestCase):
         self.assertNotEqual(pd_hash(df), pd_hash(df2))
         self.assertEqual(pd_hash(df, columns=["a", "c"]), pd_hash(df2, columns=["a", "c"]))
 
+    def test_cumapply(self):
+        df = pd.DataFrame({"a": range(0, 10)})
+        res = pd_cumapply(df, lambda cum, x: cum + x, start_value=12, axis=1)
+        print(res)
+
+        self.assertListEqual(
+            [12, 13, 15, 18, 22, 27, 33, 40, 48, 57],
+            res.iloc[:, 0].to_list()
+        )

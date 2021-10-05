@@ -29,7 +29,7 @@ from pandas_ml_common.utils import (
     add_multi_index,
     unique_level_columns,
     unique_level_rows,
-    unique_level
+    unique_level, pd_cumapply
 )
 from pandas_ml_common.utils.lazy_value import LazyInit
 
@@ -44,6 +44,7 @@ setattr(PandasObject, "ML", property(lambda self: MLCompatibleValues(self)))
 setattr(PandasObject, "inner_join", inner_join)
 setattr(PandasObject, "has_multi_index_columns", lambda self: isinstance(self, pd.DataFrame) and isinstance(self.columns, pd.MultiIndex))
 setattr(PandasObject, "has_multi_index_rows", lambda self: isinstance(self.index, pd.MultiIndex))
+setattr(PandasObject, "cumapply", lambda self, *args, **kwargs: pd_cumapply(self, *args, **kwargs))
 
 setattr(pd.DataFrame, "to_frame", lambda self: self)
 setattr(pd.DataFrame, "flatten_columns", flatten_multi_column_index)

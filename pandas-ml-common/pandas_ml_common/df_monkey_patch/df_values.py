@@ -5,13 +5,16 @@ import pandas as pd
 
 from ..preprocessing.features_labels import FeaturesLabels, Extractor
 from ..typing import MlTypes
-from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns
+from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns, pd_cumapply
 
 
 class MLCompatibleValues(object):
 
     def __init__(self, df: pd.DataFrame):
         self.df = df
+
+    def cumapply(self, func: callable, start_value=None, **kwargs):
+        return pd_cumapply(self.df, func, start_value, **kwargs)
 
     @property
     def values(self) -> Union[List[np.ndarray], np.ndarray]:
