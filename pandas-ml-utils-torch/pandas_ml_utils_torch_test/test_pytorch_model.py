@@ -1,3 +1,4 @@
+from typing import Tuple, Dict, Any
 from unittest import TestCase
 
 import torch as t
@@ -5,111 +6,117 @@ import torch.nn as nn
 from torch.optim import SGD, Adam
 
 from pandas_ml_common import naive_splitter
-from pandas_ml_utils import pd, FeaturesAndLabels, FittingParameter
-from pandas_ml_utils.ml.model.base_model import AutoEncoderModel
+from pandas_ml_utils import pd, FittingParameter
+from pandas_ml_utils.ml.model.base_model import AutoEncoderModel, ModelProvider
 from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils_torch import PytorchModel, PytorchAutoEncoderModel, PytorchNN
+from pandas_ml_utils_torch import PytorchNN, PytorchModelProvider, PytorchNNFactory
 
 
-class RegressionModule(nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.regressor = nn.Sequential(
-            nn.Linear(1, 1)
+class TestPytorchModel(TestAbstractModel, TestCase):
+
+    def test_multi_sample_regressor(self):
+        super().test_multi_sample_regressor()
+
+    def test_no_test_data(self):
+        super().test_no_test_data()
+
+    def test_multindex_row(self):
+        super().test_multindex_row()
+
+    def test_multindex_row_multi_samples(self):
+        super().test_multindex_row_multi_samples()
+
+    def test_stacked_models(self):
+        super().test_stacked_models()
+
+    def test_concatenated_multi_models(self):
+        super().test_concatenated_multi_models()
+
+    def test_classifier(self):
+        super().test_classifier()
+
+    def test_regressor(self):
+        super().test_regressor()
+
+    def test_auto_encoder(self):
+        super().test_auto_encoder()
+
+    def provide_regression_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
+        return (
+            PytorchModelProvider(
+                PytorchNNFactory.create(
+                    nn.Sequential(nn.Linear(1, 1)),
+                ),
+                nn.MSELoss,
+                lambda params: SGD(params, lr=0.03)
+            ),
+            dict(batch_size=None, epochs=500)
         )
 
-    def forward(self, x, **kwargs):
-        x = self.regressor(x)
-        return x
-
-
-class AutoEncoderModule(PytorchNN):
-
-    def __init__(self):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(2, 2),
-            nn.Tanh(),
-            nn.Linear(2, 1),
-            nn.Tanh(),
-        )
-
-        self.decoder = nn.Sequential(
-            nn.Linear(1, 2),
-            nn.Tanh(),
-            nn.Linear(2, 2),
-            nn.Tanh(),
-        )
-
-    def forward_training(self, x, **kwargs):
-        x = self.encoder(x)
-        x = self.decoder(x)
-        return x
-
-    def encode(self, x):
-        return self.encoder(x)
-
-    def decode(self, x):
-        return self.decoder(x)
-
-
-class ClassificationModule(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-        self.classifier = nn.Sequential(
-            nn.Linear(2, 5),
-            nn.ReLU(),
-            nn.Linear(5, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x, **kwargs):
-        x = self.classifier(x)
-        return x
-
-
-class TestPytorchModel(TestAbstractModel):
-
-    def provide_batch_size_and_epoch(self):
-        return None, 500
-
-    def provide_classification_model(self, features_and_labels):
+    def provide_classification_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         t.manual_seed(42)
 
-        model = PytorchModel(
-            ClassificationModule,
-            features_and_labels,
-            nn.MSELoss,
-            lambda params: SGD(params, lr=0.03)
+        return (
+            PytorchModelProvider(
+                PytorchNNFactory.create(
+                    nn.Sequential(
+                        nn.Linear(2, 5),
+                        nn.ReLU(),
+                        nn.Linear(5, 1),
+                        nn.Sigmoid()
+                    ),
+                ),
+                nn.MSELoss,
+                lambda params: SGD(params, lr=0.03)
+            ),
+            dict(batch_size=None, epochs=500)
         )
 
-        return model
-
-    def provide_regression_model(self, features_and_labels, **kwargs):
+    def provide_auto_encoder_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         t.manual_seed(12)
 
-        model = PytorchModel(
-            RegressionModule,
-            features_and_labels,
-            nn.MSELoss,
-            lambda params: SGD(params, lr=0.01, momentum=0.0),
-            **kwargs
+        def auto_encoder_module():
+            # we need to wrap the class into a function for serialization
+            # because nested classes in test methods are not serializable
+            class AutoEncoderModule(PytorchNN):
+
+                def __init__(self):
+                    super().__init__()
+                    self.encoder = nn.Sequential(
+                        nn.Linear(2, 2),
+                        nn.Tanh(),
+                        nn.Linear(2, 1),
+                        nn.Tanh(),
+                    )
+
+                    self.decoder = nn.Sequential(
+                        nn.Linear(1, 2),
+                        nn.Tanh(),
+                        nn.Linear(2, 2),
+                        nn.Tanh(),
+                    )
+
+                def forward_training(self, x, **kwargs):
+                    x = self.encoder(x)
+                    x = self.decoder(x)
+                    return x
+
+                def encode(self, x):
+                    return self.encoder(x)
+
+                def decode(self, x):
+                    return self.decoder(x)
+
+            return AutoEncoderModule()
+
+        return (
+            PytorchModelProvider(
+                auto_encoder_module(),
+                nn.MSELoss,
+                lambda params: SGD(params, lr=0.1, momentum=0.9)
+            ),
+            dict(batch_size=None, epochs=500)
         )
-
-        return model
-
-    def provide_auto_encoder_model(self, features_and_labels):
-        t.manual_seed(12)
-
-        model = PytorchAutoEncoderModel(
-            AutoEncoderModule,
-            features_and_labels,
-            nn.MSELoss,
-            lambda params: SGD(params, lr=0.1, momentum=0.9)
-        )
-
-        return model
 
     def test_mult_epoch_cross_validation(self):
         df = pd.DataFrame({

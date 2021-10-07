@@ -1,7 +1,7 @@
 import torch as t
 import torch.nn as nn
 
-from pandas_ml_utils_torch.loss import CrossEntropyLoss
+from .simple_losses import CrossEntropyLoss
 from ._loss_utils import reduce
 
 

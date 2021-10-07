@@ -99,68 +99,67 @@ class TestSkModel(TestAbstractModel, TestCase):
             decoded.columns.tolist()
         )
 
+    def test_partial_fit_regression(self):
+        data = make_regression(100, 2, 1)
+        df = pd.DataFrame(data[0])
+        df["label"] = data[1]
 
-    #def test_partial_fit_regression(self):
-    #    data = make_regression(100, 2, 1)
-    #    df = pd.DataFrame(data[0])
-    #    df["label"] = data[1]
-    #
-    #    with df.model() as m:
-    #        fit_partial = m.fit(
-    #            SkModel(
-    #                MLPRegressor(max_iter=1, random_state=42),
-    #                FeaturesAndLabels(features=[0, 1], labels=['label'])
-    #            ),
-    #            FittingParameter(
-    #                naive_splitter(0.3),
-    #                batch_size=10,
-    #                fold_epochs=10
-    #            )
-    #        )
-    #
-    #    with df.model() as m:
-    #        fit = m.fit(
-    #            SkModel(
-    #                MLPRegressor(max_iter=10, random_state=42),
-    #                FeaturesAndLabels(features=[0, 1], labels=['label'])
-    #            ),
-    #            FittingParameter(naive_splitter(0.3))
-    #        )
-    #
-    #    self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
-    #
-    #    self.assertEqual(len(fit_partial.model._statistics._history[('train',)]), 10)
-    #    self.assertEqual(len(fit_partial.model._statistics._history[('test', 0)]), 10)
-    #
-    #def test_partial_fit_classification(self):
-    #    data = make_classification(100, 2, 1, 0, n_clusters_per_class=1)
-    #    df = pd.DataFrame(data[0])
-    #    df["label"] = data[1]
-    #
-    #    with df.model() as m:
-    #        fit_partial = m.fit(
-    #            SkModel(
-    #                MLPClassifier(max_iter=1, random_state=42),
-    #                FeaturesAndLabels(features=[0, 1], labels=['label']),
-    #                classes=np.unique(data[1])
-    #            ),
-    #            FittingParameter(
-    #                stratified_random_splitter(0.3),
-    #                batch_size=10,
-    #                fold_epochs=10,
-    #            )
-    #        )
-    #
-    #    with df.model() as m:
-    #        fit = m.fit(
-    #            SkModel(
-    #                MLPClassifier(max_iter=10, random_state=42),
-    #                FeaturesAndLabels(features=[0, 1], labels=['label'])
-    #            ),
-    #            FittingParameter(stratified_random_splitter(0.3))
-    #        )
-    #
-    #    self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
+        with df.model() as m:
+            fit_partial = m.fit(
+                FittableModel(
+                    SkModelProvider(MLPRegressor(max_iter=1, random_state=42)),
+                    FeaturesLabels(features=[0, 1], labels=['label'])
+                ),
+                FittingParameter(
+                    naive_splitter(0.3),
+                    batch_size=10,
+                    fold_epochs=10
+                )
+            )
+
+        with df.model() as m:
+            fit = m.fit(
+                FittableModel(
+                    SkModelProvider(MLPRegressor(max_iter=10, random_state=42),),
+                    FeaturesLabels(features=[0, 1], labels=['label'])
+                ),
+                FittingParameter(naive_splitter(0.3))
+            )
+
+        self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
+
+        self.assertEqual(len(fit_partial.model._fit_statistics._history[('train', 'train', 'train')]), 10)
+        self.assertEqual(len(fit_partial.model._fit_statistics._history[('test', 'cv 0', 'set 0')]), 10)
+
+    def test_partial_fit_classification(self):
+        data = make_classification(100, 2, 1, 0, n_clusters_per_class=1)
+        df = pd.DataFrame(data[0])
+        df["label"] = data[1]
+
+        with df.model() as m:
+            fit_partial = m.fit(
+                FittableModel(
+                    SkModelProvider(MLPClassifier(max_iter=1, random_state=42)),
+                    FeaturesLabels(features=[0, 1], labels=['label']),
+                    classes=np.unique(data[1])  # NOTE! Partial Fit requires to provide all classes
+                ),
+                FittingParameter(
+                    stratified_random_splitter(0.3),
+                    batch_size=10,
+                    fold_epochs=10,
+                )
+            )
+
+        with df.model() as m:
+            fit = m.fit(
+                FittableModel(
+                    SkModelProvider(MLPClassifier(max_iter=10, random_state=42)),
+                    FeaturesLabels(features=[0, 1], labels=['label'])
+                ),
+                FittingParameter(stratified_random_splitter(0.3))
+            )
+
+        self.assertAlmostEqual(df.model.predict(fit.model).iloc[0,-1], df.model.predict(fit_partial.model).iloc[0,-1], 4)
 
     def test_multi_sample_regressor(self):
         super().test_multi_sample_regressor()

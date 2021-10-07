@@ -81,11 +81,11 @@ class Fittable(Model):
 
         # register the fitting logic callbacks
         sampler = sampler.with_callbacks(
-            on_start=partial(self._init_fit, fitting_parameter=fitting_parameter),
-            on_fold=self.init_fold,
-            after_fold_epoch=partial(self._after_fold_epoch, callbacks=callbacks, verbose=verbose, training_data=training_data, testing_data=test_data),
-            after_epoch=partial(self._after_epoch, callbacks=callbacks, verbose=verbose),
-            after_end=self.finish_learning
+            on_start=partial(self._init_fit, fitting_parameter=fitting_parameter, **merged_kwargs),
+            on_fold=partial(self.init_fold, fitting_parameter=fitting_parameter, **merged_kwargs),
+            after_fold_epoch=partial(self._after_fold_epoch, callbacks=callbacks, verbose=verbose, training_data=training_data, testing_data=test_data, **merged_kwargs),
+            after_epoch=partial(self._after_epoch, callbacks=callbacks, verbose=verbose, **merged_kwargs),
+            after_end=partial(self.finish_learning, **merged_kwargs)
         )
 
         # fit the model
@@ -126,7 +126,7 @@ class Fittable(Model):
 
     def _after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], training_data: FeaturesWithReconstructionTargets, testing_data: FeaturesWithReconstructionTargets, verbose, callbacks, **kwargs):
         # calculate the training and test losses
-        train_loss, test_loss = self.calculate_train_test_loss(fold, train_data, test_data)
+        train_loss, test_loss = self.calculate_train_test_loss(fold, train_data, test_data, **kwargs)
         if verbose:
             print(f"loss training data: {train_loss}, test data: {test_loss}")
 
@@ -142,15 +142,17 @@ class Fittable(Model):
             y_hat_test=LazyInit(lambda: self.predict(testing_data))
         )
 
-    def _after_epoch(self, epoch: int, verbose, callbacks):
-        self.after_epoch(epoch)
+        self.after_fold_epoch(epoch, fold, fold_epoch, train_data, test_data, **kwargs)
+
+    def _after_epoch(self, epoch: int, verbose, callbacks, **kwargs):
+        self.after_epoch(epoch, **kwargs)
 
     @abstractmethod
     def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
         pass
 
     @abstractmethod
-    def init_fold(self, epoch: int, fold: int):
+    def init_fold(self, epoch: int, fold: int, fitting_parameter: FittingParameter, **kwargs):
         pass
 
     @abstractmethod
@@ -158,11 +160,11 @@ class Fittable(Model):
         raise NotImplementedError()
 
     @abstractmethod
-    def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
+    def after_fold_epoch(self, epoch, fold, fold_epoch, train_data: XYWeight, test_data: List[XYWeight], **kwargs):
         pass
 
     @abstractmethod
-    def after_epoch(self, epoch: int):
+    def after_epoch(self, epoch: int, **kwargs):
         pass
 
     @abstractmethod
@@ -170,7 +172,7 @@ class Fittable(Model):
         raise NotImplementedError()
 
     @abstractmethod
-    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight]) -> MlTypes.Loss:
+    def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight], **kwargs) -> MlTypes.Loss:
         pass
 
     @abstractmethod

@@ -1,21 +1,19 @@
 from numbers import Number
-from typing import Tuple, Union, Iterable
+from typing import Tuple, Union, Iterable, List, Set
 
 import numpy as np
-
-from pandas_ml_common import pd
 import torch as t
 
-from pandas_ml_common.decorator import MultiFrameDecorator
+from pandas_ml_common import pd, MlTypes
 from pandas_ml_common.utils import unpack_nested_arrays
 
 
-def from_pandas(df: pd.DataFrame, cuda: bool = False, default: t.Tensor = None) -> Union[t.Tensor, Tuple[t.Tensor, ...]]:
+def from_pandas(df: Union[MlTypes.PatchedDataFrame, List[MlTypes.PatchedDataFrame]], cuda: bool = False, default: t.Tensor = None) -> Union[t.Tensor, Tuple[t.Tensor, ...]]:
     if df is None and default is None:
         return None
 
-    if isinstance(df, MultiFrameDecorator):
-        return tuple([from_pandas(f, cuda, default) for f in df.frames()])
+    if isinstance(df, (List, Set, Tuple)):
+        return tuple([from_pandas(f, cuda, default) for f in df])
 
     val = (t.from_numpy(df.ML.get_values(split_multi_index_rows=False, squeeze=True)) if df is not None else default).float()
     return val.cuda() if cuda else val.cpu()

@@ -1,6 +1,10 @@
 from typing import List
 
 
+def as_empty_tuple(t) -> tuple:
+    return (t if isinstance(t, tuple) else (t,)) if t is not None else tuple()
+
+
 def none_as_empty_list(l):
     return (l if isinstance(l, List) else [l]) if l is not None else []
 
