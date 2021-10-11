@@ -1,8 +1,10 @@
 from unittest import TestCase
 
+import numpy as np
+
 from pandas_ml_common import pd, flatten_multi_column_index
 from pandas_ml_common.utils import intersection_of_index, loc_if_not_none, add_multi_index, get_pandas_object, Constant, \
-    same_columns_after_level
+    same_columns_after_level, difference_in_index
 
 
 class TestDfIndexUtils(TestCase):
@@ -79,4 +81,14 @@ class TestDfIndexUtils(TestCase):
         self.assertListEqual(
             ['12, a, 0', '12, a, 1', '12, a, 2', '12, b, 0', '12, b, 1', '12, b, 2'],
             flatten_multi_column_index(df.copy(), as_string=True, prefix=12).columns.tolist()
+        )
+
+    def test_difference(self):
+        df1 = pd.DataFrame({"a": np.ones(3), "b": np.ones(3)})
+        df2 = pd.DataFrame({"b": np.ones(3), "c": np.ones(3)})
+        df3 = pd.DataFrame({"d": np.ones(3), "c": np.ones(3)})
+
+        self.assertListEqual(
+            [["a", "b"], ["c"], ["d"]],
+            [i.to_list() for i in difference_in_index(df1, df2, df3, axis=1)]
         )

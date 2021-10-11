@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas.util import hash_pandas_object
 
-from .index_utils import flatten_multi_column_index
+from .index_utils import flatten_multi_column_index, difference_in_index
 
 
 #def pd_concat(frames: pd.DataFrame, default=None, *args, **kwargs):
@@ -21,7 +21,7 @@ def pd_dropna(frame: pd.DataFrame):
     return frame.dropna()
 
 
-def pd_concat(frames, multiindex_columns=True, join='outer', **kwargs):
+def pd_concat(frames, multiindex_columns=True, join='outer', dedupe_columns=False, **kwargs):
     if frames is None:
         return None
 
@@ -37,6 +37,10 @@ def pd_concat(frames, multiindex_columns=True, join='outer', **kwargs):
 
     if len(valid_frames) <= 0:
         return None
+
+    if dedupe_columns:
+        indexes = difference_in_index(*valid_frames, axis=1)
+        valid_frames = [f[indexes[i]] for i, f in enumerate(valid_frames)]
 
     return pd.concat(
         valid_frames,

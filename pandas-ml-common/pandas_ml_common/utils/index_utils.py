@@ -162,6 +162,19 @@ def intersection_of_index(*dfs: pd.DataFrame):
     return intersect_index.sort_values()
 
 
+def difference_in_index(*dfs: pd.DataFrame, axis=0):
+    indexes = [dfs[0].index if axis == 0 else dfs[0].columns]
+    joint_index = indexes[0]
+
+    for i in range(1, len(dfs)):
+        if dfs[i] is not None:
+            difference = (dfs[i].index if axis == 0 else dfs[i].columns).difference(joint_index)
+            indexes.append(difference)
+            joint_index = joint_index.join(difference, how='outer')
+
+    return indexes
+
+
 def loc_if_not_none(df, value):
     if isinstance(df, (List, Set, Tuple)):
         return [loc_if_not_none(f, value) for f in df]

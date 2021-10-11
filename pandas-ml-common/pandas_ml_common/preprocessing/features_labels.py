@@ -39,7 +39,7 @@ class FeaturesWithReconstructionTargets(NamedTuple):
 
     @property
     def joint_feature_frame(self):
-        return pd_concat(self.features, multiindex_columns=True)
+        return pd_concat(self.features, multiindex_columns=True, dedupe_columns=True)
 
     @property
     def common_index(self):
