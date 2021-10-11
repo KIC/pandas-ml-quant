@@ -5,11 +5,11 @@ import torch as t
 import torch.nn as nn
 from torch.optim import SGD, Adam
 
-from pandas_ml_common import naive_splitter
+from pandas_ml_common import naive_splitter, FeaturesLabels
 from pandas_ml_utils import pd, FittingParameter
-from pandas_ml_utils.ml.model.base_model import AutoEncoderModel, ModelProvider
+from pandas_ml_utils.ml.model.base_model import ModelProvider, FittableModel
 from pandas_ml_utils_test.ml.model.test_abstract_model import TestAbstractModel
-from pandas_ml_utils_torch import PytorchNN, PytorchModelProvider, PytorchNNFactory
+from pandas_ml_utils_torch import PytorchNN, PytorchModelProvider, PytorchNNFactory, PytorchAutoEncoderFactory
 
 
 class TestPytorchModel(TestAbstractModel, TestCase):
@@ -75,43 +75,22 @@ class TestPytorchModel(TestAbstractModel, TestCase):
     def provide_auto_encoder_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         t.manual_seed(12)
 
-        def auto_encoder_module():
-            # we need to wrap the class into a function for serialization
-            # because nested classes in test methods are not serializable
-            class AutoEncoderModule(PytorchNN):
-
-                def __init__(self):
-                    super().__init__()
-                    self.encoder = nn.Sequential(
+        return (
+            PytorchModelProvider(
+                PytorchAutoEncoderFactory(
+                    encoder=nn.Sequential(
                         nn.Linear(2, 2),
                         nn.Tanh(),
                         nn.Linear(2, 1),
                         nn.Tanh(),
-                    )
-
-                    self.decoder = nn.Sequential(
+                    ),
+                    decoder=nn.Sequential(
                         nn.Linear(1, 2),
                         nn.Tanh(),
                         nn.Linear(2, 2),
                         nn.Tanh(),
                     )
-
-                def forward_training(self, x, **kwargs):
-                    x = self.encoder(x)
-                    x = self.decoder(x)
-                    return x
-
-                def encode(self, x):
-                    return self.encoder(x)
-
-                def decode(self, x):
-                    return self.decoder(x)
-
-            return AutoEncoderModule()
-
-        return (
-            PytorchModelProvider(
-                auto_encoder_module(),
+                ),
                 nn.MSELoss,
                 lambda params: SGD(params, lr=0.1, momentum=0.9)
             ),
@@ -138,7 +117,10 @@ class TestPytorchModel(TestAbstractModel, TestCase):
                     return self.nn(x)
 
             fit = m.fit(
-                PytorchModel(NN, FeaturesAndLabels(["a"], ["b"]), nn.MSELoss, Adam),
+                FittableModel(
+                    PytorchModelProvider(NN, nn.MSELoss, Adam),
+                    FeaturesLabels(features=["a"], labels=["b"]),
+                ),
                 FittingParameter(
                     splitter=naive_splitter(0.5),
                     epochs=2,
@@ -148,3 +130,5 @@ class TestPytorchModel(TestAbstractModel, TestCase):
             )
 
         print(fit)
+
+

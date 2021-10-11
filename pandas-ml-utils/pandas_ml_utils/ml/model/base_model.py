@@ -230,8 +230,7 @@ class AutoEncoderModel(Fittable):
         return self
 
     def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
-        for m in self._cross_validation_models.values():
-            m.init_fit(fitting_parameter, **kwargs)
+        pass
 
     def fit_batch(self, xyw: FoldXYWeight, **kwargs):
         self._cross_validation_models[xyw.fold].fit_batch(xyw)
@@ -267,8 +266,9 @@ class AutoEncoderModel(Fittable):
     def train_predict(self, features: FeaturesWithReconstructionTargets, samples: int = 1, **kwargs) -> np.ndarray:
         return self.predict(features=features, samples=samples, **kwargs)
 
-    def init_fold(self, epoch: int, fold: int, **kwargs):
-        pass
+    def init_fold(self, epoch: int, fold: int, fitting_parameter: FittingParameter, **kwargs):
+        if not fold in self._cross_validation_models:
+            self._cross_validation_models[fold].init_fit(fitting_parameter, **kwargs)
 
     def after_epoch(self, epoch: int, **kwargs):
         pass
@@ -337,7 +337,7 @@ class ConcatenatedMultiModel(Fittable):
         # invoked by `fit_to_df`
         pass
 
-    def init_fold(self, epoch: int, fold: int, **kwargs):
+    def init_fold(self, epoch: int, fold: int, fitting_parameter: FittingParameter, **kwargs):
         # invoked by `fit_to_df`
         pass
 

@@ -357,7 +357,7 @@ class TestAbstractModel(metaclass=ABCMeta):
                     [FittableModel(
                         model,
                         FeaturesLabels(
-                            features=["a"],
+                            features=["a"], # [lambda df, period: df["a"].rename(f"a_{period}")],
                             labels=[lambda df, period: (df["b"].shift(period) - df["a"]).rename(f'b_{period}')]
                         ),
                         period=x,
@@ -367,6 +367,7 @@ class TestAbstractModel(metaclass=ABCMeta):
             )
 
         bt = df.model.backtest(fit.model)
+        #print(bt.df.columns.to_list())
         #print(bt.df[LABEL_COLUMN_NAME])
         #print(bt.df[PREDICTION_COLUMN_NAME])
 

@@ -1,16 +1,12 @@
 import logging
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Dict, Type, Callable, Union, Iterable, Tuple
-from wcmatch import glob
+from typing import Dict, Callable
 
-import numpy as np
 import torch as t
 from torch import nn
 
-from pandas_ml_common.utils.logging_utils import LogOnce
-from pandas_ml_utils import AutoEncoderModel, call_callable_dynamic_args
-from pandas_ml_utils_torch.utils import to_device
+from pandas_ml_utils import AutoEncoderModel
 
 _log = logging.getLogger(__name__)
 
@@ -22,14 +18,14 @@ class PytorchNN(nn.Module):
 
     def forward(self, *input, state=None, **kwargs):
         if self.training:
-            return self.forward_training(*input)
+            return self.forward_training(*input, **kwargs)
         else:
             if state == AutoEncoderModel.ENCODE:
-                return self.encode(*input)
+                return self.encode(*input, **kwargs)
             elif state == AutoEncoderModel.DECODE:
-                return self.decode(*input)
+                return self.decode(*input, **kwargs)
             else:
-                return self.forward_predict(*input)
+                return self.forward_predict(*input, **kwargs)
 
     @abstractmethod
     def forward_training(self, *input) -> t.Tensor:
@@ -58,12 +54,15 @@ class PytorchNNFactory(PytorchNN):
             net: nn.Module,
             predictor: Callable[[nn.Module, t.Tensor], t.Tensor] = None,
             trainer: Callable[[nn.Module, t.Tensor], t.Tensor] = None,
-            **kwargs) -> PytorchNN:
+            **kwargs) -> Callable[[], PytorchNN]:
 
         if predictor is None:
             predictor = lambda net, i: net(i)
 
-        return PytorchNNFactory(net, predictor, predictor if trainer is None else trainer, **kwargs)
+        def init():
+            return PytorchNNFactory(deepcopy(net), predictor, predictor if trainer is None else trainer, **kwargs)
+
+        return init
 
     def __init__(self, net, predictor, trainer, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,3 +77,31 @@ class PytorchNNFactory(PytorchNN):
         return self.predictor(self.net, *input)
 
 
+class PytorchAutoEncoderFactory(PytorchNN):
+
+    @staticmethod
+    def create(
+            encoder: nn.Module,
+            decoder: nn.Module,
+            **kwargs) -> Callable[[], PytorchNN]:
+
+        def init():
+            return PytorchNNFactory(deepcopy(encoder), deepcopy(decoder), **kwargs)
+
+        return init
+
+    def __init__(self, encoder, decoder, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward_training(self, *input) -> t.Tensor:
+        x = self.encoder(*input)
+        x = self.decoder(x)
+        return x
+
+    def encode(self, *input) -> t.Tensor:
+        return self.encoder(*input)
+
+    def decode(self, *input) -> t.Tensor:
+        return self.decoder(*input)

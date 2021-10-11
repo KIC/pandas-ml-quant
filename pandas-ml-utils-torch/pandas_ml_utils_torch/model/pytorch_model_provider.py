@@ -11,7 +11,7 @@ from pandas_ml_common.utils.logging_utils import LogOnce
 from ..modules import PytorchNN
 from ..utils import to_device, from_pandas
 from pandas_ml_common import np, MlTypes, XYWeight, call_callable_dynamic_args
-from pandas_ml_utils import ModelProvider, FittingParameter
+from pandas_ml_utils import ModelProvider, FittingParameter, AutoEncoderModel
 
 _log = logging.getLogger(__name__)
 VarLenTensor = Union[t.Tensor, List[t.Tensor], Tuple[t.Tensor, ...]]
@@ -22,16 +22,19 @@ class PytorchModelProvider(ModelProvider):
     _MODEL_FIELD = "net"
 
     def __init__(self,
-                 net: PytorchNN,
+                 net: Union[Callable[..., PytorchNN], PytorchNN],
                  criterion_provider: Union[Type[nn.modules.loss._Loss], Callable[[], nn.modules.loss._Loss]],
                  optimizer_provider: Union[Type[t.optim.Optimizer], Callable[[Iterable], t.optim.Optimizer]],
-                 record_best_weights: bool = False):
+                 record_best_weights: bool = False,
+                 **kwargs):
         super().__init__()
-        self.net = net
+        self.net_provider = _as_callable_wrapper(net)
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
         self.record_best_weights = record_best_weights
+        self.kwargs = kwargs
 
+        self.net = None
         self.criterion = None
         self.optimizer = None
 
@@ -43,7 +46,7 @@ class PytorchModelProvider(ModelProvider):
         self.l2_penalty_tensors = {t.zeros(1): 1.}
 
     def init_fit(self, fitting_parameter: FittingParameter, **kwargs):
-        self.net = to_device(self.net, kwargs.get("cuda", False))
+        self.net = to_device(call_callable_dynamic_args(self.net_provider, **self.kwargs) if self.net is None else self.net, kwargs.get("cuda", False))
         self.criterion = to_device(call_callable_dynamic_args(self.criterion_provider, module=self.net, params=self.net.named_parameters()), kwargs.get("cuda", False))
         self.optimizer = self.optimizer_provider(self.net.parameters())
 
@@ -140,15 +143,69 @@ class PytorchModelProvider(ModelProvider):
             return t.stack([self.net(*x) for _ in range(samples)], dim=1) if samples > 1 else self.net(*x).cpu().numpy()
 
     def encode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
-        pass
+        x = from_pandas(features, kwargs.get("cuda", False))
+        with t.no_grad():
+            return t.stack([self.net.forward(*x, state=AutoEncoderModel.ENCODE) for _ in range(samples)], dim=1) if samples > 1 else \
+                self.net.forward(*x, state=AutoEncoderModel.ENCODE).cpu().numpy()
 
     def decode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
-        pass
+        x = from_pandas(features, kwargs.get("cuda", False))
+        with t.no_grad():
+            return t.stack([self.net.forward(*x, state=AutoEncoderModel.DECODE) for _ in range(samples)], dim=1) if samples > 1 else \
+                self.net.forward(*x, state=AutoEncoderModel.DECODE).cpu().numpy()
+
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains all our instance attributes.
+        # Always use the dict.copy() method to avoid modifying the original state.
+        state = self.__dict__.copy()
+
+        # remove un-pickleable fields
+        del state[PytorchModelProvider._MODEL_FIELD]
+
+        # add torch serialisation
+        state[f'{PytorchModelProvider._MODEL_FIELD}_state_dict'] = self.net.state_dict() if self.net is not None else None
+
+        # return altered state
+        return state
+
+    def __setstate__(self, state):
+        # use torch.save(model.state_dict(), './sim_autoencoder.pth')
+        # first remove the special state
+        module_state_dict = state[f'{PytorchModelProvider._MODEL_FIELD}_state_dict']
+        del state[f'{PytorchModelProvider._MODEL_FIELD}_state_dict']
+
+        # Restore instance attributes
+        self.__dict__.update(state)
+        self.net = call_callable_dynamic_args(self.net_provider, **self.kwargs)
+
+        # restore special state dict
+        if module_state_dict is not None:
+            self.net.load_state_dict(module_state_dict)
 
     def __call__(self, *args, **kwargs):
-        return PytorchModelProvider(
-            deepcopy(self.net),
+        copy = PytorchModelProvider(
+            self.net_provider,
             self.criterion_provider,
             self.optimizer_provider,
-            self.record_best_weights
+            self.record_best_weights,
+            **self.kwargs
         )
+
+        # continue training from where we left
+        if self.net is not None:
+            copy.net = call_callable_dynamic_args(self.net_provider, **self.kwargs)
+            copy.net.load_state_dict(self.net.state_dict())
+
+        return copy
+
+
+def _as_callable_wrapper(obj):
+    if callable(obj) and not isinstance(obj, nn.Module):
+        return obj
+    else:
+        def wrapper(*args, **kwargs):
+            return obj
+
+        return wrapper
+
+
