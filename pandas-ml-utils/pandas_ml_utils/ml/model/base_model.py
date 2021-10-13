@@ -121,6 +121,12 @@ class FittableModel(Fittable):
             [self._cross_validation_models[fold].calculate_loss(td) for td in test_data],
         )
 
+    def calculate_loss(self, frames: FeaturesWithLabels, **kwargs):
+        data = XYWeight(frames.features, frames.labels, frames.labels_with_sample_weights.sample_weights)
+        return self.cross_validation_aggregator(
+            np.stack([mp.calculate_loss(data) for mp in self._cross_validation_models.values()], axis=0)
+        )
+
     def init_fold(self, epoch: int, fold: int, fitting_parameter: FittingParameter, **kwargs):
         if not fold in self._cross_validation_models:
             self._cross_validation_models[fold].init_fit(fitting_parameter, **kwargs)
@@ -244,6 +250,12 @@ class AutoEncoderModel(Fittable):
             [self._cross_validation_models[fold].calculate_loss(td) for td in test_data],
         )
 
+    def calculate_loss(self, frames: FeaturesWithLabels, **kwargs):
+        data = XYWeight(frames.features, frames.labels, frames.labels_with_sample_weights.sample_weights)
+        return self.cross_validation_aggregator(
+            np.stack([mp.calculate_loss(data) for mp in self._cross_validation_models.values()], axis=0)
+        )
+
     def finish_learning(self, **kwargs):
         for m in self._cross_validation_models.values():
             m.finish_learning(**kwargs)
@@ -360,6 +372,11 @@ class ConcatenatedMultiModel(Fittable):
     def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight], **kwargs) -> MlTypes.Loss:
         # invoked by `fit_to_df`
         pass
+
+    def calculate_loss(self, frames: FeaturesWithLabels, **kwargs):
+        return np.mean(
+            np.stack([mp.calculate_loss(frames) for mp in self.models], axis=0)
+        )
 
     def finish_learning(self, **kwargs):
         # invoked by `fit_to_df`

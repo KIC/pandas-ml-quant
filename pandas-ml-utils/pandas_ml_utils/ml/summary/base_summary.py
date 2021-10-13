@@ -1,9 +1,8 @@
 from collections import namedtuple
-from typing import List
+from typing import List, Union, Any, Callable
 
 from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
-from pandas_ml_utils import html
 from .figures import *
 
 
@@ -17,9 +16,12 @@ class Summary(object):
 
     Cell = namedtuple("Cell", ["index", "rowspan", "colspan"])
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', *args, layout: List[List[int]] = None, **kwargs):
-        self._df = df
-        self.model = model
+    @staticmethod
+    def provide(summary_provider: Callable[..., 'Summary'], prediction_df: MlTypes.PatchedDataFrame, model: 'Model', source_df: MlTypes.PatchedDataFrame, **kwargs):
+        return call_callable_dynamic_args(summary_provider, prediction_df=prediction_df, model=model, source=source_df, **kwargs)
+
+    def __init__(self, prediction_df: MlTypes.PatchedDataFrame, *args: Callable[..., Union[MlTypes.PatchedDataFrame, Any]], layout: List[List[int]] = None, **kwargs):
+        self._df = prediction_df
         self.args = args
         self.kwargs = kwargs
 
@@ -64,11 +66,12 @@ class Summary(object):
         return str(self.df.groupby(level=0).tail(1)) if isinstance(self.df.index, pd.MultiIndex) else str(self.df.tail())
 
     def _repr_html_(self):
+        from pandas_ml_utils import html
         from mako.template import Template
         from mako.lookup import TemplateLookup
         plot = "<class 'matplotlib.figure.Figure'>"
 
-        figures = [arg(self.df, model=self.model) for arg in self.args]
+        figures = [call_callable_dynamic_args(arg, df=self.df, **self.kwargs) for arg in self.args]
         figures = [("img", plot_to_html_img(f)) if str(type(f)) == plot else ("html", f._repr_html_() if hasattr(f, "_repr_html_") else str(f)) for f in figures]
 
         template = Template(filename=html.SELF_TEMPLATE(__file__), lookup=TemplateLookup(directories=['/']))
@@ -77,10 +80,13 @@ class Summary(object):
 
 class RegressionSummary(Summary):
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', **kwargs):
+    @staticmethod
+    def factory(**kwargs):
+        return lambda df, model, source: RegressionSummary(df, model=model, source=source, **kwargs)
+
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', source: MlTypes.PatchedDataFrame, **kwargs):
         super().__init__(
             df,
-            model,
             plot_true_pred_scatter,
             df_regression_scores,
             plot_feature_importance,
@@ -88,19 +94,21 @@ class RegressionSummary(Summary):
             layout=[[0, 1],
                     [2, 2],
                     [3, 3]],
+            model=model,
+            source=source,
             **kwargs
         )
-
-    def __str__(self):
-        return f"{self.args[1](self.df, model=self.model)}\n{super().__str__()}"
 
 
 class ClassificationSummary(Summary):
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', include_feature_importance=True, **kwargs):
+    @staticmethod
+    def factory(include_feature_importance=True):
+        return lambda df, model, **kwargs: ClassificationSummary(df, model, include_feature_importance, **kwargs)
+
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', include_feature_importance: bool, **kwargs):
         super().__init__(
             df,
-            model,
             plot_confusion_matrix,                          # 0
             plot_receiver_operating_characteristic,         # 1
             df_classification_scores,                       # 2
@@ -110,6 +118,7 @@ class ClassificationSummary(Summary):
                      [3, 3, 3, 3, 3],
                      [4, 4, 4, 4, 4]] if include_feature_importance else [[2, 0, 0, 1, 1],
                                                                           [4, 4, 4, 4, 4]]),
+            model=model,
             **kwargs
         )
 

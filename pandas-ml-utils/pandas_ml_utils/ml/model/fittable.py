@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import logging
 from abc import abstractmethod
 from functools import partial
@@ -8,14 +7,13 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common import MlTypes, FeaturesLabels, call_callable_dynamic_args, LazyInit
-from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstructionTargets, FeaturesWithLabels
 from pandas_ml_common.sampling.sampler import FoldXYWeight, XYWeight
 from pandas_ml_common.trainingloop import sampling
 from pandas_ml_common.utils import merge_kwargs, to_pandas
-from pandas_ml_utils.ml.fitting.fitting_parameter import FittingParameter
 from .predictable import Model, SubModelFeature
 from ..data.reconstruction import assemble_result_frame
-from ..fitting import FitStatistics
+from ..fitting import FitStatistics, FittingParameter
 from ..forecast import Forecast
 from ..summary import Summary
 
@@ -121,6 +119,18 @@ class Fittable(Model):
             assemble_result_frame(df_test_prediction[~df_test_prediction.index.duplicated()], *ext_frames)
         )
 
+    def loss_of_df(
+            self,
+            df: MlTypes.PatchedDataFrame,
+            **kwargs) -> float:
+        typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs)}
+        merged_kwargs = merge_kwargs(self.kwargs, kwargs)
+        extractor = df.ML.extract(self.features_and_labels_definition, typemap_pred, **merged_kwargs)
+        frames = extractor.extract_features_labels_weights()
+
+        loss = self.calculate_loss(frames, **merged_kwargs)
+        return loss
+
     def _init_fit(self, fitting_parameter: FittingParameter, **kwargs):
         self.init_fit(fitting_parameter, **kwargs)
 
@@ -173,6 +183,10 @@ class Fittable(Model):
 
     @abstractmethod
     def calculate_train_test_loss(self, fold: int, train_data: XYWeight, test_data: List[XYWeight], **kwargs) -> MlTypes.Loss:
+        pass
+
+    @abstractmethod
+    def calculate_loss(self, frames: FeaturesWithLabels, **kwargs):
         pass
 
     @abstractmethod

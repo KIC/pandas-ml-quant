@@ -5,17 +5,18 @@ from matplotlib.axis import Axis
 
 from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
-from pandas_ml_utils import html
-from pandas_ml_utils.constants import *
-from pandas_ml_utils.ml.model import Model
-from pandas_ml_utils.ml.summary import Summary
+from .base_summary import Summary
 
 
 class ReconstructionSummary(Summary):
 
+    @staticmethod
+    def factory(reconstruction_plotter: Callable[[Axis, np.ndarray], Any] = lambda ax, x: ax.plot(x), **kwargs):
+        return lambda df, model, **kwargs: ReconstructionSummary(df, model, reconstruction_plotter, **kwargs)
+
     def __init__(self,
                  df: MlTypes.PatchedDataFrame,
-                 model: Model,
+                 model: 'Model',
                  reconstruction_plotter: Callable[[Axis, np.ndarray], Any] = lambda ax, x: ax.plot(x),
                  **kwargs):
         super().__init__(df, model, **kwargs)
@@ -23,6 +24,7 @@ class ReconstructionSummary(Summary):
 
     def reconstruction_plot(self):
         import matplotlib.pyplot as plt
+        from pandas_ml_utils.constants import LABEL_COLUMN_NAME, PREDICTION_COLUMN_NAME
 
         _y = self.df[LABEL_COLUMN_NAME].ML.values
         _y_hat = self.df[PREDICTION_COLUMN_NAME].ML.values
@@ -46,6 +48,7 @@ class ReconstructionSummary(Summary):
         return fig
 
     def _repr_html_(self):
+        from pandas_ml_utils import html
         from mako.template import Template
         from mako.lookup import TemplateLookup
 

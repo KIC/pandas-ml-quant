@@ -4,7 +4,8 @@ from string import Template
 from typing import Union
 
 from pandas_ml_common import MlTypes, FeaturesLabels
-from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels, Extractor
+from pandas_ml_common.utils import merge_kwargs
 from pandas_ml_common.utils.time_utils import seconds_since_midnight
 from pandas_ml_utils.df_patching.model_patch import DfModelPatch
 from pandas_ml_utils.ml.fitting import Fit
@@ -33,12 +34,11 @@ class ModelContext(object):
 
         return fit
 
-    def extract(self, model_or_fnl: Union[Model, FeaturesLabels], **kwargs) -> FeaturesWithLabels:
+    def extract(self, model_or_fnl: Union[Model, FeaturesLabels], **kwargs) -> Extractor:
         if isinstance(model_or_fnl, Model):
-            kwargs = {**model_or_fnl.features_and_labels.kwargs, **model_or_fnl.kwargs, **kwargs}
-            return self.df.ML.extract(model_or_fnl.features_and_labels, **kwargs)
+            kwargs = merge_kwargs(model_or_fnl.kwargs, kwargs)
+            return self.df.ML.extract(model_or_fnl.features_and_labels_definition, **kwargs)
         else:
-            kwargs = {**model_or_fnl.kwargs, **kwargs}
             return self.df.ML.extract(model_or_fnl, **kwargs)
 
     @wraps(DfModelPatch.predict)

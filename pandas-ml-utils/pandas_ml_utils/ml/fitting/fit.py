@@ -2,10 +2,11 @@ from typing import Any, Callable
 
 import pandas as pd
 
-import pandas_ml_utils.html as html
+
 from pandas_ml_common import MlTypes
+from pandas_ml_common.utils import merge_kwargs
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
-from pandas_ml_utils.ml.summary import Summary
+from ..summary import Summary
 
 
 class Fit(object):
@@ -15,20 +16,26 @@ class Fit(object):
     """
 
     def __init__(self,
-                 model: 'Model',
-                 training_summary: Summary,
-                 test_summary: Summary,
+                 model: 'Fittable',
+                 source_df: MlTypes.PatchedDataFrame,
+                 training_prediction_df: MlTypes.PatchedDataFrame,
+                 test_prediction_df: MlTypes.PatchedDataFrame,
+                 summary_provider: Callable[..., Summary],
                  trails: Any = None,
                  **kwargs):
         self.model = model
-        self.training_summary = training_summary
-        self.test_summary = test_summary
+        self.source_df = source_df
+        self.training_prediction_df = training_prediction_df
+        self.test_prediction_df = test_prediction_df
+
+        self.training_summary = Summary.provide(summary_provider, training_prediction_df, model, source_df, **kwargs)
+        self.test_summary = Summary.provide(summary_provider, test_prediction_df, model, source_df, **kwargs)
         self._trails = trails
         self._kwargs = kwargs
         self._hide_loss_plot = False
 
     def plot_loss(self, figsize=(8, 6), **kwargs):
-        return self.model.plot_loss(figsize, **kwargs)
+        return self.model.fit_statistics.plot_loss(figsize, **kwargs)
 
     def values(self):
         """
@@ -65,10 +72,12 @@ class Fit(object):
 
     def with_summary(self, summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary, **kwargs):
         return Fit(self.model,
-                   summary_provider(self.training_summary.df, **{**self._kwargs, **kwargs}),
-                   summary_provider(self.test_summary.df, **{**self._kwargs, **kwargs}),
+                   self.source_df,
+                   self.training_prediction_df,
+                   self.test_prediction_df,
+                   summary_provider,
                    self._trails,
-                   **self._kwargs)
+                   **merge_kwargs(self._kwargs, kwargs))
 
     def __str__(self):
         summaries = f"train:\n{self.training_summary}\ntest:\n{self.test_summary}"
@@ -87,6 +96,7 @@ class Fit(object):
                 matplotlib.use(backend)
 
     def _repr_html_(self):
+        import pandas_ml_utils.html as html
         from mako.template import Template
         from mako.lookup import TemplateLookup
 

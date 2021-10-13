@@ -1,2 +1,3 @@
 from .base_summary import Summary, ClassificationSummary, RegressionSummary
 from .reconstruction_summary import ReconstructionSummary
+from .feature_selection_summary import FeatureSelectionSummary

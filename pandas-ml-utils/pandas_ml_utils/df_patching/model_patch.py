@@ -2,20 +2,12 @@ import logging
 from time import perf_counter
 from typing import Callable, Union, List
 
-from scipy.stats import randint as sp_randint
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.feature_selection import RFECV
-from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, KFold, StratifiedKFold
-
-from pandas_ml_common import MlTypes, FeaturesLabels, naive_splitter
-from pandas_ml_common.utils import get_correlation_pairs, call_silent, call_callable_dynamic_args
-from pandas_ml_utils.ml.data.reconstruction import assemble_result_frame
-from pandas_ml_utils.ml.fitting import Fit, FitException, FittingParameter
-from pandas_ml_utils.ml.forecast import Forecast
-from pandas_ml_utils.ml.model import Fittable, AutoEncoderModel, FittableModel
-from pandas_ml_utils.ml.summary import Summary
-from ..ml.summary.feature_selection_summary import FeatureSelectionSummary
-from ..ml.model.predictable import Model
+from pandas_ml_common import MlTypes
+from pandas_ml_common.utils import call_silent
+from ..ml.fitting import Fit, FitException, FittingParameter
+from ..ml.forecast import Forecast
+from ..ml.summary import Summary
+from ..ml.model import Fittable, Model
 
 _log = logging.getLogger(__name__)
 
@@ -52,8 +44,8 @@ class DfModelPatch(object):
         def assemble_fit():
             return Fit(
                 model,
-                model.summary_provider(df_train, model, is_test=False, **kwargs),
-                model.summary_provider(df_test, model, is_test=True, **kwargs),
+                self.df, df_train, df_test,
+                model.summary_provider,
                 trails,
                 **kwargs
             )
@@ -62,13 +54,16 @@ class DfModelPatch(object):
         return call_silent(assemble_fit, lambda e: FitException(e, model)) if fail_silent else assemble_fit()
 
     def backtest(self,
-                 model: Model,
+                 model: Fittable,
                  summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = None,
                  tail: int = None,
                  **kwargs) -> Summary:
         # FIXME move directly to ModelContext
         df_backtest = model.forecast(self.df, tail, 1, None, True, **kwargs)
-        return call_callable_dynamic_args(summary_provider or model.summary_provider, df=df_backtest, model=model, **kwargs)
+        return Summary.provide(
+            summary_provider or model.summary_provider,
+            df_backtest, model, self.df, **kwargs
+        )
 
     def predict(self,
                 model: Model,

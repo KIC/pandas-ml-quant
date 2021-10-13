@@ -40,11 +40,12 @@ class TestSkModel(TestAbstractModel, TestCase):
         print(fit)
 
         prediction = df.model.predict(fit.model)
-        print(prediction)
+        print(prediction)  # FIXME test something
 
         backtest = df.model.backtest(fit.model)
-        self.assertLess(backtest.model._cross_validation_models[0].sk_model.coef_[0], 1e-5)
+        print(backtest)  # FIXME test something
 
+        self.assertLess(fit.model._cross_validation_models[0].sk_model.coef_[0], 1e-5)
     def test_autoencoder_model(self):
         df = DF_NOTES.copy()
 

@@ -1,13 +1,14 @@
-from collections import defaultdict
+import logging
 from collections import defaultdict
 from itertools import chain
-from typing import Callable
-import logging
+
 import numpy as np
 import pandas as pd
 from sklearn import metrics
-from sklearn.metrics import roc_curve, auc, mean_squared_error
+from sklearn.metrics import roc_curve, auc
 
+from pandas_ml_common import MlTypes
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels
 from pandas_ml_common.utils import get_correlation_pairs, unique_level_rows, call_callable_dynamic_args
 from pandas_ml_common.utils.numpy_utils import clean_one_hot_classification
 from pandas_ml_utils.constants import *
@@ -15,7 +16,7 @@ from pandas_ml_utils.constants import *
 _log = logging.getLogger(__name__)
 
 
-def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1, **kwargs):
+def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1):
     import matplotlib.pyplot as plt
 
     x = df[PREDICTION_COLUMN_NAME].values
@@ -125,42 +126,21 @@ def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs):
     return fig
 
 
-def plot_feature_importance(df, model, **kwargs):
+def plot_feature_importance(source: MlTypes.PatchedDataFrame, model):
     import matplotlib.pyplot as plt
-
-    if FEATURE_COLUMN_NAME not in df:
-        return f"DataFrame does not contain {FEATURE_COLUMN_NAME}!"
-
-    mutation_steps = len(df) // 2
-    dff = df[FEATURE_COLUMN_NAME]
-    dfl = df[LABEL_COLUMN_NAME]
-    dfw = df[SAMPLE_WEIGHTS_COLUMN_NAME] if SAMPLE_WEIGHTS_COLUMN_NAME in df else None
-    loss_star = model.calculate_loss(None, dff, dfl, dfw)
-    permuted_feature_loss = defaultdict(lambda: [])
-
-    for col in dff.columns:
-        x = dff.copy()
-        x[col] = np.roll(x[col], mutation_steps)
-        loss = model.calculate_loss(None, x, dfl, dfw)
-        permuted_feature_loss[col].append(loss - loss_star)
-
-    def sort_by_mean_error(item):
-        return np.array(item[1]).mean()
-
-    # more important features should cause a higher loss
-    permuted_feature_loss = {k: v for k, v in sorted(permuted_feature_loss.items(), key=sort_by_mean_error, reverse=True)}
+    permuted_feature_loss = df_feature_importance(source, model)
 
     fig, ax = plt.subplots(1, 1, figsize=(20, 6))
-    pd.DataFrame(permuted_feature_loss).plot.bar(ax=ax)
+    permuted_feature_loss.plot.bar(ax=ax)
     ax.set_title('Featureimportance')
     return fig
 
 
-def df_tail(df, model, **kwargs):
+def df_tail(df):
     return df.tail()
 
 
-def df_regression_scores(df, model, **kwargs):
+def df_regression_scores(df, **kwargs):
     rm = metrics._regression
     ALL = [
         "r2_score",
@@ -306,3 +286,34 @@ def df_classification_scores(df, model, **kwargs):
         return fig_df.T
 
 
+def df_feature_importance(source: MlTypes.PatchedDataFrame, model):
+    # first extract all the features and labels and define how many mutation steps we need (shifting the features)
+    # and record the current loss
+    frames = source.ML.extract(model.features_and_labels_definition).extract_features_labels_weights()
+    loss_star = model.calculate_loss(frames)
+    mutation_steps = len(source) // 2
+
+    # then we loop for every feature and mutate this single feature by rolling the series "mutation steps"
+    permuted_feature_loss = {}
+    for i in range(len(frames.features)):
+        feature_frames = frames.features.copy()
+
+        for feature in feature_frames[i].columns:
+            feature_frames[i] = feature_frames[i].copy()
+            feature_frames[i][feature] = np.roll(feature_frames[i][feature], mutation_steps)
+
+            loss_premutation = model.calculate_loss(
+                FeaturesWithLabels(
+                    frames.features_with_required_samples.with_features(feature_frames),
+                    frames.labels_with_sample_weights
+                )
+            )
+
+            # record difference in losses as array for plotting
+            permuted_feature_loss[feature] = [loss_premutation - loss_star]
+
+    # now sort for more important features (which should cause a higher difference in the loss function)
+    permuted_feature_loss = \
+        {k: v for k, v in sorted(permuted_feature_loss.items(), key=lambda kv: np.array(kv[1]).mean(), reverse=True)}
+
+    return pd.Series(permuted_feature_loss)

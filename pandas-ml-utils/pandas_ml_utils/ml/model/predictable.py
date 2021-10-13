@@ -89,7 +89,7 @@ class Model(metaclass=ABCMeta):
         typemap_pred = {SubModelFeature: lambda df, model, **kwargs: model.predict(df, **kwargs)}
         merged_kwargs = merge_kwargs(self.kwargs, kwargs)
         extractor = df.ML.extract(self.features_and_labels_definition, typemap_pred, **merged_kwargs)
-        tail = (tail + self.min_required_samples) if self.min_required_samples is not None and tail is not None else None
+        tail = (tail + self.min_required_samples - 1) if self.min_required_samples is not None and tail is not None else None
 
         if include_labels:
             frames = extractor.extract_features_labels_weights(tail=tail)
