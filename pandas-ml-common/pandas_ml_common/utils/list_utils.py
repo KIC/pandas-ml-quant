@@ -9,6 +9,16 @@ def none_as_empty_list(l):
     return (l if isinstance(l, List) else [l]) if l is not None else []
 
 
+def get_first_or_tuple(e):
+    if isinstance(e, (tuple, list)):
+        if len(e) == 1:
+            return e[0]
+        else:
+            return as_empty_tuple(e)
+    else:
+        return e
+
+
 def make_same_length(item, reference_list):
     if not isinstance(item, List):
         item = [item]

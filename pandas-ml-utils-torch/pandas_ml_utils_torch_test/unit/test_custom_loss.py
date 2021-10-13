@@ -8,9 +8,9 @@ from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_common.utils.numpy_utils import one_hot
 from pandas_ml_common import np
 from pandas_ml_common_test.config import TEST_DF
-from pandas_ml_utils import PostProcessedFeaturesAndLabels, FittingParameter
-from pandas_ml_utils_torch import PytorchAutoEncoderModel, PytorchNN
-from pandas_ml_utils_torch.loss import SoftDTW, TailedCategoricalCrossentropyLoss, ParabolicPenaltyLoss, DifferentiableArgmax
+from pandas_ml_utils import FeaturesLabels, FittingParameter, FittableModel, AutoEncoderModel
+from pandas_ml_utils_torch import PytorchAutoEncoderFactory, PytorchNN, PytorchModelProvider
+from pandas_ml_utils_torch import lossfunction
 
 
 class TestCustomLoss(TestCase):
@@ -18,7 +18,7 @@ class TestCustomLoss(TestCase):
     def test__differentiable_argmax(self):
         """given"""
         args = 10
-        argmax = DifferentiableArgmax(args)
+        argmax = lossfunction.DifferentiableArgmax(args)
 
         """when"""
 
@@ -31,7 +31,7 @@ class TestCustomLoss(TestCase):
     def test__parabolic_crossentropy(self):
         """when"""
         categories = 11
-        loss_function = ParabolicPenaltyLoss(categories, 1)
+        loss_function = lossfunction.ParabolicPenaltyLoss(categories, 1)
 
         """then"""
         for truth in range(categories):
@@ -60,7 +60,7 @@ class TestCustomLoss(TestCase):
     def test__tailed_categorical_crossentropy(self):
         """when"""
         categories = 11
-        loss = TailedCategoricalCrossentropyLoss(categories, 1)
+        loss = lossfunction.TailedCategoricalCrossentropyLoss(categories, 1)
 
         """then"""
         truth = one_hot(3, 11)
@@ -73,79 +73,21 @@ class TestCustomLoss(TestCase):
         self.assertGreater(l.mean().numpy(), 0)
 
     def test__tailed_categorical_crossentropy_3d(self):
-        loss = TailedCategoricalCrossentropyLoss(11, 1)
-        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,
-                         (32,))
-        self.assertEqual(loss(t.ones((32, 1, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,
-                         (32,))
-        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 11), requires_grad=True)).shape,
-                         (32,))
+        loss = lossfunction.TailedCategoricalCrossentropyLoss(11, 1)
+        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape, (32,))
+        self.assertEqual(loss(t.ones((32, 1, 11), requires_grad=True), t.ones((32, 1, 11), requires_grad=True)).shape,  (32,))
+        self.assertEqual(loss(t.ones((32, 11), requires_grad=True), t.ones((32, 11), requires_grad=True)).shape, (32,))
 
-    def test_soft_dtw_loss(self):
-        df = TEST_DF[["Close"]][-21:].copy()
+    def test_heteroscedasticity_loss_3d(self):
+        from pandas_ml_utils_torch import lossfunction
 
-        class LstmAutoEncoder(PytorchNN):
-            def __init__(self):
-                super().__init__()
-                self.input_size = 1
-                self.seq_size=10
-                self.hidden_size = 2
-                self.num_layers = 1
-                self.num_directions = 1
+        y_true = t.ones((10, 1, 3))
+        y_pred = t.randn((10, 2, 3))
+        critereon = lossfunction.HeteroscedasticityLoss(multi_nominal_reduction=None)
 
-                self._encoder =\
-                    nn.RNN(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers,
-                           batch_first=True)
+        t3d = critereon(y_pred, y_true)
+        t2d = critereon(y_pred[:, :, 0], y_true[:, :, 0])
 
-                self._decoder =\
-                    nn.RNN(input_size=self.hidden_size, hidden_size=self.input_size, num_layers=self.num_layers,
-                           batch_first=True)
+        print(t3d, '\n', t2d)
+        np.testing.assert_array_equal(t2d.numpy(), t3d[:, 0].numpy())
 
-            def forward_training(self, x):
-                # make sure to treat single elements as batches
-                x = x.view(-1, self.seq_size, self.input_size)
-                batch_size = len(x)
-
-                hidden_encoder = nn.Parameter(t.zeros(self.num_layers * self.num_directions, batch_size, self.hidden_size))
-                hidden_decoder = nn.Parameter(t.zeros(self.num_layers * self.num_directions, batch_size, self.input_size))
-
-                x, _ = self._encoder(x, hidden_encoder)
-                x = t.repeat_interleave(x[:,-2:-1], x.shape[1], dim=1)
-                x, hidden = self._decoder(x, hidden_decoder)
-                return x.squeeze()
-
-            def encode(self, x):
-                x = x.reshape(-1, self.seq_size, self.input_size)
-                batch_size = len(x)
-
-                with t.no_grad():
-                    hidden = nn.Parameter(
-                        t.zeros(self.num_layers * self.num_directions, batch_size, self.hidden_size))
-
-                    # return last element of sequence
-                    return self._encoder(x, hidden)[0][:,-1]
-
-            def decode(self, x):
-                x = x.reshape(-1, self.seq_size, self.hidden_size)
-                batch_size = len(x)
-
-                with t.no_grad():
-                    hidden = nn.Parameter(
-                        t.zeros(self.num_layers * self.num_directions, batch_size, self.input_size))
-                    return self._decoder(x.float(), hidden)[0]
-
-        model = PytorchAutoEncoderModel(
-            LstmAutoEncoder,
-            PostProcessedFeaturesAndLabels(df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
-                                           df.columns.to_list(), [lambda df: lag_columns(df, 10).dropna()],
-                                           ["condensed-a", "condensed-b"]),
-            SoftDTW,
-            Adam
-        )
-
-        with df.model() as m:
-            fit = m.fit(model, FittingParameter(epochs=100))
-            print(fit.test_summary.df)
-
-            encoded = df.model.predict(fit.model.as_encoder())
-            print(encoded)

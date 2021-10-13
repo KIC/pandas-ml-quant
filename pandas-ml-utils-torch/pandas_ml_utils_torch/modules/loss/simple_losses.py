@@ -22,9 +22,9 @@ class MultiObjectiveLoss(nn.Module):
         self.max_weight = max_weight
         self.min_weight = min_weight
 
-    def forward(self, y_hat, y):
+    def forward(self, y_hat, y_true):
         # calculate individual losses
-        losses = [self.losses[i](y_hat[i], y) for i in range(len(self.losses))]
+        losses = [self.losses[i](y_hat[i], y_true) for i in range(len(self.losses))]
 
         # eventually reduce dimension to (batch, ) and apply weight on each sample of the bach
         losses = [(loss.sum(dim=1) if loss.ndim > 1 else loss) * self.weights[i] for i, loss in enumerate(losses)]

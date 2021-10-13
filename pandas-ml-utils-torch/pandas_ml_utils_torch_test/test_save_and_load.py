@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest import TestCase
 
-from pandas_ml_utils import pd, Model
+from pandas_ml_utils import pd, Model, FittableModel
 from pandas_ml_common_test.notebook_runner import run_notebook
 
 PWD = os.path.dirname(os.path.abspath(__file__))
@@ -34,9 +34,8 @@ class TestSaveAndLoad(TestCase):
             from torch.optim import SGD
             from pandas_ml_common.utils.column_lagging_utils import lag_columns
 
-            from pandas_ml_utils import FeaturesAndLabels, RegressionSummary, FittingParameter
-            from pandas_ml_utils_torch import PytorchModel
-            from pandas_ml_utils_torch.merging_cross_folds import take_the_best
+            from pandas_ml_utils import FeaturesLabels, RegressionSummary, FittingParameter
+            from pandas_ml_utils_torch import PytorchModelProvider
 
             def net_provider():
                 from pandas_ml_utils_torch import PytorchNN
@@ -71,14 +70,16 @@ class TestSaveAndLoad(TestCase):
                 return Net()
 
             fit = m.fit(
-                PytorchModel(
-                    net_provider,
-                    FeaturesAndLabels(
-                        [lambda df: lag_columns(df["Close"].pct_change(), range(10))],
-                        [lambda df: df["Close"].pct_change().shift(-1)]),
-                    nn.MSELoss,
-                    lambda params: SGD(params, lr=0.01, momentum=0.0),
-                    merge_cross_folds=take_the_best,
+                FittableModel(
+                    PytorchModelProvider(
+                        net_provider,
+                        nn.MSELoss,
+                        lambda params: SGD(params, lr=0.01, momentum=0.0),
+                    ),
+                    FeaturesLabels(
+                        features=[lambda df: lag_columns(df["Close"].pct_change(), range(10))],
+                        labels=[lambda df: df["Close"].pct_change().shift(-1)]
+                    ),
                     summary_provider=RegressionSummary
                 ),
                 FittingParameter(epochs=2),

@@ -8,8 +8,9 @@ import torch as t
 from torch import nn
 from torch.optim import Adam
 
-from pandas_ml_common import serialize, deserialize
-from pandas_ml_utils_torch.pytorch_base import PytochBaseModel, PytorchNN, PytorchNNFactory
+from pandas_ml_common import serialize, deserialize, XYWeight
+from pandas_ml_utils import FittingParameter
+from pandas_ml_utils_torch import PytorchModelProvider, PytorchNN, PytorchNNFactory
 
 
 class ANet(PytorchNN):
@@ -29,7 +30,7 @@ class TestPytorchBaseModel(TestCase):
         x = t.from_numpy(np.linspace(0, 1, 300).reshape(-1, 1)).float()
         y = t.from_numpy((np.linspace(0, 1, 300) + np.random.normal(0, 0.05, 300)).reshape(-1, 1)).float()
 
-        m = PytochBaseModel(
+        m = PytorchModelProvider(
             PytorchNNFactory.create(
                 nn.Sequential(nn.Linear(1, 1, False)),
                 lambda net, x: net(x)
@@ -38,17 +39,18 @@ class TestPytorchBaseModel(TestCase):
             Adam
         )
 
-        err = [m.fit_epoch(x, y, None) for _ in range(3000)]
+        m.init_fit(FittingParameter())
+        err = [m._fit_batch([x], y, None) for _ in range(3000)]
         self.assertLess(err[-1], err[0])
 
-        self.assertAlmostEqual(((m.predict(x, numpy=False) - y) ** 2).mean().sqrt().cpu().item(), 0.05, 1)
+        self.assertAlmostEqual(((m._forward(x) - y) ** 2).mean().sqrt().cpu().item(), 0.05, 1)
         # print(m.predict(x).numpy())
         # print(y.numpy())
 
         temp = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
         try:
             serialize(m, temp)
-            self.assertLess(((m.predict(x, numpy=False) - deserialize(temp, PytochBaseModel).predict(x, numpy=False)) ** 2).mean().cpu().item(), 1e-5)
+            self.assertLess(((m._forward(x) - deserialize(temp, PytorchModelProvider)._forward(x)) ** 2).mean().cpu().item(), 1e-5)
         finally:
             os.remove(temp)
 
@@ -82,17 +84,19 @@ class TestPytorchBaseModel(TestCase):
             def forward_training(self, *input) -> t.Tensor:
                 return self.net(input[0])
 
-        m = PytochBaseModel(
+        m = PytorchModelProvider(
             Net,
             nn.MSELoss,
             Adam
         )
 
         x, y = create_sine_data()
-        err = [m.fit_epoch(x, y, None) for _ in range(3000)]
+
+        m.init_fit(FittingParameter())
+        err = [m._fit_batch([x], y, None) for _ in range(3000)]
         self.assertLess(err[-1], err[0])
 
-        dist = ((m.predict(x, numpy=False) - y) ** 2).mean().sqrt().cpu().item()
+        dist = ((m._forward(x) - y) ** 2).mean().sqrt().cpu().item()
         self.assertLess(dist, 0.5)
         # print(dist)
         # print("x = np." + repr(y.numpy()).replace(', dtype=float32', ''))

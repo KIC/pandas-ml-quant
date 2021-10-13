@@ -6,7 +6,7 @@ from typing import List, Union, Type, Callable, Iterable, Optional, Tuple
 import torch as t
 from torch import nn
 
-from pandas_ml_common.utils import as_empty_tuple
+from pandas_ml_common.utils import as_empty_tuple, get_first_or_tuple
 from pandas_ml_common.utils.logging_utils import LogOnce
 from ..modules import PytorchNN
 from ..utils import to_device, from_pandas
@@ -26,12 +26,14 @@ class PytorchModelProvider(ModelProvider):
                  criterion_provider: Union[Type[nn.modules.loss._Loss], Callable[[], nn.modules.loss._Loss]],
                  optimizer_provider: Union[Type[t.optim.Optimizer], Callable[[Iterable], t.optim.Optimizer]],
                  record_best_weights: bool = False,
+                 is_auto_encoder: bool = False,
                  **kwargs):
         super().__init__()
         self.net_provider = _as_callable_wrapper(net)
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
         self.record_best_weights = record_best_weights
+        self.is_auto_encoder = is_auto_encoder
         self.kwargs = kwargs
 
         self.net = None
@@ -73,6 +75,9 @@ class PytorchModelProvider(ModelProvider):
     def fit_batch(self, xyw: XYWeight, **kwargs):
         cuda = kwargs.get("cuda", False)
         x, y, sample_weight = from_pandas(xyw.x, cuda), from_pandas(xyw.y, cuda), from_pandas(xyw.weight, cuda)
+        self._fit_batch(x, y, sample_weight)
+
+    def _fit_batch(self, x, y, sample_weight):
         if not self.net.training:
             self.net = self.net.train()
 
@@ -93,6 +98,8 @@ class PytorchModelProvider(ModelProvider):
             if self.record_best_weights:
                 self.best_weights = deepcopy(self.net.state_dict())
 
+        return loss_value
+
     def after_epoch(self, epoch, fold_epoch, train_data: XYWeight, test_data: List[XYWeight]):
         # if verbose we could print something
         pass
@@ -110,7 +117,8 @@ class PytorchModelProvider(ModelProvider):
     def _calc_weighted_loss(self, criterion: nn.modules.loss._Loss, y_hat: VarLenTensor, y: VarLenTensor, weights: Optional[t.Tensor]) -> t.Tensor:
         l1 = t.stack([penalty * tensor.norm(p=1) for tensor, penalty in self.l1_penalty_tensors.items()]).sum()
         l2 = t.stack([penalty * tensor.norm(p=2) ** 2 for tensor, penalty in self.l2_penalty_tensors.items()]).sum()
-        loss = criterion(*as_empty_tuple(y_hat), *as_empty_tuple(y)) + l1 + l2
+        #loss = criterion(*as_empty_tuple(y_hat), *as_empty_tuple(y)) + l1 + l2
+        loss = criterion(get_first_or_tuple(y_hat), get_first_or_tuple(y)) + l1 + l2
 
         if loss.ndim > 0:
             if weights is None:
@@ -131,28 +139,31 @@ class PytorchModelProvider(ModelProvider):
         self.criterion = None
         self.optimizer = None
 
-    def train_predict(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
-        x = from_pandas(features, kwargs.get("cuda", False))
-        with t.no_grad():
-            return t.stack([self.net.forward_training(*x) for _ in range(samples)], dim=1) if samples > 1 else \
-                self.net.forward_training(*x).cpu().numpy()
-
     def predict(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
         x = from_pandas(features, kwargs.get("cuda", False))
-        with t.no_grad():
-            return t.stack([self.net(*x) for _ in range(samples)], dim=1) if samples > 1 else self.net(*x).cpu().numpy()
+        was_train = self.net.training
+        self.net.eval()
+
+        try:
+            return self._forward(*x, state=AutoEncoderModel.AUTOENCODE, samples=samples).cpu().numpy()
+        except Exception as e:
+            raise e
+        finally:
+            if was_train:
+                self.net.train()
 
     def encode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
         x = from_pandas(features, kwargs.get("cuda", False))
-        with t.no_grad():
-            return t.stack([self.net.forward(*x, state=AutoEncoderModel.ENCODE) for _ in range(samples)], dim=1) if samples > 1 else \
-                self.net.forward(*x, state=AutoEncoderModel.ENCODE).cpu().numpy()
+        return self._forward(*x, state=AutoEncoderModel.ENCODE, samples=samples).cpu().numpy()
 
     def decode(self, features: List[MlTypes.PatchedDataFrame], samples: int = 1, **kwargs) -> np.ndarray:
         x = from_pandas(features, kwargs.get("cuda", False))
+        return self._forward(*x, state=AutoEncoderModel.DECODE, samples=samples)
+
+    def _forward(self, *x, state=None, samples: int=1):
         with t.no_grad():
-            return t.stack([self.net.forward(*x, state=AutoEncoderModel.DECODE) for _ in range(samples)], dim=1) if samples > 1 else \
-                self.net.forward(*x, state=AutoEncoderModel.DECODE).cpu().numpy()
+            return t.stack([call_callable_dynamic_args(self.net, *x, state=state) for _ in range(samples)], dim=1) if samples > 1 else \
+                call_callable_dynamic_args(self.net, *x, state=state)
 
     def __getstate__(self):
         # Copy the object's state from self.__dict__ which contains all our instance attributes.
@@ -176,7 +187,7 @@ class PytorchModelProvider(ModelProvider):
 
         # Restore instance attributes
         self.__dict__.update(state)
-        self.net = call_callable_dynamic_args(self.net_provider, **self.kwargs)
+        self.net = call_callable_dynamic_args(self.net_provider, **self.kwargs).eval()
 
         # restore special state dict
         if module_state_dict is not None:
@@ -188,6 +199,7 @@ class PytorchModelProvider(ModelProvider):
             self.criterion_provider,
             self.optimizer_provider,
             self.record_best_weights,
+            self.is_auto_encoder,
             **self.kwargs
         )
 
@@ -204,8 +216,7 @@ def _as_callable_wrapper(obj):
         return obj
     else:
         def wrapper(*args, **kwargs):
-            return obj
+            return deepcopy(obj)
 
         return wrapper
-
 

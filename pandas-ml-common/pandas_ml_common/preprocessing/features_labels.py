@@ -37,6 +37,14 @@ class FeaturesWithReconstructionTargets(NamedTuple):
     reconstruction_targets: Optional[MlTypes.PatchedDataFrame]
     min_required_samples: int
 
+    def with_features(self, new_features: List[MlTypes.PatchedDataFrame]):
+        assert [nf.shape for nf in new_features] == [f.shape for f in self.features], "Incompatible Shapes!"
+        return FeaturesWithReconstructionTargets(
+            new_features,
+            self.reconstruction_targets,
+            self.min_required_samples,
+        )
+
     @property
     def joint_feature_frame(self):
         return pd_concat(self.features, multiindex_columns=True, dedupe_columns=True)

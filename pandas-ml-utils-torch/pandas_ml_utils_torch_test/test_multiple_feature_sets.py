@@ -4,11 +4,10 @@ from unittest import TestCase
 import torch.nn as nn
 from torch.optim import Adam
 
-from pandas_ml_common.decorator import MultiFrameDecorator
-from pandas_ml_utils import pd
-from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
-from pandas_ml_utils_torch import PytorchModel, PytorchNN
-from pandas_ml_utils import FeaturesAndLabels, PostProcessedFeaturesAndLabels
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels
+from pandas_ml_utils import pd, FittingParameter
+from pandas_ml_utils_torch import PytorchModelProvider, PytorchNN
+from pandas_ml_utils import FeaturesLabels, FittableModel
 from pandas_ml_utils.constants import FEATURE_COLUMN_NAME
 import torch as t
 import numpy as np
@@ -41,27 +40,28 @@ class TestMultiFeatureSet(TestCase):
                         nn.Sigmoid()
                     )
 
-                def forward_training(self, x) -> t.Tensor:
-                    x0, x1 = x
+                def forward_training(self, x0, x1) -> t.Tensor:
                     return self.net0(x0) + self.net1(x1)
 
             return ClassificationModule()
 
-        model = PytorchModel(
-            module_provider,
-            FeaturesAndLabels(
-                features=(["a"], ["b"]),
+        model = FittableModel(
+            PytorchModelProvider(
+                module_provider,
+                nn.MSELoss,
+                lambda params: Adam(params, lr=0.03)
+            ),
+            FeaturesLabels(
+                features=[["a"], ["b"]],
                 labels=["c"]
             ),
-            nn.MSELoss,
-            lambda params: Adam(params, lr=0.03)
         )
 
-        fl: FeaturesWithLabels = df.ML.extract(model.features_and_labels)
-        self.assertIsInstance(fl.features_with_required_samples.features, MultiFrameDecorator)
+        fl: FeaturesWithLabels = df.ML.extract(model.features_and_labels_definition).extract_features_labels_weights()
+        self.assertIsInstance(fl.features_with_required_samples.features, list)
         print(fl.features_with_required_samples.features)
 
-        fit = df.model.fit(model, fold_epochs=10)
+        fit = df.model.fit(model, FittingParameter(fold_epochs=10))
         print(fit.test_summary.df)
 
         self.assertIn(FEATURE_COLUMN_NAME, fit.test_summary.df)
@@ -76,18 +76,18 @@ class TestMultiFeatureSet(TestCase):
 
         with df.model() as m:
             ext = m.extract(
-                PostProcessedFeaturesAndLabels(
-                    features=(
+                FeaturesLabels(
+                    features=[
                         ["a", "b"],
                         ["b", "a"]
-                    ),
-                    feature_post_processor=(
-                        [lambda df: df + 1],
-                        [lambda df: df + 2],
-                    ),
+                    ],
+                    features_postprocessor=[
+                        lambda df: df + 1,
+                        lambda df: df + 2,
+                    ],
                     labels=["c"]
                 )
-            )
+            ).extract_features_labels_weights()
 
-        self.assertEqual(ext.features.xyw_frames()[0].sum(axis=1).sum(), 24)
-        self.assertEqual(ext.features.xyw_frames()[1].sum(axis=1).sum(), 40)
+        self.assertEqual(ext.features[0].sum(axis=1).sum(), 24)
+        self.assertEqual(ext.features[1].sum(axis=1).sum(), 40)

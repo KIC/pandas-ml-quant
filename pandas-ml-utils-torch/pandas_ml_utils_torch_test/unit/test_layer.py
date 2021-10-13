@@ -6,7 +6,7 @@ import torch.nn as nn
 from pandas_ml_common import np
 from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_utils_test.config import DF_TEST
-from pandas_ml_utils_torch.layers import KerasLikeLSTM, Time2Vec, Reshape, Squeeze, Flatten
+from pandas_ml_utils_torch import layers
 
 
 class TestPytorchLayer(TestCase):
@@ -14,15 +14,15 @@ class TestPytorchLayer(TestCase):
     def test_squeeze(self):
         data1 = t.rand((2, 20, 1, 6))
         data2 = t.rand((1, 20, 1, 6))
-        net = Squeeze()
+        net = layers.Squeeze()
 
         self.assertEqual(net(data1).shape, (2, 20, 6))
         self.assertEqual(net(data2).shape, (1, 20, 6))
 
     def test_lstm_layer(self):
         data = t.rand((1, 10, 2))
-        lstm = KerasLikeLSTM((10, 2), 2, return_sequence=False)
-        lstm2 = KerasLikeLSTM((10, 2), 2, return_sequence=True)
+        lstm = layers.KerasLikeLSTM((10, 2), 2, return_sequence=False)
+        lstm2 = layers.KerasLikeLSTM((10, 2), 2, return_sequence=True)
 
         self.assertEqual((1, 2), lstm(data).shape)
         self.assertEqual((1, 10, 2), lstm2(data).shape)
@@ -37,7 +37,7 @@ class TestPytorchLayer(TestCase):
 
             def __init__(self, input, output):
                 super().__init__()
-                self.net = Time2Vec(input, output)
+                self.net = layers.Time2Vec(input, output)
 
             def forward(self, x):
                 return self.net(x)
@@ -53,7 +53,7 @@ class TestPytorchLayer(TestCase):
 
             def __init__(self, input, output):
                 super().__init__()
-                self.net = Time2Vec(input, output)
+                self.net = layers.Time2Vec(input, output)
 
             def forward(self, x):
                 return self.net(x)

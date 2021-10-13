@@ -1,6 +1,8 @@
-import nbformat
+
+
 import os
 
+import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
 
@@ -13,6 +15,11 @@ def run_all_notebooks(notebooks_path, working_directory=None, kernel=os.getenv("
     results = {nb: run_notebook(nb, working_directory, kernel) for nb in notebooks if not "scratch" in nb}
     if assert_nofail:
         for file, (nb, err) in results.items():
+            if err:
+                for e in err:
+                    for tb in e["traceback"]:
+                        print(tb)
+
             assert err == [], f'{file}: {err}'
 
     return results
@@ -21,6 +28,7 @@ def run_all_notebooks(notebooks_path, working_directory=None, kernel=os.getenv("
 def run_notebook(notebook_path, working_directory='/', kernel=os.getenv("TOX_KERNEL") or "python3"):
     nb_name, _ = os.path.splitext(os.path.basename(notebook_path))
     dirname = os.path.dirname(notebook_path)
+    # print(f"run notebook {nb_name}")
 
     with open(notebook_path) as f:
         nb = nbformat.read(f, as_version=4)
@@ -40,6 +48,10 @@ def run_notebook(notebook_path, working_directory='/', kernel=os.getenv("TOX_KER
             for output in cell['outputs']:
                 if output.output_type == 'error':
                     errors.append(output)
+
+                    print("\nERROR", nb_name)
+                    for tb in output.traceback:
+                        print(tb)
 
     return nb, errors
 
