@@ -13,6 +13,7 @@ from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels, F
 from pandas_ml_common.utils import merge_kwargs, to_pandas
 from ..data.reconstruction import assemble_result_frame
 from ..forecast import Forecast
+from ..summary import Summary
 from ...constants import PREDICTION_COLUMN_NAME
 
 _log = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class Model(metaclass=ABCMeta):
 
     def __init__(self,
                  features_and_labels_definition: FeaturesLabels,
-                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
+                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Union[Forecast, Summary]] = None,
                  **kwargs):
         self._features_and_labels_definition = features_and_labels_definition
         self._forecast_provider = forecast_provider
@@ -63,7 +64,7 @@ class Model(metaclass=ABCMeta):
                  df: MlTypes.PatchedDataFrame,
                  tail: int = None,
                  samples: int = 1,
-                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Forecast] = None,
+                 forecast_provider: Callable[[MlTypes.PatchedDataFrame], Union[Forecast, Summary]] = None,
                  include_labels: bool = False,
                  **kwargs) -> Union[MlTypes.PatchedDataFrame, Forecast]:
         frames, predictions = self.predict_of_df(df, tail, samples, include_labels, **kwargs)
@@ -77,7 +78,13 @@ class Model(metaclass=ABCMeta):
             (frames if isinstance(frames, FeaturesWithReconstructionTargets) else frames.features_with_required_samples).joint_feature_frame
         )
 
-        return res_df if fc_provider is None else call_callable_dynamic_args(fc_provider, df=res_df, **kwargs)
+        return res_df if fc_provider is None else call_callable_dynamic_args(
+            fc_provider,
+            df=res_df,
+            model=self,
+            source=frames,
+            **merge_kwargs(self.kwargs, kwargs)
+        )
 
     def predict_of_df(
             self,

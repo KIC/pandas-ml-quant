@@ -16,7 +16,7 @@ from pandas_ml_utils.constants import *
 _log = logging.getLogger(__name__)
 
 
-def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1):
+def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1) -> 'Figure':
     import matplotlib.pyplot as plt
 
     x = df[PREDICTION_COLUMN_NAME].values
@@ -37,7 +37,7 @@ def plot_true_pred_scatter(df, figsize=(6, 6), alpha=0.1):
     return fig
 
 
-def plot_receiver_operating_characteristic(df, figsize=(6, 6), **kwargs):
+def plot_receiver_operating_characteristic(df, figsize=(6, 6), **kwargs) -> 'Figure':
     import matplotlib.pyplot as plt
 
     # get true and prediction data. It needs to be a one hot encoded 2D array [samples, class] where nr_classes >= 2
@@ -73,7 +73,7 @@ def plot_receiver_operating_characteristic(df, figsize=(6, 6), **kwargs):
     return fig
 
 
-def plot_confusion_matrix(df, figsize=(6, 6), **kwargs):
+def plot_confusion_matrix(df, figsize=(6, 6), **kwargs) -> 'Figure':
     from mlxtend.plotting import plot_confusion_matrix
     from mlxtend.evaluate import confusion_matrix
 
@@ -91,7 +91,7 @@ def plot_confusion_matrix(df, figsize=(6, 6), **kwargs):
     return fig
 
 
-def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs):
+def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs) -> 'Figure':
     import matplotlib.pyplot as plt
 
     # extract features or use whole data frame
@@ -126,7 +126,7 @@ def plot_feature_correlation(df, model=None, cmap='bwr', width=15, **kwargs):
     return fig
 
 
-def plot_feature_importance(source: MlTypes.PatchedDataFrame, model):
+def plot_feature_importance(source: MlTypes.PatchedDataFrame, model) -> 'Figure':
     import matplotlib.pyplot as plt
     permuted_feature_loss = df_feature_importance(source, model)
 
@@ -140,7 +140,7 @@ def df_tail(df):
     return df.tail()
 
 
-def df_regression_scores(df, **kwargs):
+def df_regression_scores(df, **kwargs) -> MlTypes.PatchedDataFrame:
     rm = metrics._regression
     ALL = [
         "r2_score",
@@ -207,7 +207,7 @@ def df_regression_scores(df, **kwargs):
         return fig_df.T
 
 
-def df_classification_scores(df, model, **kwargs):
+def df_classification_scores(df, model, **kwargs) -> MlTypes.PatchedDataFrame:
     class_scores = {  # [worst, best]
         "balanced_accuracy_score":  [0, 1],
         "cohen_kappa_score":    [0, 1],
@@ -286,31 +286,36 @@ def df_classification_scores(df, model, **kwargs):
         return fig_df.T
 
 
-def df_feature_importance(source: MlTypes.PatchedDataFrame, model):
+def df_feature_importance(source: FeaturesWithLabels, model, verbose=False) -> MlTypes.PatchedSeries:
     # first extract all the features and labels and define how many mutation steps we need (shifting the features)
     # and record the current loss
-    frames = source.ML.extract(model.features_and_labels_definition).extract_features_labels_weights()
-    loss_star = model.calculate_loss(frames)
-    mutation_steps = len(source) // 2
+    loss_star = model.calculate_loss(source)
 
     # then we loop for every feature and mutate this single feature by rolling the series "mutation steps"
     permuted_feature_loss = {}
-    for i in range(len(frames.features)):
-        feature_frames = frames.features.copy()
+    features = source.features
+    for i in range(len(features)):
+        # shallow copy the list of feature frames
+        mutated_frames = features.copy()
 
-        for feature in feature_frames[i].columns:
-            feature_frames[i] = feature_frames[i].copy()
-            feature_frames[i][feature] = np.roll(feature_frames[i][feature], mutation_steps)
+        for feature in mutated_frames[i].columns:
+            # copy the features frame before mutating values
+            mutated_frames[i] = mutated_frames[i].copy()
+            # mutate features by either rolling the vector by n steps or randomizing it,
+            #  randomizing has an advantage in case of symmetric data
+            # feature_frames[i][feature] = np.roll(feature_frames[i][feature], mutation_steps)
+            mutated_frames[i][feature] = mutated_frames[i][feature].sample(frac=1).values
 
-            loss_premutation = model.calculate_loss(
-                FeaturesWithLabels(
-                    frames.features_with_required_samples.with_features(feature_frames),
-                    frames.labels_with_sample_weights
-                )
-            )
+            loss_premutation = model.calculate_loss(FeaturesWithLabels(
+                source.features_with_required_samples.with_features(mutated_frames),
+                source.labels_with_sample_weights
+            ))
+
+            if verbose:
+                print(feature, loss_premutation)
 
             # record difference in losses as array for plotting
-            permuted_feature_loss[feature] = [loss_premutation - loss_star]
+            permuted_feature_loss[feature] = loss_premutation - loss_star
 
     # now sort for more important features (which should cause a higher difference in the loss function)
     permuted_feature_loss = \

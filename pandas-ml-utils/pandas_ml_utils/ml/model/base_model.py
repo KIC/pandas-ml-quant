@@ -13,8 +13,8 @@ from pandas_ml_common.preprocessing.features_labels import FeaturesWithReconstru
     LabelsWithSampleWeights
 from pandas_ml_common.sampling.sampler import XYWeight, FoldXYWeight
 from pandas_ml_common.utils import merge_kwargs, pd_concat, safe_max
-from pandas_ml_utils.ml.fitting.fitting_parameter import FittingParameter
-from pandas_ml_utils.ml.model.fittable import Fittable
+from ..fitting import FittingParameter, Fit
+from .fittable import Fittable
 from ..forecast import Forecast
 from ..summary import Summary
 
@@ -300,13 +300,17 @@ class ConcatenatedMultiModel(Fittable):
                   df: MlTypes.PatchedDataFrame,
                   fitting_parameter: FittingParameter,
                   verbose: int = 0,
-                  callbacks: Optional[Callable[..., None]] = None, **kwargs) -> Tuple[MlTypes.PatchedDataFrame, MlTypes.PatchedDataFrame]:
-        train_frames, test_frames = list(
-            zip(*[m.fit_to_df(df, fitting_parameter, verbose, callbacks, **kwargs) for m in self.models])
-        )
+                  callbacks: Optional[Callable[..., None]] = None,
+                  summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = None,
+                  raw=False,
+                  **kwargs) -> Fit:
+        sub_fits = [m.fit_to_df(df, fitting_parameter, verbose, callbacks, **kwargs) for m in self.models]
+        train_frames, test_frames = list(zip(*[sf.prediction for sf in sub_fits]))
 
         join_args = dict(axis=1, names=range(len(self.models)))
-        return pd.concat(train_frames, **join_args), pd.concat(test_frames, **join_args)
+        result_frames = pd.concat(train_frames, **join_args), pd.concat(test_frames, **join_args)
+
+        return Fit(self, None, None, *result_frames, summary_provider or self.summary_provider, **merge_kwargs(self.kwargs, kwargs))
 
     def predict_of_df(self,
                       df: MlTypes.PatchedDataFrame,

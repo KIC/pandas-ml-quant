@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 from functools import partial
-from typing import Callable, Optional, Tuple, List
+from typing import Callable, Optional, Tuple, List, Union
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ from pandas_ml_common.trainingloop import sampling
 from pandas_ml_common.utils import merge_kwargs, to_pandas
 from .predictable import Model, SubModelFeature
 from ..data.reconstruction import assemble_result_frame
-from ..fitting import FitStatistics, FittingParameter
+from ..fitting import FitStatistics, FittingParameter, Fit
 from ..forecast import Forecast
 from ..summary import Summary
 
@@ -44,7 +44,8 @@ class Fittable(Model):
             fitting_parameter: FittingParameter,
             verbose: int = 0,
             callbacks: Optional[Callable[..., None]] = None,
-            **kwargs) -> Tuple[MlTypes.PatchedDataFrame, MlTypes.PatchedDataFrame]:
+            summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = None,
+            **kwargs) -> Fit:
         typemap_fitting = {SubModelFeature: lambda df, model, **kwargs: model.fit(df, **kwargs)}
         merged_kwargs = merge_kwargs(self.kwargs, kwargs)
 
@@ -68,8 +69,8 @@ class Fittable(Model):
         )
 
         # extract the used training and test data
-        training_data = frames.features_with_required_samples.loc[sampler.get_in_sample_features_index]
-        test_data = frames.features_with_required_samples.loc[sampler.get_out_of_sample_features_index]
+        training_data = frames.loc[sampler.get_in_sample_features_index]
+        test_data = frames.loc[sampler.get_out_of_sample_features_index]
 
         # remember min required samples and label names
         self.min_required_samples = frames.features_with_required_samples.min_required_samples
@@ -81,7 +82,7 @@ class Fittable(Model):
         sampler = sampler.with_callbacks(
             on_start=partial(self._init_fit, fitting_parameter=fitting_parameter, **merged_kwargs),
             on_fold=partial(self.init_fold, fitting_parameter=fitting_parameter, **merged_kwargs),
-            after_fold_epoch=partial(self._after_fold_epoch, callbacks=callbacks, verbose=verbose, training_data=training_data, testing_data=test_data, **merged_kwargs),
+            after_fold_epoch=partial(self._after_fold_epoch, callbacks=callbacks, verbose=verbose, training_data=training_data.features_with_required_samples, testing_data=test_data.features_with_required_samples, **merged_kwargs),
             after_epoch=partial(self._after_epoch, callbacks=callbacks, verbose=verbose, **merged_kwargs),
             after_end=partial(self.finish_learning, **merged_kwargs)
         )
@@ -97,11 +98,12 @@ class Fittable(Model):
 
         # reconstruct the used training and test DataFrmes
         df_training_prediction = \
-            to_pandas(self.train_predict(training_data, **merged_kwargs), training_data.common_index, self.label_names)
+            to_pandas(self.train_predict(training_data.features_with_required_samples, **merged_kwargs), training_data.features_with_required_samples.common_index, self.label_names)
 
-        if len(test_data.common_index) > 0:
+        test_data_index = test_data.features_with_required_samples.common_index
+        if len(test_data_index) > 0:
             df_test_prediction = \
-                to_pandas(self.predict(test_data, **merged_kwargs), test_data.common_index, self.label_names)
+                to_pandas(self.predict(test_data.features_with_required_samples, **merged_kwargs), test_data_index, self.label_names)
         else:
             df_test_prediction = pd.DataFrame({}, columns=self.label_names)
 
@@ -114,10 +116,12 @@ class Fittable(Model):
             feature_frames.joint_feature_frame
         )
 
-        return (
+        result_frames = (
             assemble_result_frame(df_training_prediction, *ext_frames),
             assemble_result_frame(df_test_prediction[~df_test_prediction.index.duplicated()], *ext_frames)
         )
+
+        return Fit(self, training_data, test_data, *result_frames, summary_provider or self.summary_provider, **merged_kwargs)
 
     def loss_of_df(
             self,

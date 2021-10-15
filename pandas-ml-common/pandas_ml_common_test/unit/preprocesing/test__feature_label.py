@@ -96,3 +96,17 @@ class TestFeaturesLabels(TestCase):
 
         self.assertEqual(3, len(flw.features[0]))
 
+    def test__extract_features_and_labels_loc(self):
+        extractor = Extractor(
+            DF,
+            FeaturesLabels(
+                features=[[(1, 1), "(2, 1)"], (1, 1)],
+                labels=[[(1, 2), "(2, 2)"], [(1, 2)]],
+            )
+        )
+
+        frames = extractor.extract_features_labels_weights().loc[[0,1,3]]
+        self.assertEqual(3, len(frames.features[0]))
+        self.assertEqual(3, len(frames.features[1]))
+        self.assertEqual(3, len(frames.labels[0]))
+        self.assertEqual(3, len(frames.labels[1]))

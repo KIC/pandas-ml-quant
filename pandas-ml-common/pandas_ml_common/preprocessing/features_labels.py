@@ -88,10 +88,18 @@ class LabelsWithSampleWeights(NamedTuple):
         return pd_concat(self.sample_weights)
 
     @property
+    def loc(self) -> GetItem['LabelsWithSampleWeights']:
+        return GetItem(
+            lambda idx: LabelsWithSampleWeights(
+                *[loc_if_not_none(f, idx) for f in [self.labels, self.sample_weights, self.gross_loss]]
+            )
+        )
+
+    @property
     def shape(self) -> Dict:
         return {
             'labels': [(len(l),) + l[:1].ML.values.shape for l in self.labels],
-            'sample_weights': [((len(sw),) + sw[:1].ML.values.shape if sw is not None else None) for sw in self.sample_weights],
+            'sample_weights': [((len(sw),) + sw[:1].ML.values.shape if sw is not None else None) for sw in (self.sample_weights or [])],
             'gross_loss': (len(self.gross_loss),) + self.gross_loss[:1].ML.values.shape if self.gross_loss is not None else (),
         }
 
@@ -115,6 +123,15 @@ class FeaturesWithLabels(NamedTuple):
     @property
     def labels(self) -> List[MlTypes.PatchedDataFrame]:
         return self.labels_with_sample_weights.labels
+
+    @property
+    def loc(self) -> GetItem['FeaturesWithLabels']:
+        return GetItem(
+            lambda idx: FeaturesWithLabels(
+                self.features_with_required_samples.loc[idx],
+                self.labels_with_sample_weights.loc[idx]
+            )
+        )
 
     @property
     def shape(self) -> Dict[str, Dict]:

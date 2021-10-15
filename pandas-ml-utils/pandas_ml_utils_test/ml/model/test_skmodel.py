@@ -180,6 +180,15 @@ class TestSkModel(TestAbstractModel, TestCase):
     def test_concatenated_multi_models(self):
         super().test_concatenated_multi_models()
 
+    def test_classifier(self):
+        super().test_classifier()
+
+    def test_regressor(self):
+        super().test_regressor()
+
+    def test_auto_encoder(self):
+        super().test_auto_encoder()
+
     def provide_classification_model(self) -> Tuple[ModelProvider, Dict[str, Any]]:
         model = SkModelProvider(
             MLPClassifier(activation='logistic', max_iter=1000, hidden_layer_sizes=(3,), alpha=0.001, solver='lbfgs', random_state=42),

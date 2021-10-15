@@ -1,7 +1,6 @@
 from collections import namedtuple
 from typing import List, Union, Any, Callable
 
-from pandas_ml_common import MlTypes
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from .figures import *
 
@@ -18,10 +17,10 @@ class Summary(object):
 
     @staticmethod
     def provide(summary_provider: Callable[..., 'Summary'], prediction_df: MlTypes.PatchedDataFrame, model: 'Model', source_df: MlTypes.PatchedDataFrame, **kwargs):
-        return call_callable_dynamic_args(summary_provider, prediction_df=prediction_df, model=model, source=source_df, **kwargs)
+        return call_callable_dynamic_args(summary_provider, df=prediction_df, model=model, source=source_df, **kwargs)
 
-    def __init__(self, prediction_df: MlTypes.PatchedDataFrame, *args: Callable[..., Union[MlTypes.PatchedDataFrame, Any]], layout: List[List[int]] = None, **kwargs):
-        self._df = prediction_df
+    def __init__(self, df: MlTypes.PatchedDataFrame, *args: Callable[..., Union[MlTypes.PatchedDataFrame, Any]], layout: List[List[int]] = None, **kwargs):
+        self._df = df
         self.args = args
         self.kwargs = kwargs
 

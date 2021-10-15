@@ -1,10 +1,7 @@
-from typing import Any, Callable
+from typing import Callable, Tuple
 
-import pandas as pd
-
-
-from pandas_ml_common import MlTypes
-from pandas_ml_common.utils import merge_kwargs
+from pandas_ml_common import MlTypes, call_callable_dynamic_args
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from ..summary import Summary
 
@@ -17,45 +14,47 @@ class Fit(object):
 
     def __init__(self,
                  model: 'Fittable',
-                 source_df: MlTypes.PatchedDataFrame,
-                 training_prediction_df: MlTypes.PatchedDataFrame,
-                 test_prediction_df: MlTypes.PatchedDataFrame,
+                 training_frames: FeaturesWithLabels,
+                 test_frames: FeaturesWithLabels,
+                 training_prediction: MlTypes.PatchedDataFrame,
+                 test_prediction: MlTypes.PatchedDataFrame,
                  summary_provider: Callable[..., Summary],
-                 trails: Any = None,
                  **kwargs):
         self.model = model
-        self.source_df = source_df
-        self.training_prediction_df = training_prediction_df
-        self.test_prediction_df = test_prediction_df
-
-        self.training_summary = Summary.provide(summary_provider, training_prediction_df, model, source_df, **kwargs)
-        self.test_summary = Summary.provide(summary_provider, test_prediction_df, model, source_df, **kwargs)
-        self._trails = trails
-        self._kwargs = kwargs
+        self.training_frames = training_frames
+        self.test_frames = test_frames
+        self.training_prediction = training_prediction
+        self.test_prediction = test_prediction
+        self.summary_provider = summary_provider
+        self.kwargs = kwargs
         self._hide_loss_plot = False
+
+    @property
+    def prediction(self) -> Tuple[MlTypes.PatchedDataFrame, MlTypes.PatchedDataFrame]:
+        return self.training_prediction, self.test_prediction
+
+    @property
+    def training_summary(self) -> Summary:
+        return call_callable_dynamic_args(
+            self.summary_provider,
+            df=self.training_prediction,
+            model=self.model,
+            source=self.training_frames,
+            **self.kwargs
+        )
+
+    @property
+    def test_summary(self) -> Summary:
+        return call_callable_dynamic_args(
+            self.summary_provider,
+            df=self.test_prediction,
+            model=self.model,
+            source=self.test_frames,
+            **self.kwargs
+        )
 
     def plot_loss(self, figsize=(8, 6), **kwargs):
         return self.model.fit_statistics.plot_loss(figsize, **kwargs)
-
-    def values(self):
-        """
-        :return: returns the fitted model, a :class:`.Summary` on the training data, a :class:`.Summary` on the test data
-        """
-        return self.model, self.training_summary, self.test_summary
-
-    def trails(self):
-        """
-        In case of hyper parameter optimization a trails object as used by `Hyperopt <https://github.com/hyperopt/hyperopt/wiki/FMin>`_
-        is available.
-
-        :return: Trails object
-        """
-        if self._trails is not None:
-            return pd.DataFrame(self._trails.results)\
-                     .drop("parameter", axis=1)\
-                     .join(pd.DataFrame([r['parameter'] for r in self._trails.results]))
-        else:
-            return None
 
     def save_model(self, filename: str):
         """
@@ -70,14 +69,8 @@ class Fit(object):
         self._hide_loss_plot = True
         return self
 
-    def with_summary(self, summary_provider: Callable[[MlTypes.PatchedDataFrame], Summary] = Summary, **kwargs):
-        return Fit(self.model,
-                   self.source_df,
-                   self.training_prediction_df,
-                   self.test_prediction_df,
-                   summary_provider,
-                   self._trails,
-                   **merge_kwargs(self._kwargs, kwargs))
+    def with_summary(self, summary_provider: Callable[..., Summary] = Summary, **kwargs):
+        return Fit(self.model, self.training_frames, self.test_frames, self.training_prediction, self.test_prediction, **self._kwargs)
 
     def __str__(self):
         summaries = f"train:\n{self.training_summary}\ntest:\n{self.test_summary}"
@@ -103,5 +96,5 @@ class Fit(object):
         template = Template(filename=html.FIT_TEMPLATE, lookup=TemplateLookup(directories=['/']))
         return template.render(
             fit=self,
-            loss_plot=plot_to_html_img(self.model.fit_statistics.plot_loss, **self._kwargs) if not self._hide_loss_plot else None
+            loss_plot=plot_to_html_img(self.model.fit_statistics.plot_loss, **self.kwargs) if not self._hide_loss_plot else None
         )
