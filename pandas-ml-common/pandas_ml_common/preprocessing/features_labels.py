@@ -191,6 +191,7 @@ class Extractor(object):
         recon_tgt = self._apply_post_processor(recon_tgt, self.features_and_labels_definition.reconstruction_targets_postprocessor)
 
         # drop nans
+        features_len_with_nan = max([len(f) for f in features])
         features = pd_dropna(features)
         recon_tgt = pd_dropna(recon_tgt)
 
@@ -200,7 +201,7 @@ class Extractor(object):
         return FeaturesWithReconstructionTargets(
             [f.loc[common_index] for f in features],
             loc_if_not_none(recon_tgt, common_index),
-            max([len(f) for f in features]) - len(common_index) + 1
+            features_len_with_nan - len(common_index) + 1
         )
 
     def extract_labels(self) -> LabelsWithSampleWeights:
@@ -234,48 +235,6 @@ class Extractor(object):
             loc_if_not_none(gross_loss, common_index),
         )
 
-    # def extract_frames_for_fit(self, type_mapping: Dict[Type, callable] = {}, fitting_parameter: FittingParameter = FittingParameter(), verbose: int = 0, **kwargs: Dict) -> FeaturesWithLabels:
-    #     frames = features_and_labels(
-    #         df, extract_feature_labels_weights, type_map=type_mapping, fitting_parameter=fitting_parameter,
-    #         verbose=verbose, **kwargs
-    #     )
-    #
-    #     return frames
-    #
-    #
-    # def extract_frames_for_backtest(self, type_mapping: Dict[Type, callable] = {}, tail: int = None, **kwargs: Dict) -> FeaturesWithLabels:
-    #     min_required_samples = features_and_labels.min_required_samples
-    #
-    #     if tail is not None:
-    #         if min_required_samples is not None:
-    #             # just use the tail for feature engineering
-    #             df = df[-(abs(tail) + (min_required_samples - 1)):]
-    #         else:
-    #             _log.warning("could not determine the minimum required data from the model")
-    #
-    #     frames = features_and_labels(
-    #         df, extract_feature_labels_weights, type_map=type_mapping, **kwargs
-    #     )
-    #
-    #     return frames
-    #
-    #
-    # def extract_frames_for_predict(self, type_mapping: Dict[Type, callable] = {}, tail: int = None, **kwargs: Dict) -> FeaturesWithTargets:
-    #     min_required_samples = features_and_labels.min_required_samples
-    #
-    #     if tail is not None:
-    #         if min_required_samples is not None:
-    #             # just use the tail for feature engineering
-    #             df = df[-(abs(tail) + (min_required_samples - 1)):]
-    #         else:
-    #             _log.warning("could not determine the minimum required data from the model")
-    #
-    #     frames = features_and_labels(
-    #         df, extract_features, type_map=type_mapping, **kwargs
-    #     )
-    #
-    #     return frames
-
     def _extract_eventaually_nested_selectors(self, df, requested_selectors):
         if requested_selectors is None:
             return None
@@ -290,7 +249,7 @@ class Extractor(object):
             requested_selectors = [requested_selectors]
 
         # extract 2D features
-        frames = [get_pandas_object(df, rf, type_map=self.type_map, **self.kwargs).dropna() for rf in requested_selectors]
+        frames = [get_pandas_object(df, rf, type_map=self.type_map, **self.kwargs) for rf in requested_selectors]
         frames = [f.to_frame() if f.ndim <= 1 else f for f in frames]
 
         return frames

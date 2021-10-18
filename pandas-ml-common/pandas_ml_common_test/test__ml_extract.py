@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_ml_common import MlTypes, FeaturesLabels
+from pandas_ml_common.utils.column_lagging_utils import lag_columns
 from pandas_ml_common_test.config import TEST_DF
 
 
@@ -77,3 +78,15 @@ class TestMLExtraction(TestCase):
         """then we have the expeced shapes for features and labels"""
         self.assertEqual(2, flw.features[0].max().item())
         self.assertEqual(3, flw.features[1].max().item())
+
+    def test__min_required_samples(self):
+        df = TEST_DF.copy()
+
+        flw = df.ML.extract(
+            FeaturesLabels(
+                features=[lambda df: lag_columns(df["Close"].pct_change(), range(10))],
+                labels=[lambda df: df["Close"].pct_change().shift(-1)]
+            )
+        ).extract_features_labels_weights()
+
+        self.assertEqual(11, flw.features_with_required_samples.min_required_samples)

@@ -20,7 +20,7 @@ class TestSummary(TestCase):
                 FittableModel(
                     SkModelProvider(MLPClassifier(max_iter=100, random_state=42)),
                     FeaturesLabels(
-                        features=["close"],
+                        features=["Close"],
                         features_postprocessor=lambda df: lag_columns(df.pct_change(), range(10)),
                         labels=["Close"],
                         labels_postprocessor=lambda df: df.pct_change().shift(-1) > 0,
@@ -62,9 +62,9 @@ class TestSummary(TestCase):
         with df.model() as m:
             fit = m.fit(
                 FittableModel(
-                    SkModelProvider(),
+                    SkModelProvider(MLPRegressor(max_iter=100, random_state=42, activation='tanh')),
                     FeaturesLabels(
-                        features=["close"],
+                        features=["Close"],
                         features_postprocessor=lambda df: lag_columns(df.pct_change(), range(10)),
                         labels=["Close"],
                         labels_postprocessor=lambda df: df.pct_change().shift(-1),
@@ -80,4 +80,4 @@ class TestSummary(TestCase):
 
     def test_feature_selection(self):
         print(FeatureSelectionSummary)
-        raise NotImplemented
+        # raise NotImplemented

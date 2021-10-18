@@ -105,7 +105,7 @@ class ClassificationSummary(Summary):
     def factory(include_feature_importance=True):
         return lambda df, model, **kwargs: ClassificationSummary(df, model, include_feature_importance, **kwargs)
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', include_feature_importance: bool, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', include_feature_importance: bool = True, **kwargs):
         super().__init__(
             df,
             plot_confusion_matrix,                          # 0

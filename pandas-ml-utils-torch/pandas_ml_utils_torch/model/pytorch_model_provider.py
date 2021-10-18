@@ -107,12 +107,11 @@ class PytorchModelProvider(ModelProvider):
     def calculate_loss(self, xyw: XYWeight, **kwargs) -> float:
         cuda = kwargs.get("cuda", False)
         x, y, sample_weight = from_pandas(xyw.x, cuda), from_pandas(xyw.y, cuda), from_pandas(xyw.weight, cuda)
-        return self._calculate_loss(x, y, sample_weight).cpu().item()
+        criterion = to_device(call_callable_dynamic_args(self.criterion_provider, module=self.net, params=self.net.named_parameters()), kwargs.get("cuda", False))
 
-    def _calculate_loss(self, x: VarLenTensor, y_true: VarLenTensor, sample_weight: Optional[t.Tensor]) -> t.Tensor:
         with t.no_grad():
             y_pred = self.net(*x)
-            return self._calc_weighted_loss(self.criterion, y_pred, y_true, sample_weight)
+            return self._calc_weighted_loss(criterion, y_pred, y, sample_weight).cpu().item()
 
     def _calc_weighted_loss(self, criterion: nn.modules.loss._Loss, y_hat: VarLenTensor, y: VarLenTensor, weights: Optional[t.Tensor]) -> t.Tensor:
         l1 = t.stack([penalty * tensor.norm(p=1) for tensor, penalty in self.l1_penalty_tensors.items()]).sum()
