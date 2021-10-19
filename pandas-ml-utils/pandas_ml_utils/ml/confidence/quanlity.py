@@ -18,6 +18,13 @@ class CdfConfidenceInterval(object):
         self.expand_args = expand_args
 
     def apply(self, df: pd.DataFrame, *args, **kwargs):
+        """
+        Calculates the percentage of tail events happend in the provided dataframe
+
+        :param df:
+        :return: the percentage of tail events happend in the provided dataframe
+        """
+
         assert df.ndim == 2 and df.shape[1] == 2, "Expected a dataframe with columns=(distribution_parameters, value)"
 
         probs = df.apply(self, axis=1)
