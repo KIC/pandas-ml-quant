@@ -92,3 +92,25 @@ class TestDfIndexUtils(TestCase):
             [["a", "b"], ["c"], ["d"]],
             [i.to_list() for i in difference_in_index(df1, df2, df3, axis=1)]
         )
+
+    def test_difference_with_series_index(self):
+        df1 = pd.DataFrame({"a": np.ones(3), "b": np.ones(3)})
+        s1 = pd.Series(np.ones(3), name="a")
+        s2 = pd.Series(np.ones(3), name="b")
+        df3 = pd.DataFrame({"d": np.ones(3), "c": np.ones(3)})
+
+        self.assertListEqual(
+            [[0, 1, 2], [], [], []],
+            [i.to_list() for i in difference_in_index(df1, s1, s2, df3, axis=0)]
+        )
+
+    def test_difference_with_series_columns(self):
+        df1 = pd.DataFrame({"a": np.ones(3), "b": np.ones(3)})
+        s1 = pd.Series(np.ones(3), name="b")
+        s2 = pd.Series(np.ones(3), name="c")
+        df3 = pd.DataFrame({"d": np.ones(3), "c": np.ones(3)})
+
+        self.assertListEqual(
+            [['a', 'b'], [], ['c'], ['d']],
+            [i.to_list() for i in difference_in_index(df1, s1, s2, df3, axis=1)]
+        )

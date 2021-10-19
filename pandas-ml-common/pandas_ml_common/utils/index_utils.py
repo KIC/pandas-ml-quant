@@ -168,7 +168,7 @@ def difference_in_index(*dfs: pd.DataFrame, axis=0):
 
     for i in range(1, len(dfs)):
         if dfs[i] is not None:
-            difference = (dfs[i].index if axis == 0 else dfs[i].columns).difference(joint_index)
+            difference = (dfs[i].index if axis == 0 else (dfs[i].columns if dfs[i].ndim > 1 else pd.Index([dfs[i].name]))).difference(joint_index)
             indexes.append(difference)
             joint_index = joint_index.join(difference, how='outer')
 

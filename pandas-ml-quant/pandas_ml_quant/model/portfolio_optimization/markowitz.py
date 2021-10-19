@@ -64,7 +64,7 @@ class MarkowitzModel(Model):
             return w.value
 
         def construct_mu_sigma(i):
-            mu, sigma = expected_returns.loc[i].values, np.array(covariances.loc[i])
+            mu, sigma = expected_returns.loc[i].values, covariances.loc[i].ML.values.squeeze()
             return mu, sigma
 
         # we need to iterate row for row and if there is one row containing nans we return nans

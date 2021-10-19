@@ -1,13 +1,13 @@
 from unittest import TestCase
 
 from pandas_ml_quant_test.config import DF_TEST_MULTI
-from pandas_ml_utils import FeaturesAndLabels
+from pandas_ml_utils import FeaturesLabels
 
 
 class TestFeaturePostProcesor(TestCase):
 
     def test_test_multi_column_features_extraction(self):
-        fl = FeaturesAndLabels(
+        fl = FeaturesLabels(
             features=[
                 lambda df: df.ML["Close"].ta.log_returns().droplevel(0, axis=1),
                 lambda df: df.ML["Close"].ta.rsi().droplevel(0, axis=1),

@@ -1,9 +1,8 @@
 from unittest import TestCase
 
-from pandas_ml_common.decorator import MultiFrameDecorator
+from pandas_ml_common.preprocessing.features_labels import FeaturesWithLabels
 from pandas_ml_quant_test.config import DF_TEST
-from pandas_ml_utils import PostProcessedFeaturesAndLabels, Constant, np
-from pandas_ml_utils.ml.data.extraction.features_and_labels_extractor import FeaturesWithLabels
+from pandas_ml_utils import FeaturesLabels, Constant, np
 
 
 class TestFeaturePostProcesor(TestCase):
@@ -12,18 +11,18 @@ class TestFeaturePostProcesor(TestCase):
         df = DF_TEST.copy()
 
         fl: FeaturesWithLabels = df.ML.extract(
-            PostProcessedFeaturesAndLabels(
+            FeaturesLabels(
                 features=[
                     "Close",
                     lambda df: df["Close"].ta.trix(),
                 ],
-                feature_post_processor=[
+                features_postprocessor=[
                     lambda df: df.ta.rnn(5)
                 ],
                 labels=[
                     Constant(0)
                 ],
-                targets=[
+                reconstruction_targets=[
                     lambda df: df["Close"]
                 ],
             )
@@ -37,22 +36,21 @@ class TestFeaturePostProcesor(TestCase):
         df = DF_TEST.copy()
 
         fl: FeaturesWithLabels = df.ML.extract(
-            PostProcessedFeaturesAndLabels(
+            FeaturesLabels(
                 features=[
                     "Close",
                     lambda df: df["Close"].ta.trix(),
                 ],
-                feature_post_processor=[
-                    lambda df: df.ta.rnn(5),
-                    lambda df: df.ta.rnn(3),
+                features_postprocessor=[
+                    lambda df: df.ta.rnn(5).ta.rnn(3)
                 ],
                 labels=[
                     Constant(0)
                 ],
-                labels_post_processor=[
+                labels_postprocessor=[
                     lambda df: df.ta.rnn(4),
                 ],
-                targets=[
+                reconstruction_targets=[
                     lambda df: df["Close"]
                 ],
             )
@@ -66,11 +64,10 @@ class TestFeaturePostProcesor(TestCase):
         df = DF_TEST.copy()
 
         fl: FeaturesWithLabels = df.ML.extract(
-            PostProcessedFeaturesAndLabels(
+            FeaturesLabels(
                 features=[
                     lambda df: df["Close"].ta.log_returns(),
                 ],
-                feature_post_processor=[],
                 labels=[Constant(0)],
             )
         )
@@ -84,15 +81,14 @@ class TestFeaturePostProcesor(TestCase):
         df = DF_TEST.copy()
 
         fl: FeaturesWithLabels = df.ML.extract(
-            PostProcessedFeaturesAndLabels(
+            FeaturesLabels(
                 features=[
                     lambda df: df["Close"].ta.log_returns(),
                     lambda df: df["Close"].ta.trix(),
                     lambda df: df["Close"].ta.rsi(),
                 ],
-                feature_post_processor=[
-                    lambda df: df.ta.rnn(20),
-                    lambda df: df.ta.normalize_row('minmax01', level=1)
+                features_postprocessor=[
+                    lambda df: df.ta.rnn(20).ta.normalize_row('minmax01', level=1)
                 ],
                 labels=[Constant(0)],
             )
@@ -114,12 +110,12 @@ class TestFeaturePostProcesor(TestCase):
         df = DF_TEST.copy()
 
         fl: FeaturesWithLabels = df.ML.extract(
-            PostProcessedFeaturesAndLabels(
-                features=(
+            FeaturesLabels(
+                features=[
                     [lambda df: df["Close"].ta.log_returns(), lambda df: df["Close"].ta.trix(), lambda df: df["Close"].ta.rsi()],
                     [lambda df: df["Close"].ta.rsi()],
-                ),
-                feature_post_processor=(
+                ],
+                features_postprocessor=(
                     [lambda df: df.ta.rnn(20), lambda df: df.ta.normalize_row('minmax01', level=1)],
                     [lambda df: df.ta.rnn(10)],
                 ),
@@ -128,9 +124,9 @@ class TestFeaturePostProcesor(TestCase):
         )
 
         f = fl.features_with_required_samples.features
-        self.assertIsInstance(f, MultiFrameDecorator)
+        self.assertEqual(2, len(f))
 
-        a, b = f.frames()
+        a, b = f
 
         # test a
         self.assertEqual((6659, 20 * 3), a.shape)
@@ -154,10 +150,8 @@ class TestFeaturePostProcesor(TestCase):
         df = DF_TEST.copy()
 
         with df.model() as m:
-            from pandas_ml_quant import PostProcessedFeaturesAndLabels
-
             fnl = m.extract(
-                PostProcessedFeaturesAndLabels(
+                FeaturesLabels(
                     features=(
                         [
                             lambda df: df.ta.dist_opex(),
@@ -167,7 +161,7 @@ class TestFeaturePostProcesor(TestCase):
                             lambda df: df.ta.hf_lf_vola(periods=range(3, 5))
                         ]
                     ),
-                    feature_post_processor=(
+                    features_postprocessor=(
                         [
                             lambda df: df.ta.rnn(2)
                         ],
