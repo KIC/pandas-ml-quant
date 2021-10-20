@@ -62,7 +62,7 @@ class TestMLExtraction(TestCase):
         self.assertEqual(2, flw.features[0].max().item())
         self.assertEqual(2, flw.features[1].max().item())
 
-    def test__features_multiple_postprocessor_extraction(self):
+    def test__multiple_features_postprocessor_extraction(self):
         """given a patched dataframe"""
         df: MlTypes.PatchedDataFrame = pd.DataFrame({"a": np.ones(10)})
 
@@ -78,6 +78,40 @@ class TestMLExtraction(TestCase):
         """then we have the expeced shapes for features and labels"""
         self.assertEqual(2, flw.features[0].max().item())
         self.assertEqual(3, flw.features[1].max().item())
+
+    def test__multiple_features_lazy_postprocessor_extraction(self):
+        """given a patched dataframe"""
+        df: MlTypes.PatchedDataFrame = pd.DataFrame({"a": np.ones(10)})
+
+        """when extracting features and labels"""
+        flw = df.ML.extract(
+            FeaturesLabels(
+                features=[["a"], ["a"]],
+                features_postprocessor=lambda df: df + 1,
+                labels="a"
+            )
+        ).extract_features()
+
+        """then we have the expeced shapes for features and labels"""
+        self.assertEqual(2, flw.features[0].max().item())
+        self.assertEqual(2, flw.features[1].max().item())
+
+    def test__multiple_features_single_postprocessor_extraction(self):
+        """given a patched dataframe"""
+        df: MlTypes.PatchedDataFrame = pd.DataFrame({"a": np.ones(10)})
+
+        """when extracting features and labels"""
+        flw = df.ML.extract(
+            FeaturesLabels(
+                features=[["a"], ["a"]],
+                features_postprocessor=[lambda df: df + 1],
+                labels="a"
+            )
+        ).extract_features()
+
+        """then we have the expeced shapes for features and labels"""
+        self.assertEqual(2, flw.features[0].max().item())
+        self.assertEqual(1, flw.features[1].max().item())
 
     def test__min_required_samples(self):
         df = TEST_DF.copy()

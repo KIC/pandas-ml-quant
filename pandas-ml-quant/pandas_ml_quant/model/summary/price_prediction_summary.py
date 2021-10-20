@@ -24,9 +24,8 @@ class PricePredictionSummary(Summary):
             predicted_reconstruction: Callable[[pd.DataFrame], pd.DataFrame] = lambda y_hat: y_hat.ta.cumret(),
             predicted_std: Callable[[pd.DataFrame], pd.DataFrame] = lambda y, y_hat: np.sqrt(((y_hat.values - y.values) ** 2).mean()),
             **kwargs):
-        return lambda df, model, **kwargs2: PricePredictionSummary(
+        return lambda df, **kwargs2: PricePredictionSummary(
             df,
-            model,
             label_returns,
             label_reconstruction,
             predicted_returns,
@@ -38,7 +37,6 @@ class PricePredictionSummary(Summary):
     def __init__(
             self,
             df: MlTypes.PatchedDataFrame,
-            model: Model,
             label_returns: Callable[[pd.DataFrame], pd.DataFrame],
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
             predicted_returns: Callable[[pd.DataFrame], pd.DataFrame],
@@ -49,7 +47,6 @@ class PricePredictionSummary(Summary):
             **kwargs):
         super().__init__(
             df.sort_index(),
-            model,
             self.plot_prediction,
             self.calc_scores,
             layout=[[0],

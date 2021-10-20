@@ -258,9 +258,12 @@ class Extractor(object):
         if post_processors is None or (isinstance(post_processors, Iterable) and len(post_processors) <= 0):
             return frames
 
+        if not isinstance(post_processors, List):
+            post_processors = make_same_length(post_processors, frames)
+
         pp_frames = [
-            call_callable_dynamic_args(pp, df=frames[i], **self.kwargs) if pp is not None else frames[i]
-            for i, pp in enumerate(make_same_length(post_processors, frames))
+            call_callable_dynamic_args(post_processors[i], df=f, **self.kwargs) if len(post_processors) > i and post_processors[i] is not None else f
+            for i, f in enumerate(frames)
         ]
 
         # make sure we still have frames not series

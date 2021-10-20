@@ -26,11 +26,12 @@ class TestFeaturePostProcesor(TestCase):
                     lambda df: df["Close"]
                 ],
             )
-        )
+        ).extract_features_labels_weights()
 
-        self.assertEqual((6674, 10), fl.features_with_required_samples.features.shape)
-        self.assertEqual((6674, 1), fl.labels.shape)
-        self.assertEqual((6674, 5, 2), fl.features_with_required_samples.features.ML.values.shape)
+        self.assertEqual(1, len(fl.features))
+        self.assertEqual((6674, 10), fl.features_with_required_samples.features[0].shape)
+        self.assertEqual((6674, 5, 2), fl.features_with_required_samples.features[0].ML.values.shape)
+        self.assertEqual((6763, 1), fl.labels[0].shape)
 
     def test_feature_and_label_post_processing(self):
         df = DF_TEST.copy()
@@ -54,10 +55,11 @@ class TestFeaturePostProcesor(TestCase):
                     lambda df: df["Close"]
                 ],
             )
-        )
+        ).extract_features_labels_weights()
 
-        self.assertEqual((6672, 30), fl.features_with_required_samples.features.shape)
-        self.assertEqual((6672, 4), fl.labels.shape)
+        self.assertEqual(1, len(fl.features))
+        self.assertEqual((6672, 30), fl.features[0].shape)
+        self.assertEqual((6760, 4), fl.labels[0].shape)
         # FIXME implement chained lagging: self.assertEqual((6674, 3, 5, 2), fl.features_with_required_samples.features.ML.values.shape)
 
     def test_empty_post_prcessor(self):
@@ -70,12 +72,13 @@ class TestFeaturePostProcesor(TestCase):
                 ],
                 labels=[Constant(0)],
             )
-        )
+        ).extract_features_labels_weights()
 
         f = fl.features_with_required_samples.features
 
-        self.assertEqual((6762, 1), f.shape)
-        np.testing.assert_array_almost_equal(df[["Close"]].ta.log_returns().dropna().values, f.values)
+        self.assertEqual(1, len(f))
+        self.assertEqual((6762, 1), f[0].shape)
+        np.testing.assert_array_almost_equal(df[["Close"]].ta.log_returns().dropna().values, f[0].values)
 
     def test_post_row_standardisation(self):
         df = DF_TEST.copy()
@@ -92,18 +95,18 @@ class TestFeaturePostProcesor(TestCase):
                 ],
                 labels=[Constant(0)],
             )
-        )
+        ).extract_features_labels_weights()
 
-        f = fl.features_with_required_samples.features
-
-        self.assertEqual((6659, 20 * 3), f.shape)
-        self.assertAlmostEqual(1, f.max(axis=1).values.max())
-        self.assertAlmostEqual(0, f.min(axis=1).values.max())
+        f = fl.features
+        self.assertEqual(1, len(f))
+        self.assertEqual((6659, 20 * 3), f[0].shape)
+        self.assertAlmostEqual(1, f[0].max(axis=1).values.max())
+        self.assertAlmostEqual(0, f[0].min(axis=1).values.max())
         self.assertEqual(
             {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
              29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
              56, 57, 58, 59},
-            set(f.apply(np.argmax, axis=1).values)
+            set(f[0].apply(np.argmax, axis=1).values)
         )
 
     def test_multiple_features_post_processing(self):
@@ -115,13 +118,13 @@ class TestFeaturePostProcesor(TestCase):
                     [lambda df: df["Close"].ta.log_returns(), lambda df: df["Close"].ta.trix(), lambda df: df["Close"].ta.rsi()],
                     [lambda df: df["Close"].ta.rsi()],
                 ],
-                features_postprocessor=(
-                    [lambda df: df.ta.rnn(20), lambda df: df.ta.normalize_row('minmax01', level=1)],
-                    [lambda df: df.ta.rnn(10)],
-                ),
+                features_postprocessor=[
+                    lambda df: df.ta.rnn(20).ta.normalize_row('minmax01', level=1),
+                    lambda df: df.ta.rnn(10)
+                ],
                 labels=[Constant(0)],
             )
-        )
+        ).extract_features_labels_weights()
 
         f = fl.features_with_required_samples.features
         self.assertEqual(2, len(f))
@@ -152,7 +155,7 @@ class TestFeaturePostProcesor(TestCase):
         with df.model() as m:
             fnl = m.extract(
                 FeaturesLabels(
-                    features=(
+                    features=[
                         [
                             lambda df: df.ta.dist_opex(),
                             lambda df: df.ta.rsi(),
@@ -160,19 +163,17 @@ class TestFeaturePostProcesor(TestCase):
                         [
                             lambda df: df.ta.hf_lf_vola(periods=range(3, 5))
                         ]
-                    ),
-                    features_postprocessor=(
-                        [
-                            lambda df: df.ta.rnn(2)
-                        ],
-                        [
-                            # do no post procesing for the vola ratios
-                        ]
-                    ),
+                    ],
+                    features_postprocessor=[
+                            lambda df: df.ta.rnn(2), None
+                    ],
                     labels=[
                         lambda df: df["Close"].ta.log_returns().shift(-1).rename("future_log_return")
                     ]
                 )
-            )
+            ).extract_features_labels_weights()
 
-        self.assertEqual(((6749, 14), (6749, 2)), fnl.features.shape)
+        f = fnl.features
+        self.assertEqual(2, len(f))
+        self.assertEqual((6750, 14), fnl.features[0].shape)
+        self.assertEqual((6750, 2), fnl.features[1].shape)
