@@ -1,6 +1,8 @@
 from collections import namedtuple
 from typing import List, Union, Any, Callable
 
+import pandas as pd
+
 from pandas_ml_common.utils.serialization_utils import plot_to_html_img
 from .figures import *
 
@@ -80,19 +82,20 @@ class Summary(object):
 class RegressionSummary(Summary):
 
     @staticmethod
-    def factory(**kwargs):
-        return lambda df, model, source: RegressionSummary(df, model=model, source=source, **kwargs)
+    def factory(include_feature_importance=True):
+        return lambda df, model, source, **kwargs: RegressionSummary(df, model, source, include_feature_importance, **kwargs)
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', source: MlTypes.PatchedDataFrame, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', source: MlTypes.PatchedDataFrame, include_feature_importance: bool = True, **kwargs):
         super().__init__(
             df,
-            plot_true_pred_scatter,
-            df_regression_scores,
-            plot_feature_importance,
-            df_tail,
+            plot_true_pred_scatter,                                             # 0
+            df_regression_scores,                                               # 1
+            plot_feature_importance if include_feature_importance else None,    # 2
+            df_tail,                                                            # 3
             layout=[[0, 1],
                     [2, 2],
-                    [3, 3]],
+                    [3, 3]] if include_feature_importance else [[0, 1],
+                                                                [3, 3]],
             model=model,
             source=source,
             **kwargs
@@ -103,21 +106,22 @@ class ClassificationSummary(Summary):
 
     @staticmethod
     def factory(include_feature_importance=True):
-        return lambda df, model, **kwargs: ClassificationSummary(df, model, include_feature_importance, **kwargs)
+        return lambda df, model, source, **kwargs: ClassificationSummary(df, model, source, include_feature_importance, **kwargs)
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', include_feature_importance: bool = True, **kwargs):
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: 'Model', source: pd.DataFrame, include_feature_importance: bool = True, **kwargs):
         super().__init__(
             df,
-            plot_confusion_matrix,                          # 0
-            plot_receiver_operating_characteristic,         # 1
-            df_classification_scores,                       # 2
-            plot_feature_importance,                        # 3
-            df_tail,                                        # 4
+            plot_confusion_matrix,                                              # 0
+            plot_receiver_operating_characteristic,                             # 1
+            df_classification_scores,                                           # 2
+            plot_feature_importance if include_feature_importance else None,    # 3
+            df_tail,                                                            # 4
             layout=([[2, 0, 0, 1, 1],
                      [3, 3, 3, 3, 3],
                      [4, 4, 4, 4, 4]] if include_feature_importance else [[2, 0, 0, 1, 1],
                                                                           [4, 4, 4, 4, 4]]),
             model=model,
+            source=source,
             **kwargs
         )
 

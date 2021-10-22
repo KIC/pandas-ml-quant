@@ -33,8 +33,8 @@ class TestConfidenceInterval(object):
 
         # create the required dataframes for the CdfConfidenceInterval provider which needs 2 columns
         #  the distribution parameters (as list) and the true value
-        train_ci_df = pd.DataFrame(y_hat_train()).agg(lambda x: list(x), axis=1).to_frame().join(y_train, lsuffix="params")
-        test_ci_dfs = [pd.DataFrame(y_hat_test()).agg(lambda x: list(x), axis=1).to_frame().join(yt, lsuffix="params") for yt in y_test]
+        train_ci_df = pd.DataFrame(y_hat_train(), index=y_train[0].index).agg(lambda x: list(x), axis=1).to_frame().join(y_train[0], lsuffix="params")
+        test_ci_dfs = [pd.DataFrame(y_hat_test(), index=yt[0].index).agg(lambda x: list(x), axis=1).to_frame().join(yt[0], lsuffix="params") for yt in y_test]
         train_ci = self.ci.apply(train_ci_df)
         test_ci = mean([self.ci.apply(f) for f in test_ci_dfs])
 

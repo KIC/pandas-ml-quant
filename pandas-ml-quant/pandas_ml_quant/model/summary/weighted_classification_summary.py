@@ -15,8 +15,12 @@ _log = logging.getLogger(__name__)
 
 class WeightedClassificationSummary(ClassificationSummary):
 
-    def __init__(self, df: MlTypes.PatchedDataFrame, model: Model, clip_profit_at=0, classes=None, **kwargs):
-        super().__init__(df, model, **kwargs)
+    @staticmethod
+    def factory(classes=None, clip_profit_at=0):
+        return lambda df, model, source, **kwargs: WeightedClassificationSummary(df, model, source, clip_profit_at, classes, **kwargs)
+
+    def __init__(self, df: MlTypes.PatchedDataFrame, model: Model, source: pd.DataFrame, clip_profit_at=0, classes=None, **kwargs):
+        super().__init__(df, model, source, **kwargs)
         self.clip_profit_at = clip_profit_at
         self.targets = df[TARGET_COLUMN_NAME]
 

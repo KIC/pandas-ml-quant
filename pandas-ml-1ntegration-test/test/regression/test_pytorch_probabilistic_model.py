@@ -53,6 +53,14 @@ class TestPytorchProbabilisticModel(TestCase):
             probs, scales, locs = arg[..., :2], arg[..., 2:4], arg[..., 4:6]
             return dist(probs, scales, locs)
 
+        def get_cdf(*args):
+            params, prediction = args[0]
+            return cdf_cb(T.tensor(params).reshape(1, -1)).cdf(T.tensor(prediction)).numpy()
+
+        def get_variance(*args):
+            params, prediction = args[0].values
+            return cdf_cb(T.tensor(params).reshape(1, -1)).variance
+
         summary_provider = PriceSampledSummary.with_reconstructor(
             sampler=wrap_applyable(lambda params, samples: cdf_cb(params).sample([int(samples.item())]), nr_args=2),
             samples=100,
@@ -78,13 +86,10 @@ class TestPytorchProbabilisticModel(TestCase):
             model,
             FittingParameter(epochs=10, batch_size=6, splitter=naive_splitter(0.25)),
             # verbose=1,
-            callbacks=[  # FIXME fix failing callback
+            callbacks=[
                 TestConfidenceInterval(
-                    TestConfidenceInterval.CdfConfidenceInterval(
-                        wrap_applyable(lambda params, val: cdf_cb(params).cdf(val), nr_args=2),
-                        interval=0.8
-                    ),
-                    wrap_applyable(lambda params: cdf_cb(params).variance),
+                    TestConfidenceInterval.CdfConfidenceInterval(get_cdf, interval=0.8),
+                    get_variance,
                     early_stopping=True
                 )
             ]

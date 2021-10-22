@@ -191,7 +191,6 @@ class Extractor(object):
         recon_tgt = self._apply_post_processor(recon_tgt, self.features_and_labels_definition.reconstruction_targets_postprocessor)
 
         # drop nans
-        features_len_with_nan = max([len(f) for f in features])
         features = pd_dropna(features)
         recon_tgt = pd_dropna(recon_tgt)
 
@@ -201,7 +200,7 @@ class Extractor(object):
         return FeaturesWithReconstructionTargets(
             [f.loc[common_index] for f in features],
             loc_if_not_none(recon_tgt, common_index),
-            features_len_with_nan - len(common_index) + 1
+            len(self.df) - len(common_index) + 1
         )
 
     def extract_labels(self) -> LabelsWithSampleWeights:

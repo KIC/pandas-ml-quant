@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from sklearn.neural_network import MLPClassifier
 
-from pandas_ml_utils import SkModel
+from pandas_ml_utils import SkModelProvider
 
 
 class ScratchTests(TestCase):
