@@ -85,16 +85,18 @@ class TestFeaturesLabels(TestCase):
     def test__extract_inf(self):
         with self.assertLogs(level='WARN') as cm:
             flw = Extractor(
-                pd.DataFrame({"a": [1, 2, 4, np.nan, np.inf]}),
+                pd.DataFrame({"a": [1, 2, 4, np.inf, np.nan], "b": range(5), "c": [np.inf, 2, 4, np.inf, 12]}),
                 FeaturesLabels(
-                    features=["a"],
+                    features=["a", "b", "c"],
                     labels=["a"]
                 )
             ).extract_features_labels_weights()
 
-            self.assertIn("frames containing infinit numbers", cm.output[0])
+            print(cm.output)
+            self.assertIn("frames containing infinite numbers", cm.output[0])
+            self.assertIn("\n     a    c\n0  1.0  inf\n3  inf  inf", cm.output[0])
 
-        self.assertEqual(3, len(flw.features[0]))
+        self.assertEqual(2, len(flw.features[0]))
 
     def test__extract_features_and_labels_loc(self):
         extractor = Extractor(

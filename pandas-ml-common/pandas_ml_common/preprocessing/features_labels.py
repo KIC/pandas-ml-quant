@@ -168,8 +168,12 @@ class Extractor(object):
             max_value = max([v.max() for v in values])
 
             if np.isscalar(max_value) and np.isinf(max_value):
-                _log.warning(f"frames containing infinit numbers\n"
-                             f"{frame[frame.apply(lambda r: np.isinf(r.values).any(), axis=1)]}")
+                nans = frame.loc[
+                    frame.apply(lambda r: np.isinf(r.values).any(), axis=1),
+                    frame.apply(lambda c: np.isinf(c.values).any(), axis=0),
+                ]
+
+                _log.warning(f"frames containing infinite numbers\n{nans}")
                 frame.replace([np.inf, -np.inf], np.nan, inplace=True)
                 frame.dropna(inplace=True)
 
