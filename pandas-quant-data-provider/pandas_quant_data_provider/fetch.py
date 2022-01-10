@@ -1,6 +1,8 @@
+import asyncio
 import logging
 from typing import List, Union, Type, Dict
 
+import nest_asyncio
 import numpy as np
 import pandas as pd
 
@@ -22,6 +24,9 @@ class QuantDataFetcher(object):
 
         # copy string data type mapping for numpy string type, otherwise the user has to provide both all the time :-(
         self.provider_map[np.str_] = self.provider_map[str]
+
+        # allow nesting asyncio i.e. from notebooks
+        nest_asyncio.apply()
 
     def fetch_option_chain(self, symbol, max_maturities=None, force_symmetric=False):
         from pandas_quant_data_provider.utils.options import calc_greeks
@@ -91,32 +96,52 @@ class QuantDataFetcher(object):
         return symbols
 
     def _load(self, symbols: np.ndarray, force_lowercase: bool, ignore_error:bool = False, **kwargs):
-        # also we want to control multi indexes i.e. we could pass [[AAPL, SPY], [ZM, QQQ]]
-        frames = np.empty(symbols.shape, dtype=object)
+        # create async event loop
+        loop = asyncio.new_event_loop()
 
-        for i, row_symbols in enumerate(symbols):
-            for j, symbol in enumerate(row_symbols):
-                frames[i, j] = self._fetch_time_series(symbol, ignore_error, **kwargs)
+        try:
+            # also we want to control multi indexes i.e. we could pass [[AAPL, SPY], [ZM, QQQ]]
+            frames = np.empty(symbols.shape, dtype=object)
+            tasks = []
 
-                if force_lowercase:
-                    frames[i, j].columns = [c.lower() for c in frames[i, j].columns]
+            for i, row_symbols in enumerate(symbols):
+                for j, symbol in enumerate(row_symbols):
+                    # create tasks for async fetch
+                    task = loop.create_task(self._fetch_time_series(symbol, ignore_error, **kwargs))
+                    tasks.append(task)
 
-                # fix MultiIndex if needed
-                if frames.shape[0] > 1:
-                    # we need a multi index index
-                    if frames.shape[1] > 1:
-                        # and we need a mutlti index column
-                        frames[i, j].columns = pd.MultiIndex.from_product([[j], frames[i, j].columns])
-                        frames[i, j].index = pd.MultiIndex.from_product([["/".join(row_symbols)], frames[i, j].index])
-                    else:
-                        frames[i, j].index = pd.MultiIndex.from_product([[symbol], frames[i, j].index])
-                elif frames.shape[1] > 1:
-                    # we need a multi index column
-                    frames[i, j].columns = pd.MultiIndex.from_product([[symbol], frames[i, j].columns])
+            # submit to asyncio thread pool
+            futures = asyncio.gather(*tasks)
 
-        return frames
+            # await for all futures to complete
+            results = loop.run_until_complete(futures)
 
-    def _fetch_time_series(self, symbol, ignore_error=False, **kwargs) -> pd.DataFrame:
+            # assign results to ndarray
+            for i, row_symbols in enumerate(symbols):
+                for j, symbol in enumerate(row_symbols):
+                    frames[i, j] = results.pop(0)
+
+                    if force_lowercase:
+                        frames[i, j].columns = [c.lower() for c in frames[i, j].columns]
+
+                    # fix MultiIndex if needed
+                    if frames.shape[0] > 1:
+                        # we need a multi index index
+                        if frames.shape[1] > 1:
+                            # and we need a mutlti index column
+                            frames[i, j].columns = pd.MultiIndex.from_product([[j], frames[i, j].columns])
+                            frames[i, j].index = pd.MultiIndex.from_product([["/".join(row_symbols)], frames[i, j].index])
+                        else:
+                            frames[i, j].index = pd.MultiIndex.from_product([[symbol], frames[i, j].index])
+                    elif frames.shape[1] > 1:
+                        # we need a multi index column
+                        frames[i, j].columns = pd.MultiIndex.from_product([[symbol], frames[i, j].columns])
+
+            return frames
+        finally:
+            loop.close()
+
+    async def _fetch_time_series(self, symbol, ignore_error=False, **kwargs) -> pd.DataFrame:
         symbol_implementation = symbol if isinstance(symbol, Symbol) else self.provider_map[type(symbol)](symbol)
         try:
             return call_callable_dynamic_args(symbol_implementation.fetch_price_history, **kwargs)
