@@ -53,7 +53,9 @@ class CryptoCompareSymbol(Symbol):
         data = most_recent["Data"]["Data"]
 
         if sum([b["close"] for b in next_most_recent["Data"]["Data"]]) >= 1e-6:
-            data += next_most_recent["Data"]["Data"]
+            # note that the aggregation starts from the beginning and leaves the last aggregation as is
+            # (potentially only a partial aggregation)
+            data += next_most_recent["Data"]["Data"] if self.aggregate <= 1 else next_most_recent["Data"]["Data"][:-1]
             interval_to = interval_from
 
             # now loop all cacheable calls
@@ -68,7 +70,9 @@ class CryptoCompareSymbol(Symbol):
                 if len(hist["Data"]["Data"]) <= 0 or sum([b["close"] for b in hist["Data"]["Data"]]) < 1e-6:
                     break
 
-                data += hist["Data"]["Data"]
+                # note that the aggregation starts from the beginning and leaves the last aggregation as is
+                # (potentially only a partial aggregation)
+                data += next_most_recent["Data"]["Data"] if self.aggregate <= 1 else next_most_recent["Data"]["Data"][:-1]
 
         df = pd.DataFrame(data)
         df.index = pd.to_datetime(df["time"], unit='s', origin='unix', utc=True)
