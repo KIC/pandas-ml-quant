@@ -33,7 +33,7 @@ class TestYahoo(TestCase):
         self.assertEqual(strikes.min(), strikes.max())
 
     def test_ignore_error(self):
-        df = pd.fetch(["AAPL", "BF.A"], ignore_error=True)
+        df = pd.fetch(["AAPL", "Does Not Exist"], ignore_error=True)
         self.assertListEqual(
             [('AAPL', 'Open'), ('AAPL', 'High'), ('AAPL', 'Low'), ('AAPL', 'Close'), ('AAPL', 'Volume'), ('AAPL', 'Dividends'), ('AAPL', 'Stock Splits')],
             df.columns.to_list()

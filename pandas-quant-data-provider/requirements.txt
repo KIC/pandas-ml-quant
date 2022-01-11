@@ -8,3 +8,7 @@ sortedcontainers
 SQLAlchemy
 piphyperd
 cachier
+asyncio
+nest_asyncio
+diskcache
+python-dotenv

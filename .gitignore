@@ -28,3 +28,5 @@ streamlit_apps/streamlit/models/
 /.run/fetch_optionable_stocks (dolt).run.xml
 /todo.md
 *.egg-info
+/pandas-quant-data-provider/pandas_quant_data_provider/.env
+.env
