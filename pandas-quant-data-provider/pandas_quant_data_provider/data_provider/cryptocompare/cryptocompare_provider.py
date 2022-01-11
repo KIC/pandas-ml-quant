@@ -81,7 +81,7 @@ class CryptoCompareSymbol(Symbol):
         return df
 
     @staticmethod
-    @requests_cache
+    @requests_cache()
     def _fetch_raw_data(url: str, no_cache: bool):
         return requests.get(url).json()
 
