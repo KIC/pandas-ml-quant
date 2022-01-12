@@ -1,14 +1,13 @@
 import logging
 import os
-from datetime import datetime, timezone, timedelta
-from time import sleep
+from datetime import datetime, timedelta
 from typing import Tuple, Union
 
+import pandas as pd
 import requests
 
 from pandas_quant_data_provider.symbol import Symbol
-from pandas_quant_data_provider.utils.cache import requests_cache
-import pandas as pd
+from pandas_quant_data_provider.utils.cache import requests_cache, Duration
 
 TSCENTER = datetime.utcnow().replace(2000, 1, 1, 0, 0, 0, 0)
 MAX_TIMESTEPS = 2000
@@ -23,18 +22,17 @@ class CryptoCompareSymbol(Symbol):
         self.quote = quote
 
         # defne a generic symbol
-        self.symbol = f"{coin.upper()}{quote.upper()}"
+        self.symbol = f"{str(coin).upper()}{quote.upper()}"
 
         # define the url, can be one of the following base urls
         #   https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=10&api_key=
         #   https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=USD&limit=10&api_key=
         #   https://min-api.cryptocompare.com/data/v2/histominute?fsym=BTC&tsym=GBP&limit=10&api_key=
         self.url = f"https://min-api.cryptocompare.com/data/v2/histo{self.frequency.lower()}" \
-                   f"?fsym={coin.upper()}" \
+                   f"?fsym={str(coin).upper()}" \
                    f"&tsym={quote.upper()}" \
                    f"&aggregate={self.aggregate}" \
-                   f"&limit=2000" \
-                   f"&api_key={os.environ.get('CC_API_KEY', '')}"
+                   f"&limit=2000"
 
     def for_coins(self, *args):
         # just a helper function for multiple coins wih same frequency and quote
@@ -49,7 +47,7 @@ class CryptoCompareSymbol(Symbol):
 
         # always skip caching for the first two windows in order to maintain the fixed size windows
         most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_to}", no_cache=True)
-        next_most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_from}", no_cache=True)
+        next_most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_from}", caching_duration=self.frequency)
         data = most_recent["Data"]["Data"]
 
         if sum([b["close"] for b in next_most_recent["Data"]["Data"]]) >= 1e-6:
@@ -66,7 +64,7 @@ class CryptoCompareSymbol(Symbol):
                 logging.debug(f"fetch url {url}")
                 # print(ts, f"fetch url {url}")
 
-                hist = CryptoCompareSymbol._fetch_raw_data(url, no_cache=False)
+                hist = CryptoCompareSymbol._fetch_raw_data(url, caching_duration=Duration.forever)
                 if len(hist["Data"]["Data"]) <= 0 or sum([b["close"] for b in hist["Data"]["Data"]]) < 1e-6:
                     break
 
@@ -82,8 +80,16 @@ class CryptoCompareSymbol(Symbol):
 
     @staticmethod
     @requests_cache()
-    def _fetch_raw_data(url: str, no_cache: bool):
-        return requests.get(url).json()
+    def _fetch_raw_data(url: str, **kwargs):
+        resp = requests.get(url + f"&api_key={os.environ.get('CC_API_KEY', '')}").json()
+
+        if resp["RateLimit"]:
+            raise ValueError(f"rate limit {url}: {resp['RateLimit']}'")
+
+        if resp["Response"].lower() != "success":
+            raise ValueError(f"Unsuccessful request {url}: {resp}")
+
+        return resp
 
     def _get_current_interval(self):
         inc = None
@@ -103,3 +109,6 @@ class CryptoCompareSymbol(Symbol):
 
         return interval_from, interval_to, inc
 
+    def __str__(self):
+        # return f'{self.__class__.__name__}(({self.aggregate}, {self.frequency}), {self.symbol})'
+        return self.symbol

@@ -1,2 +1,1 @@
-import pandas as pd
-import numpy as np
+from .cryptocompare_provider import CryptoCompareSymbol

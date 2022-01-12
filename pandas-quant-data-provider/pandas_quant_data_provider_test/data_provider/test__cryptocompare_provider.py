@@ -19,3 +19,5 @@ class TestCryptoCompareProvider(TestCase):
         self.assertFalse(prices.index.has_duplicates)
         self.assertEqual(increments.min(), increments.max())
 
+    def test_str(self):
+        self.assertEqual('SHIBUSD', f'{CryptoCompareSymbol("hour", "SHIB", "USD")}')

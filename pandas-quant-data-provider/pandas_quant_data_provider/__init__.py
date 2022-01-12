@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from .fetch import QuantDataFetcher
 import pandas_quant_data_provider.utils
+from .data_provider import *
 
 load_dotenv() # local
 
