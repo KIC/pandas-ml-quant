@@ -43,10 +43,9 @@ class CryptoCompareSymbol(Symbol):
         interval_from, interval_to, timedelta_inc = self._get_current_interval()
         ts_from = int(interval_from.timestamp())
         ts_to = int(interval_to.timestamp())
-        #print(ts_to, ts_from)
 
-        # always skip caching for the first two windows in order to maintain the fixed size windows
-        most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_to}", no_cache=True)
+        # use ttl caching for the first two windows in order to maintain the fixed size windows
+        most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_to}", caching_duration=Duration.minute)
         next_most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_from}", caching_duration=self.frequency)
         data = most_recent["Data"]["Data"]
 
@@ -62,7 +61,6 @@ class CryptoCompareSymbol(Symbol):
                 ts = int(interval_to.timestamp())
                 url = self.url + f"&toTs={ts}"
                 logging.debug(f"fetch url {url}")
-                # print(ts, f"fetch url {url}")
 
                 hist = CryptoCompareSymbol._fetch_raw_data(url, caching_duration=Duration.forever)
                 if len(hist["Data"]["Data"]) <= 0 or sum([b["close"] for b in hist["Data"]["Data"]]) < 1e-6:
