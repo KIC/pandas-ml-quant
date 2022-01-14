@@ -53,7 +53,8 @@ class CryptoCompareSymbol(Symbol):
             return len(json_data["Data"]["Data"]) <= 0 or sum([b["close"] for b in json_data["Data"]["Data"]]) >= 1e-6
 
         def extract_bars(json_data):
-            return json_data["Data"]["Data"] if self.aggregate <= 1 else json_data["Data"]["Data"][:-1]
+            #return json_data["Data"]["Data"] if self.aggregate <= 1 else json_data["Data"]["Data"][:-1]
+            return json_data["Data"]["Data"][:-1]
 
         if has_more_data(hist):
             # note that the aggregation starts from the beginning and leaves the last aggregation as is
@@ -82,7 +83,7 @@ class CryptoCompareSymbol(Symbol):
         df = pd.DataFrame(data)
         df.index = pd.to_datetime(df["time"], unit='s', origin='unix', utc=True)
         df = df.drop_duplicates().sort_index()
-
+        assert not df.index.has_duplicates, f"{self.symbol} has duplicate {df.index[df.index.duplicated()]}"
         return df
 
     @staticmethod
