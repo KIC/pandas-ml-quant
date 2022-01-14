@@ -46,13 +46,19 @@ class CryptoCompareSymbol(Symbol):
 
         # use ttl caching for the first two windows in order to maintain the fixed size windows
         most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_to}", caching_duration=Duration.minute)
-        next_most_recent = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_from}", caching_duration=self.frequency)
+        hist = CryptoCompareSymbol._fetch_raw_data(self.url + f"&toTs={ts_from}", caching_duration=self.frequency)
         data = most_recent["Data"]["Data"]
 
-        if sum([b["close"] for b in next_most_recent["Data"]["Data"]]) >= 1e-6:
+        def has_more_data(json_data):
+            return len(json_data["Data"]["Data"]) <= 0 or sum([b["close"] for b in json_data["Data"]["Data"]]) >= 1e-6
+
+        def extract_bars(json_data):
+            return json_data["Data"]["Data"] if self.aggregate <= 1 else json_data["Data"]["Data"][:-1]
+
+        if has_more_data(hist):
             # note that the aggregation starts from the beginning and leaves the last aggregation as is
             # (potentially only a partial aggregation)
-            data += next_most_recent["Data"]["Data"] if self.aggregate <= 1 else next_most_recent["Data"]["Data"][:-1]
+            data += extract_bars(hist)
             interval_to = interval_from
 
             # now loop all cacheable calls
@@ -63,12 +69,15 @@ class CryptoCompareSymbol(Symbol):
                 logging.debug(f"fetch url {url}")
 
                 hist = CryptoCompareSymbol._fetch_raw_data(url, caching_duration=Duration.forever)
-                if len(hist["Data"]["Data"]) <= 0 or sum([b["close"] for b in hist["Data"]["Data"]]) < 1e-6:
+                if not has_more_data(hist):
+                    logging.info(f'last rate found for {self.symbol}: '
+                                 f'{pd.to_datetime(hist["Data"]["Data"][-1]["time"], unit="s", origin="unix", utc=True)}:'
+                                 f'{hist["Data"]["Data"][-1]}')
                     break
 
                 # note that the aggregation starts from the beginning and leaves the last aggregation as is
                 # (potentially only a partial aggregation)
-                data += next_most_recent["Data"]["Data"] if self.aggregate <= 1 else next_most_recent["Data"]["Data"][:-1]
+                data += extract_bars(hist)
 
         df = pd.DataFrame(data)
         df.index = pd.to_datetime(df["time"], unit='s', origin='unix', utc=True)
@@ -81,7 +90,7 @@ class CryptoCompareSymbol(Symbol):
     def _fetch_raw_data(url: str, **kwargs):
         resp = requests.get(url + f"&api_key={os.environ.get('CC_API_KEY', '')}").json()
 
-        if resp["RateLimit"]:
+        if "RateLimit" in resp and len(resp["RateLimit"]) > 0:
             raise ValueError(f"rate limit {url}: {resp['RateLimit']}'")
 
         if resp["Response"].lower() != "success":

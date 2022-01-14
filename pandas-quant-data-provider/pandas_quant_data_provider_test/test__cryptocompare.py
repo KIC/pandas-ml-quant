@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import pandas as pd
+
 import pandas_quant_data_provider as dp
 
 

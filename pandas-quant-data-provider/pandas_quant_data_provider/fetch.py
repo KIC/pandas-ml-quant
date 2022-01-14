@@ -132,10 +132,10 @@ class QuantDataFetcher(object):
                             frames[i, j].columns = pd.MultiIndex.from_product([[j], frames[i, j].columns])
                             frames[i, j].index = pd.MultiIndex.from_product([["/".join(row_symbols)], frames[i, j].index])
                         else:
-                            frames[i, j].index = pd.MultiIndex.from_product([[symbol], frames[i, j].index])
+                            frames[i, j].index = pd.MultiIndex.from_product([[str(symbol)], frames[i, j].index])
                     elif frames.shape[1] > 1:
                         # we need a multi index column
-                        frames[i, j].columns = pd.MultiIndex.from_product([[symbol], frames[i, j].columns])
+                        frames[i, j].columns = pd.MultiIndex.from_product([[str(symbol)], frames[i, j].columns])
 
             return frames
         finally:
