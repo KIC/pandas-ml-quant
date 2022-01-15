@@ -50,15 +50,14 @@ def ta_hmm(df: MlTypes.PatchedSeries, nr_components, means_estimator, period=250
 
 @for_each_top_level_row
 @for_each_column
-def ta_sarimax(df: MlTypes.PatchedSeries, period=60, forecast=1, order=(1, 0, 1), alpha=0.5):
-    assert forecast > 0, "forecast need to be > 0"
+def ta_sarimax(df: MlTypes.PatchedSeries, period=60, forecast=1, order=(1, 1, 1, 0), alpha=0.5, trend=None, **kwargs):
     forecast = forecast if isinstance(forecast, Iterable) else [forecast]
     res = pd.DataFrame({}, index=df.index)
     dfclean = df.dropna()
 
     def arima(x, fc):
         try:
-            forecasted = SARIMAX(x, order=order).fit(disp=-1).forecast(fc, alpha=alpha)
+            forecasted = SARIMAX(x, order=order, trend=trend, **kwargs).fit(disp=-1).forecast(fc, alpha=alpha)
         except Exception as e:
             _log.warning(f"failed arma model: {e}")
             forecasted = np.nan

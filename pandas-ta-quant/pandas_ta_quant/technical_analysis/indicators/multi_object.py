@@ -70,6 +70,17 @@ def ta_adx(df: _PANDAS, period=14, high="High", low="Low", close="Close", relati
 
 @for_each_top_level_row
 @for_each_top_level_column
+def ta_mfi(df: _pd.DataFrame, period=14, close="Close", high="High", low="Low", volume="Volume") -> _pd.Series:
+    tp = (df[high] + df[low] + df[close]) / 3 * df[volume]
+    tp1 = tp.shift(1)
+    pos_mf = (tp1 * (tp > tp1)).rolling(period).sum()
+    neg_mf = (tp1 * (tp < tp1)).rolling(period).sum()
+    mf = pos_mf / (pos_mf + neg_mf)
+    return mf
+
+
+@for_each_top_level_row
+@for_each_top_level_column
 def ta_williams_R(df: _pd.DataFrame, period=14, close="Close", high="High", low="Low") -> _pd.Series:
     temp = _get_pandas_object(df, close).to_frame()
     temp = temp.join(_get_pandas_object(df, high if high is not None else close).rolling(period).max().rename("highest_high"))

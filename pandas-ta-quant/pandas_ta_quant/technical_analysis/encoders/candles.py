@@ -26,7 +26,7 @@ def ta_realative_candles(df: _pd.DataFrame, open="Open", high="High", low="Low",
 
 @for_each_top_level_row
 @for_each_top_level_column
-def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative=False, drop_nan_volume=True, **kwargs):
+def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", relative=False, **kwargs):
     o = _get_pandas_object(df, open)
     c = _get_pandas_object(df, close)
     h = _get_pandas_object(df, high)
@@ -37,7 +37,7 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
     if not c.empty:
         relative = kwargs.get("relative_close", relative)
         is_log = False
-        if relative == 'log+gap':
+        if isinstance(relative, str) and 'log' in relative and 'gap' in relative:
             gap = _np.log(o / c_1)
             is_log = True
         elif relative == 'gap':
@@ -69,9 +69,10 @@ def ta_candles_as_culb(df: _pd.DataFrame, open="Open", high="High", low="Low", c
         })
 
     if volume is not None:
+        # with _np.errstate(divide='ignore'):
         rel_vol = _np.log(df[volume] / df[volume].shift(1)) if is_log else df[volume].pct_change()
-        if not drop_nan_volume or not rel_vol.isnull().all():
-            res[volume] = rel_vol
+        rel_vol.replace([_np.inf, -_np.inf], _np.nan, inplace=True)
+        res[volume] = rel_vol.fillna(0)
 
     return res
 
