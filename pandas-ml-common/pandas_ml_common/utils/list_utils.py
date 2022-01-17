@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 
 def as_empty_tuple(t) -> tuple:
     return (t if isinstance(t, tuple) else (t,)) if t is not None else tuple()
@@ -43,3 +45,11 @@ def safe_first(l):
         return l
 
     return l[0] if len(l) > 0 else None
+
+
+def fixsizelist(size, default=None):
+    def fslist(elements):
+        l = list(elements) + [default] * max(0, size - len(elements))
+        return l[:size]
+
+    return fslist

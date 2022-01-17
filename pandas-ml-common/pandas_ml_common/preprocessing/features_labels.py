@@ -65,7 +65,7 @@ class FeaturesWithReconstructionTargets(NamedTuple):
     @property
     def shape(self) -> Dict:
         return {
-            'features': [(len(f),) + f[:1].ML.values.shape for f in self.features],
+            'features': [(len(f),) + f[:1].ML.values.shape[1:] for f in self.features],
             'reconstruction': (len(self.reconstruction_targets),) + self.reconstruction_targets[:1].ML.values.shape if self.reconstruction_targets is not None else (),
             'min_required_samples': self.min_required_samples,
         }
@@ -98,7 +98,7 @@ class LabelsWithSampleWeights(NamedTuple):
     @property
     def shape(self) -> Dict:
         return {
-            'labels': [(len(l),) + l[:1].ML.values.shape for l in self.labels],
+            'labels': [(len(l),) + l[:1].ML.values.shape[1:] for l in self.labels],
             'sample_weights': [((len(sw),) + sw[:1].ML.values.shape if sw is not None else None) for sw in (self.sample_weights or [])],
             'gross_loss': (len(self.gross_loss),) + self.gross_loss[:1].ML.values.shape if self.gross_loss is not None else (),
         }
@@ -177,6 +177,9 @@ class Extractor(object):
                 frame.replace([np.inf, -np.inf], np.nan, inplace=True)
                 frame.dropna(inplace=True)
 
+                if len(frame) <= 0:
+                    logging.warning(f"frame has no nan values left! columns: {frame.columns.tolist()}")
+
         return FeaturesWithLabels(features, labels)
 
     def extract_features(self, tail=None) -> FeaturesWithReconstructionTargets:
@@ -204,7 +207,7 @@ class Extractor(object):
         return FeaturesWithReconstructionTargets(
             [f.loc[common_index] for f in features],
             loc_if_not_none(recon_tgt, common_index),
-            len(self.df) - len(common_index) + 1
+            (self.df.index.get_loc(common_index[0]) if common_index[0] in self.df.index else len(self.df) - len(common_index)) + 1
         )
 
     def extract_labels(self) -> LabelsWithSampleWeights:

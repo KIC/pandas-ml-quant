@@ -116,11 +116,26 @@ class TestMLExtraction(TestCase):
     def test__min_required_samples(self):
         df = TEST_DF.copy()
 
-        flw = df.ML.extract(
+        extractor = df.ML.extract(
             FeaturesLabels(
                 features=[lambda df: lag_columns(df["Close"].pct_change(), range(10))],
                 labels=[lambda df: df["Close"].pct_change().shift(-1)]
             )
-        ).extract_features_labels_weights()
+        )
 
-        self.assertEqual(11, flw.features_with_required_samples.min_required_samples)
+        self.assertEqual(11, extractor.extract_features().min_required_samples)
+        self.assertEqual(11, extractor.extract_features_labels_weights().features_with_required_samples.min_required_samples)
+
+    def test__min_required_samples2(self):
+        idx = pd.date_range("2020-01-01", "2020-01-31", freq='H')
+        df = pd.DataFrame(np.ones((len(idx), 2)), index=idx)
+
+        extractor = df.ML.extract(
+            FeaturesLabels(
+                features=[lambda df: df.pct_change()],
+                features_postprocessor=lambda df: lag_columns(df.dropna().resample('D').apply(list), 10)
+            )
+        )
+
+        self.assertEqual(31 - 10 + 1, len(extractor.extract_features().features[0]))
+        self.assertEqual(24 * 9 + 1, extractor.extract_features().min_required_samples)
