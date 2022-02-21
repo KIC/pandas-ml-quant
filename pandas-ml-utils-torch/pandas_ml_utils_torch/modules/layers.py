@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Callable
+from typing import Union, Tuple, Callable, Iterable
 
 import torch as t
 import torch.nn as nn
@@ -44,7 +44,23 @@ class Reshape(nn.Module):
 
     def forward(self, x):
         # keep batch size
-        return x.view(x.shape[0], *self.shape)
+        return x.reshape(x.shape[0], *self.shape)
+
+
+class SwapAxis(nn.Module):
+
+    def __init__(self, from_, to_):
+        super().__init__()
+        self.src = from_ if isinstance(from_, Iterable) else [from_]
+        self.dest = to_ if isinstance(to_, Iterable) else [to_]
+        assert len(self.src) == len(self.dest), "Number of from and to axis need to be equal"
+
+    def forward(self, x):
+        # keep batch size
+        for s, d in zip(self.src, self.dest):
+            x = t.swapaxes(x, s + 1 if s >= 0 else s, d + 1 if d >= 0 else d)
+
+        return x
 
 
 class KerasLikeLSTM(nn.Module):

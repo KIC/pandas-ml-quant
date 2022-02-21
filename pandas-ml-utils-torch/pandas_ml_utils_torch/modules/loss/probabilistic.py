@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Callable, Any
 
 import torch as t
@@ -13,16 +14,25 @@ _log = logging.getLogger(__name__)
 
 class DistributionNLL(t.nn.Module):
 
-    def __init__(self, distribution_provider: Callable[[Any], Distribution], reduction: str = 'sum', penalize_toal_variance_lambda: float = None):
+    def __init__(self, distribution_provider: Callable[[Any], Distribution], reduction: str = 'sum', penalize_toal_variance_lambda: float = None, verbose=False):
         super().__init__()
         self.distribution_provider = distribution_provider
         self.penalize_toal_variance = penalize_toal_variance_lambda
         self.reduction = reduction
+        self.verbose = verbose
+        self._counter = 0
 
     def forward(self, y_pred, y_true):
         dist = self.distribution_provider(y_pred)
         penalty = 0 if self.penalize_toal_variance is None else dist.variance * self.penalize_toal_variance
-        return reduce(-dist.log_prob(y_true) + penalty, self.reduction)
+        loss = reduce(-dist.log_prob(y_true) + penalty, self.reduction)
+        self._counter += 1
+
+        if self.verbose:
+            if self.verbose > 0 and self._counter % self.verbose == 0:
+                print(f"loss: {loss}, variance: {dist.variance.mean()}")
+
+        return loss
 
 
 class HeteroscedasticityLoss(t.nn.Module):

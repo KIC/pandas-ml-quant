@@ -70,7 +70,16 @@ class Fit(object):
         return self
 
     def with_summary(self, summary_provider: Callable[..., Summary] = Summary, **kwargs):
-        return Fit(self.model, self.training_frames, self.test_frames, self.training_prediction, self.test_prediction, **self._kwargs)
+        return Fit(
+            self.model,
+            self.training_frames,
+            self.test_frames,
+            self.training_prediction,
+            self.test_prediction,
+            summary_provider,
+            **self.kwargs,
+            **kwargs
+        )
 
     def __str__(self):
         summaries = f"train:\n{self.training_summary}\ntest:\n{self.test_summary}"

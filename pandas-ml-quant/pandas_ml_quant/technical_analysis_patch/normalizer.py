@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler
 
@@ -84,3 +85,42 @@ def ta_delta_hedged_price(df: MlTypes.PatchedDataFrame, benchmark):
 
     delta_hedged = ta_log_returns(df) - bench_returns
     return np.exp(delta_hedged.cumsum())
+
+
+@for_each_top_level_row
+@for_each_top_level_column
+def ta_zscored_candle(df: MlTypes.PatchedDataFrame, open="Open", high="High", low="Low", close="Close", volume="Volume", period=20, ddof=1):
+    fix_domain_constant = 4
+
+    @for_each_column
+    def ta_zscoreing(df: pd.DataFrame) -> pd.DataFrame:
+        mean = df.rolling(period).mean().rename("mean")
+        std = df.rolling(period).std(ddof=ddof).rename("std")
+        return pd.concat([mean, std], axis=1)
+
+    scoring = ta_zscoreing(df[close])
+
+    # trend
+    scoring[f"zmean"] = scoring["mean"].pct_change()
+
+    # candle
+    for col in [open, high, low, close]:
+        scoring[f"z{col}"] = ((df[col] - scoring["mean"]) / scoring["std"]) / fix_domain_constant
+
+    # body of candle
+    scoring[f"zbody"] = scoring[f"z{close}"] - scoring[f"z{open}"]
+
+    # upper shadow
+    scoring[f"zupper"] = scoring[f"z{high}"] - scoring[[f"z{open}", f"z{close}"]].max(axis=1)
+
+    # lower shadow
+    scoring[f"zupper"] = scoring[[f"z{open}", f"z{close}"]].min(axis=1) - scoring[f"z{low}"]
+
+    # scored standard deviation
+    scoring["zstd"] = ((scoring["mean"] + scoring["std"]) / (scoring["mean"] - scoring["std"]) - 1)
+
+    if volume is not None:
+        vscoring = ta_zscoreing(df[volume])
+        scoring["zvol"] = ((df[volume] - vscoring["mean"]) / vscoring["std"]) / fix_domain_constant
+
+    return scoring.drop(["mean", "std"], axis=1)

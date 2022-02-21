@@ -144,9 +144,8 @@ class PriceSampledSummary(Summary):
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame] = lambda y: y.ta.cumret(),
             sampler: Callable[[pd.Series], float] = lambda params, samples: np.random.normal(*params.values, samples),
             **kwargs):
-        return lambda df, model, **kwargs2: PriceSampledSummary(
+        return lambda df, **kwargs2: PriceSampledSummary(
             df,
-            model,
             label_returns,
             label_reconstruction,
             sampler,
@@ -156,7 +155,6 @@ class PriceSampledSummary(Summary):
     def __init__(
             self,
             df: MlTypes.PatchedDataFrame,
-            model: Model,
             label_returns: Callable[[pd.DataFrame], pd.DataFrame],
             label_reconstruction: Callable[[pd.DataFrame], pd.DataFrame],
             sampler: Callable[[pd.Series], float] = lambda params, samples: np.random.normal(*params.values, samples),
@@ -168,7 +166,6 @@ class PriceSampledSummary(Summary):
             **kwargs):
         super().__init__(
             df.sort_index(),
-            model,
             self.plot_prediction,
             self.calc_scores,
             self.plot_tail_events,
@@ -293,7 +290,7 @@ class PriceSampledSummary(Summary):
         if "model" in kwargs: del kwargs["model"]
 
         try:
-            ax = self.get_tail_events().hist(bins='sqrt', sharex=True, sharey=True, **kwargs)
+            ax = self.get_tail_events().hist(bins='sqrt', sharex=True, sharey=True) #, **kwargs)
             return plt.gcf()
         except Exception as e:
             traceback.print_exc()

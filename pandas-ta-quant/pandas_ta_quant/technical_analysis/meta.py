@@ -1,4 +1,4 @@
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Dict, Union
 
 import pandas as pd
 
@@ -23,7 +23,21 @@ def ta_repeat(
 
 @for_each_top_level_row
 @for_each_top_level_column
-def ta_apply(df: MlTypes.PatchedPandas, func: Callable, period=None, columns=None):
+def ta_apply(df: MlTypes.PatchedPandas, func: Union[Callable, Dict[str, Callable]], period=None, columns=None):
+    if isinstance(func, dict):
+        keys = []
+        frames = []
+        for k, f in func.items():
+            frames.append(ta_apply(df, f, period=period, columns=columns))
+            keys.append(k)
+
+        res = pd.concat(frames, axis=1, names=keys)
+
+        if not isinstance(res.columns, pd.MultiIndex):
+            res.columns = keys
+
+        return res
+
     if columns:
         df = df[columns]
 
@@ -36,7 +50,7 @@ def ta_apply(df: MlTypes.PatchedPandas, func: Callable, period=None, columns=Non
             return pd.DataFrame(x if isinstance(x, (list, set, tuple)) else [x]).T
 
     if not period:
-        return df.apply(func, axis=1, result_type='expand')
+        return df.apply(func, axis=1, result_type='reduce')
     else:
         rdf = pd.concat(
             [as_pandas(func(df.iloc[i - period: i])) for i in range(period, len(df))],

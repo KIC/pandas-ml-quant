@@ -14,13 +14,12 @@ from pandas_ml_utils_torch import PytorchModelProvider, PytorchNNFactory
 from pandas_ml_utils_torch import layers
 from pandas_ml_utils_torch import lossfunction
 from pandas_ml_utils_torch.utils import wrap_applyable
+from pandas_ml_quant.model.summary.price_prediction_summary import PriceSampledSummary
 
 
 class TestPytorchProbabilisticModel(TestCase):
 
     def test_probabilistic_model_with_callback(self):
-        from pandas_ml_quant.model.summary.price_prediction_summary import PriceSampledSummary
-
         df = pd.DataFrame({"Returns": np.random.normal(-0.02, 0.03, 500) + np.random.normal(0.03, 0.02, 500)})
 
         model_factory = PytorchNNFactory.create(
@@ -96,6 +95,16 @@ class TestPytorchProbabilisticModel(TestCase):
         )
 
         print(fit.test_summary.calc_scores())
+        self.assertIsNotNone(fit.test_summary._repr_html_())
 
-
-
+    def test_summary_provider(self):
+        summary_provider = PriceSampledSummary.with_reconstructor(
+            label_returns=lambda y: y,
+            label_reconstruction=lambda target: target.iloc[:, 0],
+            sampler=wrap_applyable(
+                lambda params, samples: Normal(params[..., 0], params[..., 1]).sample([int(samples.item())]),
+                nr_args=2),
+            forecast_period=7,
+            samples=500,
+            confidence=0.7,
+        ),

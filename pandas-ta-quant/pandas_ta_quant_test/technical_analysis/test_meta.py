@@ -23,6 +23,14 @@ class TestMeta(TestCase):
     def test_apply(self):
         df = DF_TEST_MULTI_ROW_MULTI_COLUMN
         res = ta_apply(df, lambda x: (np.min(x.values), np.max(x.values)))
+
+        self.assertEqual((7670, 2), res.shape)
+        self.assertEqual(df.index.to_list(), res.index.to_list())
+
+    def test_multiple_apply(self):
+        df = DF_TEST_MULTI_ROW_MULTI_COLUMN
+        res = ta_apply(df, {"min": lambda x: np.min(x.values), "max": lambda x: np.max(x.values)})
+        # print(res)
         self.assertEqual((7670, 4), res.shape)
         self.assertEqual(df.index.to_list(), res.index.to_list())
 

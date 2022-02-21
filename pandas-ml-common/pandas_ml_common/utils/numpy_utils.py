@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import numpy as np
+import pandas as pd
 
 
 def one_hot(index, categories):
@@ -78,6 +79,19 @@ def get_buckets(arr, open=True, at_index=None):
 
 def mean(values):
     return np.array(values).mean()
+
+
+def suppress_small_numbers(a: np.ndarray, tolerance=0.001):
+    a = a.copy() if isinstance(a, np.ndarray) else np.array(a)
+    a[np.isclose(a, 0, atol=tolerance)] = 0
+    return a
+
+
+def cumprod1(a: np.ndarray):
+    if not isinstance(a, (np.ndarray, pd.Series, pd.DataFrame)):
+        a = np.array(a)
+
+    return np.cumprod(1 + a) - 1
 
 
 class WrappedTuple(object):

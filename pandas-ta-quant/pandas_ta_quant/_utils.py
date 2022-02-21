@@ -83,11 +83,12 @@ def with_column_suffix(suffix, po, ref_po=None):
 
     if po.ndim > 1:
         if isinstance(po.columns, pd.MultiIndex):
-            po.columns = pd.MultiIndex.from_tuples([(f'{col[0]}_{suffix}', *col[1:]) for col in ref_po.columns.to_list()])
+            #po.columns = pd.MultiIndex.from_tuples([(f'{col[0]}_{suffix}', *col[1:]) for col in ref_po.columns.to_list()])
+            po.columns = pd.MultiIndex.from_tuples([(*col[:-1], f'{col[-1]}_{suffix}') for col in ref_po.columns.to_list()])
             return po
         else:
-            po.columns = ref_po.columns
-            return po.add_suffix(f'_{suffix}')
+            po.columns = [(*col[:-1], f'{col[-1]}_{suffix}') if isinstance(col, tuple) else f'{col}_{suffix}' for col in ref_po.columns]
+            return po
     else:
         if isinstance(po.name, tuple):
             return po.rename((suffix, *ref_po.name))

@@ -25,6 +25,7 @@ class PytorchModelProvider(ModelProvider):
                  net: Union[Callable[..., PytorchNN], PytorchNN],
                  criterion_provider: Union[Type[nn.modules.loss._Loss], Callable[[], nn.modules.loss._Loss]],
                  optimizer_provider: Union[Type[t.optim.Optimizer], Callable[[Iterable], t.optim.Optimizer]],
+                 restore_best_weights: bool = False,
                  record_best_weights: bool = False,
                  is_auto_encoder: bool = False,
                  **kwargs):
@@ -32,7 +33,8 @@ class PytorchModelProvider(ModelProvider):
         self.net_provider = _as_callable_wrapper(net)
         self.criterion_provider = criterion_provider
         self.optimizer_provider = optimizer_provider
-        self.record_best_weights = record_best_weights
+        self.restore_best_weights = restore_best_weights
+        self.record_best_weights = record_best_weights or restore_best_weights
         self.is_auto_encoder = is_auto_encoder
         self.kwargs = kwargs
 
@@ -134,6 +136,9 @@ class PytorchModelProvider(ModelProvider):
         return loss
 
     def finish_learning(self, **kwargs):
+        if self.restore_best_weights:
+            self.net.load_state_dict(self.best_weights)
+
         self.net = self.net.eval()
         self.criterion = None
         self.optimizer = None

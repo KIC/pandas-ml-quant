@@ -1,7 +1,8 @@
-from typing import Union as _Union
+from typing import Union as _Union, Callable
 
 import numpy as _np
 import pandas as _pd
+import pandas as pd
 
 import pandas_ta_quant.technical_analysis.bands as _b
 import pandas_ta_quant.technical_analysis.filters as _f
@@ -134,3 +135,13 @@ def ta_is_opening_gap_closed(df: _pd.DataFrame, threshold=0.001, no_gap=_np.nan,
                 return no_gap
 
     return df.apply(gap_category, raw=False, axis=1).rename("closing_gap")
+
+
+def ta_onehot_idx(df: _pd.DataFrame, func: Callable[[pd.Series], int]):
+    onehot_arg = (df.apply(func) if isinstance(df, pd.Series) else df.apply(func, axis=1)).values
+    res = _np.zeros(df.shape)
+    res[_np.arange(onehot_arg.size), onehot_arg] = 1
+    resdf = pd.DataFrame(res, index=df.index, columns=df.columns)
+
+    resdf.loc[pd.isna(df).any(1), :] = _np.NaN
+    return resdf

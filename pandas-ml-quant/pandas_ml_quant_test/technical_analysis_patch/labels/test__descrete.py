@@ -71,3 +71,9 @@ class TestDescreteLabels(TestCase):
         self.assertTrue(o.iloc[-2])
         self.assertTrue(u.iloc[-5])
 
+    def test_ta_onehot_idx(self):
+        labels = DF_TEST[['Open', 'High', 'Low', 'Close']].pct_change()
+        res = ta_onehot_idx(labels, np.argmax)
+
+        # print(res)
+        self.assertEqual(res.sum(axis=1).max(), 1)

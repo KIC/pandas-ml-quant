@@ -15,7 +15,8 @@ def from_pandas(df: Union[MlTypes.PatchedDataFrame, List[MlTypes.PatchedDataFram
     if isinstance(df, (List, Set, Tuple)):
         return tuple([from_pandas(f, cuda, default) for f in df])
 
-    val = (t.from_numpy(df.ML.get_values(split_multi_index_rows=False, squeeze=True)) if df is not None else default).float()
+    val = t.from_numpy(df.ML.get_values(split_multi_index_rows=False, squeeze=True)) if df is not None else default
+    val = val.long() if is_df_int(df) else val.float()
     return val.cuda() if cuda else val.cpu()
 
 
@@ -47,3 +48,12 @@ def wrap_applyable(func, nr_args=1, return_numpy=True):
         return (x.numpy() if sum(x.shape) > 1 else x.item()) if return_numpy else x
 
     return wrapped
+
+
+def is_df_int(df):
+    types = np.unique(df.dtypes.values)
+    if len(types) == 1:
+        if 'int' in str(types[0]):
+            return True
+
+    return False

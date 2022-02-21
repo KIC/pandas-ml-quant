@@ -6,7 +6,7 @@ from .index_utils import *
 from .jupyther_utils import register_wirte_and_run_magic, notebook_name
 from .list_utils import *
 from .normalization import ReScaler
-from .numpy_utils import np_nans
+from .numpy_utils import np_nans, suppress_small_numbers, cumprod1
 from .random import normalize_probabilities, temp_seed
 from .serialization_utils import serialize, deserialize, serializeb, deserializeb, plot_to_html_img, dict_to_str
 from .types import *

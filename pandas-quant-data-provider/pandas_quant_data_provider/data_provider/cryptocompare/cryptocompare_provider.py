@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Tuple, Union
 
 import pandas as pd
+import numpy as np
 import requests
 
 from pandas_quant_data_provider.symbol import Symbol
@@ -82,7 +83,8 @@ class CryptoCompareSymbol(Symbol):
 
         df = pd.DataFrame(data)
         df.index = pd.to_datetime(df["time"], unit='s', origin='unix', utc=True)
-        df = df.drop_duplicates().sort_index()
+        df = df.drop_duplicates().sort_index().replace(0.0, np.nan)
+
         assert not df.index.has_duplicates, f"{self.symbol} has duplicate {df.index[df.index.duplicated()]}"
         return df
 

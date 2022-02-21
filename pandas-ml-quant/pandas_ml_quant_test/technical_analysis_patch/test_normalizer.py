@@ -3,9 +3,9 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from pandas_ml_quant.technical_analysis_patch import ta_normalize_row, ta_delta_hedged_price
+from pandas_ml_quant.technical_analysis_patch import ta_normalize_row, ta_delta_hedged_price, ta_zscored_candle
 from pandas_ta_quant.technical_analysis import ta_rescale
-from pandas_ml_quant_test.config import DF_TEST, DF_TEST2
+from pandas_ml_quant_test.config import DF_TEST, DF_TEST2, DF_TEST_MULTI_ROW_MULTI_COLUMN
 
 
 class TestNormalizer(TestCase):
@@ -46,3 +46,8 @@ class TestNormalizer(TestCase):
         self.assertEqual((3788,), ta_delta_hedged_price(df["Close"], bench).shape)
         self.assertEqual((6763, 5), ta_delta_hedged_price(df, "Open").shape)
 
+    def test_zscored_candles(self):
+        df = DF_TEST_MULTI_ROW_MULTI_COLUMN
+        df_scored_candles = ta_zscored_candle(df)
+
+        print(df_scored_candles)

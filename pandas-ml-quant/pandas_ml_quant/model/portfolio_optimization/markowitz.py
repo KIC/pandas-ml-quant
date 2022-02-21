@@ -68,5 +68,5 @@ class MarkowitzModel(Model):
             return mu, sigma
 
         # we need to iterate row for row and if there is one row containing nans we return nans
-        portfolio_weights = np.array([optimize(*construct_mu_sigma(i))for i in expected_returns.index])
+        portfolio_weights = np.array([optimize(*construct_mu_sigma(i)) for i in expected_returns.index])
         return portfolio_weights
