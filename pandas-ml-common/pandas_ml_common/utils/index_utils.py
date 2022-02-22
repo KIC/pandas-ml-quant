@@ -13,6 +13,26 @@ from pandas_ml_common.utils.types import Constant
 _log = logging.getLogger(__name__)
 
 
+def get_slice_of_level(df, selector, level, axis=1):
+    idx = df.index if axis < 1 else df.columns
+
+    if not isinstance(idx, pd.MultiIndex):
+        return df[selector] if axis > 0 else df.loc[selector]
+
+    slice_selector = [slice(None)] * idx.nlevels
+    slice_selector[level] = selector
+    slice_selector = tuple(slice_selector)
+
+    if axis < 1:
+        res = df.loc[slice_selector, :]
+        res.index = pd.MultiIndex.from_tuples(res.index.to_list())
+    else:
+        res = df.loc[:, slice_selector]
+        res.columns = pd.MultiIndex.from_tuples(res.columns.to_list())
+
+    return res
+
+
 def concat_indices(indices: List[pd.Index]):
     if indices is None or len(indices) < 2:
         return indices

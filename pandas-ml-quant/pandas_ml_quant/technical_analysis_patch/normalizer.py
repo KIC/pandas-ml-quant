@@ -114,7 +114,7 @@ def ta_zscored_candle(df: MlTypes.PatchedDataFrame, open="Open", high="High", lo
     scoring[f"zupper"] = scoring[f"z{high}"] - scoring[[f"z{open}", f"z{close}"]].max(axis=1)
 
     # lower shadow
-    scoring[f"zupper"] = scoring[[f"z{open}", f"z{close}"]].min(axis=1) - scoring[f"z{low}"]
+    scoring[f"zlower"] = scoring[[f"z{open}", f"z{close}"]].min(axis=1) - scoring[f"z{low}"]
 
     # scored standard deviation
     scoring["zstd"] = ((scoring["mean"] + scoring["std"]) / (scoring["mean"] - scoring["std"]) - 1)

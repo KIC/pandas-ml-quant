@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas_ml_common import pd, flatten_multi_column_index
 from pandas_ml_common.utils import intersection_of_index, loc_if_not_none, add_multi_index, get_pandas_object, Constant, \
-    same_columns_after_level, difference_in_index
+    same_columns_after_level, difference_in_index, get_slice_of_level
 
 
 class TestDfIndexUtils(TestCase):
@@ -114,3 +114,11 @@ class TestDfIndexUtils(TestCase):
             [['a', 'b'], [], ['c'], ['d']],
             [i.to_list() for i in difference_in_index(df1, s1, s2, df3, axis=1)]
         )
+
+    def test_get_level_slice(self):
+        df = pd.DataFrame({"hallo": [1, 2, 3]})
+        df.columns = pd.MultiIndex.from_product([["a"], df.columns])
+
+        df = get_slice_of_level(df, "hallo", 1)
+        self.assertEqual([('a', 'hallo')], df.columns.tolist())
+        self.assertIsInstance(df.columns, pd.MultiIndex)

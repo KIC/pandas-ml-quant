@@ -5,13 +5,31 @@ import pandas as pd
 
 from ..preprocessing.features_labels import FeaturesLabels, Extractor
 from ..typing import MlTypes
-from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns, pd_cumapply
+from ..utils import multi_index_shape, get_pandas_object, unpack_nested_arrays, has_indexed_columns, pd_cumapply, get_slice_of_level
 
 
 class MLCompatibleValues(object):
 
     def __init__(self, df: pd.DataFrame):
         self.df = df
+
+    @property
+    def lloc(self):
+        class LLoc(object):
+            def __init__(self, df):
+                self.df = df
+
+            def __getitem__(self, item):
+                level = item[-1]
+                axis = 0 if len(item) > 2 else 1
+
+                if axis > 0:
+                    return get_slice_of_level(self.df, item[0], level, axis)
+                else:
+                    level = level if isinstance(level, tuple) else (level, level)
+                    return get_slice_of_level(get_slice_of_level(self.df, item[1], level[0], 1), item[0], level[1], 0)
+
+        return LLoc(self.df)
 
     def cumapply(self, func: callable, start_value=None, **kwargs):
         """

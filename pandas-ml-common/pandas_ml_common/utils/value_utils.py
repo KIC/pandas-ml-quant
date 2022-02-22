@@ -38,7 +38,7 @@ def unpack_nested_arrays(df: Union[pd.DataFrame, pd.Series, np.ndarray], split_m
             res = np.array([np.array(v) for v in values])
     else:
         if hasattr(df, "columns") and isinstance(df.columns, pd.MultiIndex):
-            dimensions = np.array(unwind_multiindex(df.columns)).shape
+            dimensions = np.array(unwind_multiindex(df.columns), dtype='object').shape
             res = values.reshape(df.shape[0], *dimensions[:-1]) if len(dimensions) >= df.columns.nlevels else values
         else:
             res = values
