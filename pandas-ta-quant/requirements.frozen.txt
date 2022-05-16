@@ -1,7 +1,7 @@
 arch==5.0.1
 bintrees==2.2.0
 mgarch-setup-fix==0.2.0
-numpy==1.20.3
+numpy==1.21.0
 pyts==0.11.0
 scikit-learn==0.24.2
 scipy==1.4.1
