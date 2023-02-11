@@ -1,3 +1,7 @@
+NOTE: Future development happens at https://github.com/Pandas-Quant-Finance
+
+However, this is still the library I currently use in production.
+
 # Pandas Machine Learning and Quant Finance Library Collection
 
 [![Python
