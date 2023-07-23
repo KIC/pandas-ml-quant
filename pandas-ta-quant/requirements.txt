@@ -1,5 +1,5 @@
 bintrees
-scipy==1.4.1  # https://github.com/srivastavaprashant/mgarch/issues/4
+scipy==1.10.0  # https://github.com/srivastavaprashant/mgarch/issues/4
 arch
 mgarch-setup-fix  # https://github.com/srivastavaprashant/mgarch/issues/3
 pyts
