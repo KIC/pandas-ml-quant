@@ -4,5 +4,5 @@ lxml==4.6.3
 Markdown==3.3.4
 matplotlib==3.4.3
 nbconvert==6.1.0
-requests==2.26.0
+requests==2.31.0
 TA-Lib==0.4.21
